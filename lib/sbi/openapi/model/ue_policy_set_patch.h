@@ -22,6 +22,7 @@ typedef struct OpenAPI_ue_policy_set_patch_s OpenAPI_ue_policy_set_patch_t;
 typedef struct OpenAPI_ue_policy_set_patch_s {
     OpenAPI_list_t* ue_policy_sections;
     OpenAPI_list_t *upsis;
+    bool is_andsp_ind;
     int andsp_ind;
     char *pei;
     OpenAPI_list_t *os_ids;
@@ -30,10 +31,11 @@ typedef struct OpenAPI_ue_policy_set_patch_s {
 OpenAPI_ue_policy_set_patch_t *OpenAPI_ue_policy_set_patch_create(
     OpenAPI_list_t* ue_policy_sections,
     OpenAPI_list_t *upsis,
+    bool is_andsp_ind,
     int andsp_ind,
     char *pei,
     OpenAPI_list_t *os_ids
-    );
+);
 void OpenAPI_ue_policy_set_patch_free(OpenAPI_ue_policy_set_patch_t *ue_policy_set_patch);
 OpenAPI_ue_policy_set_patch_t *OpenAPI_ue_policy_set_patch_parseFromJSON(cJSON *ue_policy_set_patchJSON);
 cJSON *OpenAPI_ue_policy_set_patch_convertToJSON(OpenAPI_ue_policy_set_patch_t *ue_policy_set_patch);

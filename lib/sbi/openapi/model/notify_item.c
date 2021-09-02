@@ -7,7 +7,7 @@
 OpenAPI_notify_item_t *OpenAPI_notify_item_create(
     char *resource_id,
     OpenAPI_list_t *changes
-    )
+)
 {
     OpenAPI_notify_item_t *notify_item_local_var = OpenAPI_malloc(sizeof(OpenAPI_notify_item_t));
     if (!notify_item_local_var) {
@@ -43,19 +43,11 @@ cJSON *OpenAPI_notify_item_convertToJSON(OpenAPI_notify_item_t *notify_item)
     }
 
     item = cJSON_CreateObject();
-    if (!notify_item->resource_id) {
-        ogs_error("OpenAPI_notify_item_convertToJSON() failed [resource_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "resourceId", notify_item->resource_id) == NULL) {
         ogs_error("OpenAPI_notify_item_convertToJSON() failed [resource_id]");
         goto end;
     }
 
-    if (!notify_item->changes) {
-        ogs_error("OpenAPI_notify_item_convertToJSON() failed [changes]");
-        goto end;
-    }
     cJSON *changesList = cJSON_AddArrayToObject(item, "changes");
     if (changesList == NULL) {
         ogs_error("OpenAPI_notify_item_convertToJSON() failed [changes]");
@@ -87,7 +79,6 @@ OpenAPI_notify_item_t *OpenAPI_notify_item_parseFromJSON(cJSON *notify_itemJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(resource_id)) {
         ogs_error("OpenAPI_notify_item_parseFromJSON() failed [resource_id]");
         goto end;
@@ -100,9 +91,8 @@ OpenAPI_notify_item_t *OpenAPI_notify_item_parseFromJSON(cJSON *notify_itemJSON)
     }
 
     OpenAPI_list_t *changesList;
-
     cJSON *changes_local_nonprimitive;
-    if (!cJSON_IsArray(changes)) {
+    if (!cJSON_IsArray(changes)){
         ogs_error("OpenAPI_notify_item_parseFromJSON() failed [changes]");
         goto end;
     }
@@ -120,9 +110,9 @@ OpenAPI_notify_item_t *OpenAPI_notify_item_parseFromJSON(cJSON *notify_itemJSON)
     }
 
     notify_item_local_var = OpenAPI_notify_item_create (
-        ogs_strdup(resource_id->valuestring),
+        ogs_strdup_or_assert(resource_id->valuestring),
         changesList
-        );
+    );
 
     return notify_item_local_var;
 end:

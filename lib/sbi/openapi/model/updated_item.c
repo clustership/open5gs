@@ -7,7 +7,7 @@
 OpenAPI_updated_item_t *OpenAPI_updated_item_create(
     char *item,
     char *value
-    )
+)
 {
     OpenAPI_updated_item_t *updated_item_local_var = OpenAPI_malloc(sizeof(OpenAPI_updated_item_t));
     if (!updated_item_local_var) {
@@ -40,19 +40,11 @@ cJSON *OpenAPI_updated_item_convertToJSON(OpenAPI_updated_item_t *updated_item)
     }
 
     item = cJSON_CreateObject();
-    if (!updated_item->item) {
-        ogs_error("OpenAPI_updated_item_convertToJSON() failed [item]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "item", updated_item->item) == NULL) {
         ogs_error("OpenAPI_updated_item_convertToJSON() failed [item]");
         goto end;
     }
 
-    if (!updated_item->value) {
-        ogs_error("OpenAPI_updated_item_convertToJSON() failed [value]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "value", updated_item->value) == NULL) {
         ogs_error("OpenAPI_updated_item_convertToJSON() failed [value]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_updated_item_t *OpenAPI_updated_item_parseFromJSON(cJSON *updated_itemJS
         goto end;
     }
 
-
     if (!cJSON_IsString(item)) {
         ogs_error("OpenAPI_updated_item_parseFromJSON() failed [item]");
         goto end;
@@ -83,16 +74,15 @@ OpenAPI_updated_item_t *OpenAPI_updated_item_parseFromJSON(cJSON *updated_itemJS
         goto end;
     }
 
-
     if (!cJSON_IsString(value)) {
         ogs_error("OpenAPI_updated_item_parseFromJSON() failed [value]");
         goto end;
     }
 
     updated_item_local_var = OpenAPI_updated_item_create (
-        ogs_strdup(item->valuestring),
-        ogs_strdup(value->valuestring)
-        );
+        ogs_strdup_or_assert(item->valuestring),
+        ogs_strdup_or_assert(value->valuestring)
+    );
 
     return updated_item_local_var;
 end:

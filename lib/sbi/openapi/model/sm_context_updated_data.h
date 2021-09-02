@@ -1,7 +1,7 @@
 /*
  * sm_context_updated_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_sm_context_updated_data_H_
@@ -35,10 +35,12 @@ typedef struct OpenAPI_sm_context_updated_data_s {
     struct OpenAPI_ref_to_binary_data_s *n2_sm_info;
     OpenAPI_n2_sm_info_type_e n2_sm_info_type;
     OpenAPI_list_t *eps_bearer_setup;
+    bool is_data_forwarding;
     int data_forwarding;
     OpenAPI_list_t *n3_dl_forwarding_tnl_list;
     OpenAPI_list_t *n3_ul_forwarding_tnl_list;
     OpenAPI_cause_e cause;
+    bool is_ma_accepted_ind;
     int ma_accepted_ind;
     char *supported_features;
     char forwarding_f_teid;
@@ -57,17 +59,19 @@ OpenAPI_sm_context_updated_data_t *OpenAPI_sm_context_updated_data_create(
     OpenAPI_ref_to_binary_data_t *n2_sm_info,
     OpenAPI_n2_sm_info_type_e n2_sm_info_type,
     OpenAPI_list_t *eps_bearer_setup,
+    bool is_data_forwarding,
     int data_forwarding,
     OpenAPI_list_t *n3_dl_forwarding_tnl_list,
     OpenAPI_list_t *n3_ul_forwarding_tnl_list,
     OpenAPI_cause_e cause,
+    bool is_ma_accepted_ind,
     int ma_accepted_ind,
     char *supported_features,
     char forwarding_f_teid,
     OpenAPI_list_t *forwarding_bearer_contexts,
     char *selected_smf_id,
     char *selected_old_smf_id
-    );
+);
 void OpenAPI_sm_context_updated_data_free(OpenAPI_sm_context_updated_data_t *sm_context_updated_data);
 OpenAPI_sm_context_updated_data_t *OpenAPI_sm_context_updated_data_parseFromJSON(cJSON *sm_context_updated_dataJSON);
 cJSON *OpenAPI_sm_context_updated_data_convertToJSON(OpenAPI_sm_context_updated_data_t *sm_context_updated_data);

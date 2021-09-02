@@ -1,7 +1,7 @@
 /*
  * policy_update.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_policy_update_H_
@@ -29,10 +29,10 @@ typedef struct OpenAPI_policy_update_s {
     OpenAPI_list_t *triggers;
     struct OpenAPI_service_area_restriction_s *serv_area_res;
     struct OpenAPI_wireline_service_area_restriction_s *wl_serv_area_res;
+    bool is_rfsp;
     int rfsp;
     struct OpenAPI_smf_selection_data_s *smf_sel_info;
     struct OpenAPI_ambr_s *ue_ambr;
-    struct OpenAPI_ambr_s *rg_tmbr;
     OpenAPI_list_t* pras;
 } OpenAPI_policy_update_t;
 
@@ -41,12 +41,12 @@ OpenAPI_policy_update_t *OpenAPI_policy_update_create(
     OpenAPI_list_t *triggers,
     OpenAPI_service_area_restriction_t *serv_area_res,
     OpenAPI_wireline_service_area_restriction_t *wl_serv_area_res,
+    bool is_rfsp,
     int rfsp,
     OpenAPI_smf_selection_data_t *smf_sel_info,
     OpenAPI_ambr_t *ue_ambr,
-    OpenAPI_ambr_t *rg_tmbr,
     OpenAPI_list_t* pras
-    );
+);
 void OpenAPI_policy_update_free(OpenAPI_policy_update_t *policy_update);
 OpenAPI_policy_update_t *OpenAPI_policy_update_parseFromJSON(cJSON *policy_updateJSON);
 cJSON *OpenAPI_policy_update_convertToJSON(OpenAPI_policy_update_t *policy_update);

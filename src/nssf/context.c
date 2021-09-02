@@ -108,7 +108,7 @@ int nssf_context_parse_config(void)
                         int family = AF_UNSPEC;
                         int i, num = 0;
                         const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
-                        uint16_t port = ogs_sbi_self()->http_port;
+                        uint16_t port = ogs_sbi_self()->sbi_port;
                         const char *dev = NULL;
                         ogs_sockaddr_t *addr = NULL;
                         const char *key = NULL, *pem = NULL;
@@ -290,7 +290,7 @@ nssf_nsi_t *nssf_nsi_add(ogs_sockaddr_t *addr, uint8_t sst, ogs_uint24_t sd)
     nsi->nsi_id = ogs_msprintf("%d", (int)ogs_pool_index(&nssf_nsi_pool, nsi));
     ogs_assert(nsi->nsi_id);
 
-    ogs_copyaddrinfo(&nsi->addr, addr);
+    ogs_assert(OGS_OK == ogs_copyaddrinfo(&nsi->addr, addr));
 
     nsi->s_nssai.sst = sst;
     nsi->s_nssai.sd.v = sd.v;

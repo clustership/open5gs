@@ -24,7 +24,8 @@
 #include "nas-path.h"
 
 bool smf_npcf_smpolicycontrol_handle_create(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *recvmsg)
+        smf_sess_t *sess, ogs_sbi_stream_t *stream, int state,
+        ogs_sbi_message_t *recvmsg)
 {
     int rv;
     char buf1[OGS_ADDRSTRLEN];
@@ -36,7 +37,6 @@ bool smf_npcf_smpolicycontrol_handle_create(
     smf_ue_t *smf_ue = NULL;
 
     smf_bearer_t *qos_flow = NULL;
-    ogs_gtpu_resource_t *resource = NULL;
     ogs_pfcp_pdr_t *dl_pdr = NULL;
     ogs_pfcp_pdr_t *ul_pdr = NULL;
     ogs_pfcp_pdr_t *cp2up_pdr = NULL;
@@ -94,6 +94,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
     if (sess->policy_association_id)
         ogs_free(sess->policy_association_id);
     sess->policy_association_id = ogs_strdup(message.h.resource.component[1]);
+    ogs_assert(sess->policy_association_id);
 
     ogs_sbi_header_free(&header);
 
@@ -115,7 +116,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
     OpenAPI_list_for_each(SmPolicyDecision->policy_ctrl_req_triggers, node) {
         if (node->data) {
             OpenAPI_policy_control_request_trigger_e trigger_id =
-                (OpenAPI_policy_control_request_trigger_e)node->data;
+                (intptr_t)node->data;
 
             ogs_assert(trigger_id < MAX_TRIGGER_ID);
             trigger_results[trigger_id] = true;
@@ -267,6 +268,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
 
             pcc_rule->type = OGS_PCC_RULE_TYPE_INSTALL;
             pcc_rule->id = ogs_strdup(PccRule->pcc_rule_id);
+            ogs_assert(pcc_rule->id);
             pcc_rule->precedence = PccRule->precedence;
 
             if (PccRule->flow_infos) {
@@ -296,6 +298,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
 
                     flow->description =
                         ogs_strdup(FlowInformation->flow_description);
+                    ogs_assert(flow->description);
 
                     pcc_rule->num_of_flow++;
                 }
@@ -404,11 +407,9 @@ bool smf_npcf_smpolicycontrol_handle_create(
     up2cp_far = sess->up2cp_far;
     ogs_assert(up2cp_far);
 
-    /* Set UE IP Address to the Default DL PDR */
-    smf_sess_set_ue_ip(sess);
-
-    ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
-            &dl_pdr->ue_ip_addr, &dl_pdr->ue_ip_addr_len);
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
+            &dl_pdr->ue_ip_addr, &dl_pdr->ue_ip_addr_len));
     dl_pdr->ue_ip_addr.sd = OGS_PFCP_UE_IP_DST;
 
     ogs_info("UE SUPI[%s] DNN[%s] IPv4[%s] IPv6[%s]",
@@ -419,10 +420,11 @@ bool smf_npcf_smpolicycontrol_handle_create(
     /* Set UE-to-CP Flow-Description and Outer-Header-Creation */
     up2cp_pdr->flow_description[up2cp_pdr->num_of_flow++] =
         (char *)"permit out 58 from ff02::2/128 to assigned";
-    ogs_pfcp_ip_to_outer_header_creation(
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_ip_to_outer_header_creation(
             &ogs_gtp_self()->gtpu_ip,
             &up2cp_far->outer_header_creation,
-            &up2cp_far->outer_header_creation_len);
+            &up2cp_far->outer_header_creation_len));
     up2cp_far->outer_header_creation.teid = sess->index;
 
     /* Set UPF-N3 TEID & ADDR to the Default UL PDR */
@@ -441,6 +443,14 @@ bool smf_npcf_smpolicycontrol_handle_create(
         up2cp_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;
         up2cp_pdr->f_teid_len = 2;
     } else {
+        char buf[OGS_ADDRSTRLEN];
+        ogs_gtpu_resource_t *resource = NULL;
+        ogs_sockaddr_t *addr = sess->pfcp_node->sa_list;
+        ogs_assert(addr);
+
+        ogs_error("F-TEID allocation/release not supported with peer [%s]:%d",
+                OGS_ADDR(addr, buf), OGS_PORT(addr));
+
         resource = ogs_pfcp_find_gtpu_resource(
                 &sess->pfcp_node->gtpu_resource_list,
                 sess->session.name, OGS_PFCP_INTERFACE_ACCESS);
@@ -455,29 +465,35 @@ bool smf_npcf_smpolicycontrol_handle_create(
                 sess->upf_n3_teid = sess->index;
         } else {
             if (sess->pfcp_node->addr.ogs_sa_family == AF_INET)
-                ogs_copyaddrinfo(&sess->upf_n3_addr, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &sess->upf_n3_addr, &sess->pfcp_node->addr));
             else if (sess->pfcp_node->addr.ogs_sa_family == AF_INET6)
-                ogs_copyaddrinfo(&sess->upf_n3_addr6, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &sess->upf_n3_addr6, &sess->pfcp_node->addr));
             else
                 ogs_assert_if_reached();
 
             sess->upf_n3_teid = sess->index;
         }
 
-        ogs_assert(sess->upf_n3_addr || sess->upf_n3_addr6);
-
-        ogs_pfcp_sockaddr_to_f_teid(sess->upf_n3_addr, sess->upf_n3_addr6,
-                &ul_pdr->f_teid, &ul_pdr->f_teid_len);
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
+                sess->upf_n3_addr, sess->upf_n3_addr6,
+                &ul_pdr->f_teid, &ul_pdr->f_teid_len));
         ul_pdr->f_teid.teid = sess->upf_n3_teid;
 
-        ogs_assert(ogs_gtp_self()->gtpu_addr || ogs_gtp_self()->gtpu_addr6);
-        ogs_pfcp_sockaddr_to_f_teid(
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
                 ogs_gtp_self()->gtpu_addr, ogs_gtp_self()->gtpu_addr6,
-                &cp2up_pdr->f_teid, &cp2up_pdr->f_teid_len);
+                &cp2up_pdr->f_teid, &cp2up_pdr->f_teid_len));
         cp2up_pdr->f_teid.teid = sess->index;
 
-        ogs_pfcp_sockaddr_to_f_teid(sess->upf_n3_addr, sess->upf_n3_addr6,
-                &up2cp_pdr->f_teid, &up2cp_pdr->f_teid_len);
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
+                sess->upf_n3_addr, sess->upf_n3_addr6,
+                &up2cp_pdr->f_teid, &up2cp_pdr->f_teid_len));
         up2cp_pdr->f_teid.teid = sess->upf_n3_teid;
     }
 
@@ -487,7 +503,8 @@ bool smf_npcf_smpolicycontrol_handle_create(
     cp2up_pdr->precedence = OGS_PFCP_CP2UP_PDR_PRECEDENCE;
     up2cp_pdr->precedence = OGS_PFCP_UP2CP_PDR_PRECEDENCE;
 
-    smf_5gc_pfcp_send_session_establishment_request(sess, stream);
+    ogs_assert(OGS_OK ==
+        smf_5gc_pfcp_send_session_establishment_request(sess, stream));
 
     return true;
 
@@ -495,9 +512,24 @@ cleanup:
     ogs_assert(strerror);
 
     ogs_error("%s", strerror);
-    ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-            recvmsg, strerror, NULL);
+    ogs_assert(true ==
+        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+            recvmsg, strerror, NULL));
     ogs_free(strerror);
 
     return false;
+}
+
+bool smf_npcf_smpolicycontrol_handle_delete(
+        smf_sess_t *sess, ogs_sbi_stream_t *stream, int state,
+        ogs_sbi_message_t *recvmsg)
+{
+    int trigger = state;
+
+    ogs_assert(trigger);
+
+    ogs_assert(OGS_OK ==
+        smf_5gc_pfcp_send_session_deletion_request(sess, stream, trigger));
+
+    return true;
 }

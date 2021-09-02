@@ -26,6 +26,9 @@
 #include "mme-timer.h"
 
 #include "mme-fd-path.h"
+#include "s1ap-path.h"
+#include "sgsap-path.h"
+#include "mme-gtp-path.h"
 
 static ogs_thread_t *thread;
 static void mme_main(void *data);
@@ -58,6 +61,15 @@ int mme_initialize()
     rv = mme_fd_init();
     if (rv != OGS_OK) return OGS_ERROR;
 
+    rv = mme_gtp_open();
+    if (rv != OGS_OK) return OGS_ERROR;
+
+    rv = sgsap_open();
+    if (rv != OGS_OK) return OGS_ERROR;
+
+    rv = s1ap_open();
+    if (rv != OGS_OK) return OGS_ERROR;
+
     thread = ogs_thread_create(mme_main, NULL);
     if (!thread) return OGS_ERROR;
 
@@ -73,6 +85,10 @@ void mme_terminate(void)
     mme_event_term();
 
     ogs_thread_destroy(thread);
+
+    mme_gtp_close();
+    sgsap_close();
+    s1ap_close();
 
     mme_fd_final();
 

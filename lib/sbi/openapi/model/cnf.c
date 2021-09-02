@@ -6,7 +6,7 @@
 
 OpenAPI_cnf_t *OpenAPI_cnf_create(
     OpenAPI_list_t *cnf_units
-    )
+)
 {
     OpenAPI_cnf_t *cnf_local_var = OpenAPI_malloc(sizeof(OpenAPI_cnf_t));
     if (!cnf_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_cnf_convertToJSON(OpenAPI_cnf_t *cnf)
     }
 
     item = cJSON_CreateObject();
-    if (!cnf->cnf_units) {
-        ogs_error("OpenAPI_cnf_convertToJSON() failed [cnf_units]");
-        goto end;
-    }
     cJSON *cnf_unitsList = cJSON_AddArrayToObject(item, "cnfUnits");
     if (cnf_unitsList == NULL) {
         ogs_error("OpenAPI_cnf_convertToJSON() failed [cnf_units]");
@@ -76,9 +72,8 @@ OpenAPI_cnf_t *OpenAPI_cnf_parseFromJSON(cJSON *cnfJSON)
     }
 
     OpenAPI_list_t *cnf_unitsList;
-
     cJSON *cnf_units_local_nonprimitive;
-    if (!cJSON_IsArray(cnf_units)) {
+    if (!cJSON_IsArray(cnf_units)){
         ogs_error("OpenAPI_cnf_parseFromJSON() failed [cnf_units]");
         goto end;
     }
@@ -97,7 +92,7 @@ OpenAPI_cnf_t *OpenAPI_cnf_parseFromJSON(cJSON *cnfJSON)
 
     cnf_local_var = OpenAPI_cnf_create (
         cnf_unitsList
-        );
+    );
 
     return cnf_local_var;
 end:

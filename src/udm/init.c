@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "context.h"
+#include "sbi-path.h"
 
 static ogs_thread_t *thread;
 static void udm_main(void *data);
@@ -39,6 +39,9 @@ int udm_initialize()
 
     rv = ogs_log_config_domain(
             ogs_app()->logger.domain, ogs_app()->logger.level);
+    if (rv != OGS_OK) return rv;
+
+    rv = udm_sbi_open();
     if (rv != OGS_OK) return rv;
 
     thread = ogs_thread_create(udm_main, NULL);
@@ -78,6 +81,8 @@ void udm_terminate(void)
     event_termination();
     ogs_thread_destroy(thread);
     ogs_timer_delete(t_termination_holding);
+
+    udm_sbi_close();
 
     udm_context_final();
     ogs_sbi_context_final();

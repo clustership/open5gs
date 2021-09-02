@@ -42,6 +42,8 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     struct timeval now;
     struct tm time_exp;
     char apn[OGS_MAX_APN_LEN];
+	
+    ogs_gtp_indication_t indication;
 
     ogs_assert(sess);
     session = sess->session;
@@ -77,18 +79,17 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     memset(&uli, 0, sizeof(ogs_gtp_uli_t));
     uli.flags.e_cgi = 1;
     uli.flags.tai = 1;
-    memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
     uli.tai.tac = mme_ue->tai.tac;
-    memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, 
-            sizeof(uli.e_cgi.plmn_id));
+    ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
     req->user_location_information.presence = 1;
     ogs_gtp_build_uli(&req->user_location_information, &uli, 
             uli_buf, OGS_GTP_MAX_ULI_LEN);
 
     req->serving_network.presence = 1;
-    req->serving_network.data = &mme_ue->tai.plmn_id;
-    req->serving_network.len = sizeof(mme_ue->tai.plmn_id);
+    req->serving_network.data = &uli.tai.nas_plmn_id;
+    req->serving_network.len = sizeof(uli.tai.nas_plmn_id);
 
     req->rat_type.presence = 1;
     req->rat_type.u8 = OGS_GTP_RAT_TYPE_EUTRAN;
@@ -156,19 +157,16 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
 
     req->selection_mode.presence = 1;
     req->selection_mode.u8 = 
-        OGS_GTP_SELECTION_MODE_MS_OR_NETWORK_PROVIDED_APN | 0xfc;
+        OGS_GTP_SELECTION_MODE_MS_OR_NETWORK_PROVIDED_APN;
 
     ogs_assert(sess->request_type.type == OGS_NAS_EPS_PDN_TYPE_IPV4 ||
             sess->request_type.type == OGS_NAS_EPS_PDN_TYPE_IPV6 ||
             sess->request_type.type == OGS_NAS_EPS_PDN_TYPE_IPV4V6);
 
-    req->pdn_type.u8 = ((session->session_type + 1) &
-            sess->request_type.type);
     if (session->session_type == OGS_PDU_SESSION_TYPE_IPV4 ||
         session->session_type == OGS_PDU_SESSION_TYPE_IPV6 ||
         session->session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
-        req->pdn_type.u8 =
-            (session->session_type & sess->request_type.type);
+        req->pdn_type.u8 = (session->session_type & sess->request_type.type);
         if (req->pdn_type.u8 == 0) {
             ogs_fatal("Cannot derive PDN Type [UE:%d,HSS:%d]",
                 sess->request_type.type, session->session_type);
@@ -193,6 +191,21 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
 	    uint8_t addr[16];
 	    memcpy(&addr, session->paa.both.addr6, OGS_IPV6_LEN);
 	    memcpy(session->paa.addr6, &addr, OGS_IPV6_LEN);
+    }
+
+    memset(&indication, 0, sizeof(ogs_gtp_indication_t));
+    if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV4V6) {
+	    indication.daf = 1;
+    }
+
+    if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER) {
+	    indication.hi = 1;
+    }
+
+    if (indication.daf || indication.hi) {
+	    req->indication_flags.presence = 1;
+	    req->indication_flags.data = &indication;
+	    req->indication_flags.len = sizeof(ogs_gtp_indication_t);
     }
 
     session->paa.session_type = req->pdn_type.u8;
@@ -284,10 +297,15 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
     ogs_gtp_uli_t uli;
     char uli_buf[OGS_GTP_MAX_ULI_LEN];
 
+    ogs_gtp_indication_t indication;
+
     mme_ue_t *mme_ue = NULL;
+    mme_sess_t *sess = NULL;
 
     ogs_assert(bearer);
-    mme_ue = bearer->mme_ue;
+    sess = bearer->sess;
+    ogs_assert(sess);
+    mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
 
     ogs_debug("Modifty Bearer Request");
@@ -297,6 +315,14 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
         bearer->enb_s1u_teid, bearer->sgw_s1u_teid);
 
     memset(&gtp_message, 0, sizeof(ogs_gtp_message_t));
+
+    if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER) {
+	    memset(&indication, 0, sizeof(ogs_gtp_indication_t));
+	    indication.hi = 1;
+	    req->indication_flags.presence = 1;
+	    req->indication_flags.data = &indication;
+	    req->indication_flags.len = sizeof(ogs_gtp_indication_t);
+    }
 
     /* Bearer Context : EBI */
     req->bearer_contexts_to_be_modified.presence = 1;
@@ -308,7 +334,7 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
     enb_s1u_teid.interface_type = OGS_GTP_F_TEID_S1_U_ENODEB_GTP_U;
     enb_s1u_teid.teid = htobe32(bearer->enb_s1u_teid);
     rv = ogs_gtp_ip_to_f_teid(&bearer->enb_s1u_ip, &enb_s1u_teid, &len);
-    ogs_assert(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, NULL);
     req->bearer_contexts_to_be_modified.s1_u_enodeb_f_teid.presence = 1;
     req->bearer_contexts_to_be_modified.s1_u_enodeb_f_teid.data = &enb_s1u_teid;
     req->bearer_contexts_to_be_modified.s1_u_enodeb_f_teid.len = len;
@@ -318,10 +344,9 @@ ogs_pkbuf_t *mme_s11_build_modify_bearer_request(
         memset(&uli, 0, sizeof(ogs_gtp_uli_t));
         uli.flags.e_cgi = 1;
         uli.flags.tai = 1;
-        memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+        ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
         uli.tai.tac = mme_ue->tai.tac;
-        memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, 
-                sizeof(uli.e_cgi.plmn_id));
+        ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
         uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
         req->user_location_information.presence = 1;
         ogs_gtp_build_uli(&req->user_location_information, &uli, 
@@ -364,9 +389,9 @@ ogs_pkbuf_t *mme_s11_build_delete_session_request(
     memset(&uli, 0, sizeof(ogs_gtp_uli_t));
     uli.flags.e_cgi = 1;
     uli.flags.tai = 1;
-    memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
     uli.tai.tac = mme_ue->tai.tac;
-    memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
     req->user_location_information.presence = 1;
     ogs_gtp_build_uli(&req->user_location_information, &uli,
@@ -428,7 +453,7 @@ ogs_pkbuf_t *mme_s11_build_create_bearer_response(
         enb_s1u_teid.interface_type = OGS_GTP_F_TEID_S1_U_ENODEB_GTP_U;
         enb_s1u_teid.teid = htobe32(bearer->enb_s1u_teid);
         rv = ogs_gtp_ip_to_f_teid(&bearer->enb_s1u_ip, &enb_s1u_teid, &len);
-        ogs_assert(rv == OGS_OK);
+        ogs_expect_or_return_val(rv == OGS_OK, NULL);
         rsp->bearer_contexts.s1_u_enodeb_f_teid.presence = 1;
         rsp->bearer_contexts.s1_u_enodeb_f_teid.data = &enb_s1u_teid;
         rsp->bearer_contexts.s1_u_enodeb_f_teid.len = len;
@@ -438,7 +463,7 @@ ogs_pkbuf_t *mme_s11_build_create_bearer_response(
         sgw_s1u_teid.interface_type = OGS_GTP_F_TEID_S1_U_SGW_GTP_U;
         sgw_s1u_teid.teid = htobe32(bearer->sgw_s1u_teid);
         rv = ogs_gtp_ip_to_f_teid(&bearer->sgw_s1u_ip, &sgw_s1u_teid, &len);
-        ogs_assert(rv == OGS_OK);
+        ogs_expect_or_return_val(rv == OGS_OK, NULL);
         rsp->bearer_contexts.s4_u_sgsn_f_teid.presence = 1;
         rsp->bearer_contexts.s4_u_sgsn_f_teid.data = &sgw_s1u_teid;
         rsp->bearer_contexts.s4_u_sgsn_f_teid.len = OGS_GTP_F_TEID_IPV4_LEN;
@@ -453,10 +478,9 @@ ogs_pkbuf_t *mme_s11_build_create_bearer_response(
     memset(&uli, 0, sizeof(ogs_gtp_uli_t));
     uli.flags.e_cgi = 1;
     uli.flags.tai = 1;
-    memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
     uli.tai.tac = mme_ue->tai.tac;
-    memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, 
-            sizeof(uli.e_cgi.plmn_id));
+    ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
     rsp->user_location_information.presence = 1;
     ogs_gtp_build_uli(&rsp->user_location_information, &uli, 
@@ -530,10 +554,9 @@ ogs_pkbuf_t *mme_s11_build_update_bearer_response(
     memset(&uli, 0, sizeof(ogs_gtp_uli_t));
     uli.flags.e_cgi = 1;
     uli.flags.tai = 1;
-    memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
     uli.tai.tac = mme_ue->tai.tac;
-    memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, 
-            sizeof(uli.e_cgi.plmn_id));
+    ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
     rsp->user_location_information.presence = 1;
     ogs_gtp_build_uli(&rsp->user_location_information, &uli, 
@@ -592,25 +615,56 @@ ogs_pkbuf_t *mme_s11_build_delete_bearer_response(
     rsp->cause.data = &cause;
 
     if (cause_value == OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
-        /* Bearer Context : EBI */
-        rsp->bearer_contexts.presence = 1;
-        rsp->bearer_contexts.eps_bearer_id.presence = 1;
-        rsp->bearer_contexts.eps_bearer_id.u8 = bearer->ebi;
+        mme_bearer_t *linked_bearer = mme_linked_bearer(bearer);
+        ogs_assert(linked_bearer);
 
-        /* Bearer Context : Cause */
-        rsp->bearer_contexts.cause.presence = 1;
-        rsp->bearer_contexts.cause.len = sizeof(cause);
-        rsp->bearer_contexts.cause.data = &cause;
+        if (bearer->ebi == linked_bearer->ebi) {
+           /*
+            * << Linked EPS Bearer ID >>
+            *
+            * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to SGW/MME.
+            * 2. MME sends Delete Bearer Response to SGW/SMF.
+            *
+            * OR
+            *
+            * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to ePDG.
+            * 2. ePDG sends Delete Bearer Response(DEFAULT BEARER) to SMF.
+            */
+            rsp->linked_eps_bearer_id.presence = 1;
+            rsp->linked_eps_bearer_id.u8 = bearer->ebi;
+        } else {
+           /*
+            * << EPS Bearer IDs >>
+            *
+            * 1. MME sends Bearer Resource Command to SGW/SMF.
+            * 2. SMF sends Delete Bearer Request(DEDICATED BEARER) to SGW/MME.
+            * 3. MME sends Delete Bearer Response(DEDICATED BEARER) to SGW/SMF.
+            *
+            * OR
+            *
+            * 1. SMF sends Delete Bearer Request(DEDICATED BEARER) to SGW/MME.
+            * 2. MME sends Delete Bearer Response(DEDICATED BEARER) to SGW/SMF.
+            */
+
+            /* Bearer Context : EBI */
+            rsp->bearer_contexts.presence = 1;
+            rsp->bearer_contexts.eps_bearer_id.presence = 1;
+            rsp->bearer_contexts.eps_bearer_id.u8 = bearer->ebi;
+
+            /* Bearer Context : Cause */
+            rsp->bearer_contexts.cause.presence = 1;
+            rsp->bearer_contexts.cause.len = sizeof(cause);
+            rsp->bearer_contexts.cause.data = &cause;
+        }
     }
 
     /* User Location Information(ULI) */
     memset(&uli, 0, sizeof(ogs_gtp_uli_t));
     uli.flags.e_cgi = 1;
     uli.flags.tai = 1;
-    memcpy(&uli.tai.plmn_id, &mme_ue->tai.plmn_id, sizeof(uli.tai.plmn_id));
+    ogs_nas_from_plmn_id(&uli.tai.nas_plmn_id, &mme_ue->tai.plmn_id);
     uli.tai.tac = mme_ue->tai.tac;
-    memcpy(&uli.e_cgi.plmn_id, &mme_ue->e_cgi.plmn_id, 
-            sizeof(uli.e_cgi.plmn_id));
+    ogs_nas_from_plmn_id(&uli.e_cgi.nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     uli.e_cgi.cell_id = mme_ue->e_cgi.cell_id;
     rsp->user_location_information.presence = 1;
     ogs_gtp_build_uli(&rsp->user_location_information, &uli, 
@@ -713,7 +767,7 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
                 dl_teid[i].teid = htobe32(bearer->enb_dl_teid);
                 rv = ogs_gtp_ip_to_f_teid(
                         &bearer->enb_dl_ip, &dl_teid[i], &len);
-                ogs_assert(rv == OGS_OK);
+                ogs_expect_or_return_val(rv == OGS_OK, NULL);
                 req->bearer_contexts[i].s1_u_enodeb_f_teid.presence = 1;
                 req->bearer_contexts[i].s1_u_enodeb_f_teid.data = &dl_teid[i];
                 req->bearer_contexts[i].s1_u_enodeb_f_teid.len = len;
@@ -726,7 +780,7 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
                 ul_teid[i].teid = htobe32(bearer->enb_ul_teid);
                 rv = ogs_gtp_ip_to_f_teid(
                         &bearer->enb_ul_ip, &ul_teid[i], &len);
-                ogs_assert(rv == OGS_OK);
+                ogs_expect_or_return_val(rv == OGS_OK, NULL);
                 req->bearer_contexts[i].s12_rnc_f_teid.presence = 1;
                 req->bearer_contexts[i].s12_rnc_f_teid.data = &ul_teid[i];
                 req->bearer_contexts[i].s12_rnc_f_teid.len = len;

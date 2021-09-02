@@ -7,7 +7,7 @@
 OpenAPI_nssai_mapping_t *OpenAPI_nssai_mapping_create(
     OpenAPI_snssai_t *mapped_snssai,
     OpenAPI_snssai_t *h_snssai
-    )
+)
 {
     OpenAPI_nssai_mapping_t *nssai_mapping_local_var = OpenAPI_malloc(sizeof(OpenAPI_nssai_mapping_t));
     if (!nssai_mapping_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_nssai_mapping_convertToJSON(OpenAPI_nssai_mapping_t *nssai_mappin
     }
 
     item = cJSON_CreateObject();
-    if (!nssai_mapping->mapped_snssai) {
-        ogs_error("OpenAPI_nssai_mapping_convertToJSON() failed [mapped_snssai]");
-        goto end;
-    }
     cJSON *mapped_snssai_local_JSON = OpenAPI_snssai_convertToJSON(nssai_mapping->mapped_snssai);
     if (mapped_snssai_local_JSON == NULL) {
         ogs_error("OpenAPI_nssai_mapping_convertToJSON() failed [mapped_snssai]");
@@ -55,10 +51,6 @@ cJSON *OpenAPI_nssai_mapping_convertToJSON(OpenAPI_nssai_mapping_t *nssai_mappin
         goto end;
     }
 
-    if (!nssai_mapping->h_snssai) {
-        ogs_error("OpenAPI_nssai_mapping_convertToJSON() failed [h_snssai]");
-        goto end;
-    }
     cJSON *h_snssai_local_JSON = OpenAPI_snssai_convertToJSON(nssai_mapping->h_snssai);
     if (h_snssai_local_JSON == NULL) {
         ogs_error("OpenAPI_nssai_mapping_convertToJSON() failed [h_snssai]");
@@ -84,7 +76,6 @@ OpenAPI_nssai_mapping_t *OpenAPI_nssai_mapping_parseFromJSON(cJSON *nssai_mappin
     }
 
     OpenAPI_snssai_t *mapped_snssai_local_nonprim = NULL;
-
     mapped_snssai_local_nonprim = OpenAPI_snssai_parseFromJSON(mapped_snssai);
 
     cJSON *h_snssai = cJSON_GetObjectItemCaseSensitive(nssai_mappingJSON, "hSnssai");
@@ -94,13 +85,12 @@ OpenAPI_nssai_mapping_t *OpenAPI_nssai_mapping_parseFromJSON(cJSON *nssai_mappin
     }
 
     OpenAPI_snssai_t *h_snssai_local_nonprim = NULL;
-
     h_snssai_local_nonprim = OpenAPI_snssai_parseFromJSON(h_snssai);
 
     nssai_mapping_local_var = OpenAPI_nssai_mapping_create (
         mapped_snssai_local_nonprim,
         h_snssai_local_nonprim
-        );
+    );
 
     return nssai_mapping_local_var;
 end:

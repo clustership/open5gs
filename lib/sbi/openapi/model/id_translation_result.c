@@ -8,7 +8,7 @@ OpenAPI_id_translation_result_t *OpenAPI_id_translation_result_create(
     char *supported_features,
     char *supi,
     char *gpsi
-    )
+)
 {
     OpenAPI_id_translation_result_t *id_translation_result_local_var = OpenAPI_malloc(sizeof(OpenAPI_id_translation_result_t));
     if (!id_translation_result_local_var) {
@@ -44,26 +44,22 @@ cJSON *OpenAPI_id_translation_result_convertToJSON(OpenAPI_id_translation_result
 
     item = cJSON_CreateObject();
     if (id_translation_result->supported_features) {
-        if (cJSON_AddStringToObject(item, "supportedFeatures", id_translation_result->supported_features) == NULL) {
-            ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [supported_features]");
-            goto end;
-        }
-    }
-
-    if (!id_translation_result->supi) {
-        ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [supi]");
+    if (cJSON_AddStringToObject(item, "supportedFeatures", id_translation_result->supported_features) == NULL) {
+        ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [supported_features]");
         goto end;
     }
+    }
+
     if (cJSON_AddStringToObject(item, "supi", id_translation_result->supi) == NULL) {
         ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [supi]");
         goto end;
     }
 
     if (id_translation_result->gpsi) {
-        if (cJSON_AddStringToObject(item, "gpsi", id_translation_result->gpsi) == NULL) {
-            ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [gpsi]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "gpsi", id_translation_result->gpsi) == NULL) {
+        ogs_error("OpenAPI_id_translation_result_convertToJSON() failed [gpsi]");
+        goto end;
+    }
     }
 
 end:
@@ -76,10 +72,10 @@ OpenAPI_id_translation_result_t *OpenAPI_id_translation_result_parseFromJSON(cJS
     cJSON *supported_features = cJSON_GetObjectItemCaseSensitive(id_translation_resultJSON, "supportedFeatures");
 
     if (supported_features) {
-        if (!cJSON_IsString(supported_features)) {
-            ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [supported_features]");
-            goto end;
-        }
+    if (!cJSON_IsString(supported_features)) {
+        ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [supported_features]");
+        goto end;
+    }
     }
 
     cJSON *supi = cJSON_GetObjectItemCaseSensitive(id_translation_resultJSON, "supi");
@@ -87,7 +83,6 @@ OpenAPI_id_translation_result_t *OpenAPI_id_translation_result_parseFromJSON(cJS
         ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [supi]");
         goto end;
     }
-
 
     if (!cJSON_IsString(supi)) {
         ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [supi]");
@@ -97,17 +92,17 @@ OpenAPI_id_translation_result_t *OpenAPI_id_translation_result_parseFromJSON(cJS
     cJSON *gpsi = cJSON_GetObjectItemCaseSensitive(id_translation_resultJSON, "gpsi");
 
     if (gpsi) {
-        if (!cJSON_IsString(gpsi)) {
-            ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [gpsi]");
-            goto end;
-        }
+    if (!cJSON_IsString(gpsi)) {
+        ogs_error("OpenAPI_id_translation_result_parseFromJSON() failed [gpsi]");
+        goto end;
+    }
     }
 
     id_translation_result_local_var = OpenAPI_id_translation_result_create (
-        supported_features ? ogs_strdup(supported_features->valuestring) : NULL,
-        ogs_strdup(supi->valuestring),
-        gpsi ? ogs_strdup(gpsi->valuestring) : NULL
-        );
+        supported_features ? ogs_strdup_or_assert(supported_features->valuestring) : NULL,
+        ogs_strdup_or_assert(supi->valuestring),
+        gpsi ? ogs_strdup_or_assert(gpsi->valuestring) : NULL
+    );
 
     return id_translation_result_local_var;
 end:

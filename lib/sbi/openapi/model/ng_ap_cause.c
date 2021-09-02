@@ -7,7 +7,7 @@
 OpenAPI_ng_ap_cause_t *OpenAPI_ng_ap_cause_create(
     int group,
     int value
-    )
+)
 {
     OpenAPI_ng_ap_cause_t *ng_ap_cause_local_var = OpenAPI_malloc(sizeof(OpenAPI_ng_ap_cause_t));
     if (!ng_ap_cause_local_var) {
@@ -38,19 +38,11 @@ cJSON *OpenAPI_ng_ap_cause_convertToJSON(OpenAPI_ng_ap_cause_t *ng_ap_cause)
     }
 
     item = cJSON_CreateObject();
-    if (!ng_ap_cause->group) {
-        ogs_error("OpenAPI_ng_ap_cause_convertToJSON() failed [group]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "group", ng_ap_cause->group) == NULL) {
         ogs_error("OpenAPI_ng_ap_cause_convertToJSON() failed [group]");
         goto end;
     }
 
-    if (!ng_ap_cause->value) {
-        ogs_error("OpenAPI_ng_ap_cause_convertToJSON() failed [value]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "value", ng_ap_cause->value) == NULL) {
         ogs_error("OpenAPI_ng_ap_cause_convertToJSON() failed [value]");
         goto end;
@@ -69,7 +61,6 @@ OpenAPI_ng_ap_cause_t *OpenAPI_ng_ap_cause_parseFromJSON(cJSON *ng_ap_causeJSON)
         goto end;
     }
 
-
     if (!cJSON_IsNumber(group)) {
         ogs_error("OpenAPI_ng_ap_cause_parseFromJSON() failed [group]");
         goto end;
@@ -81,16 +72,17 @@ OpenAPI_ng_ap_cause_t *OpenAPI_ng_ap_cause_parseFromJSON(cJSON *ng_ap_causeJSON)
         goto end;
     }
 
-
     if (!cJSON_IsNumber(value)) {
         ogs_error("OpenAPI_ng_ap_cause_parseFromJSON() failed [value]");
         goto end;
     }
 
     ng_ap_cause_local_var = OpenAPI_ng_ap_cause_create (
+        
         group->valuedouble,
+        
         value->valuedouble
-        );
+    );
 
     return ng_ap_cause_local_var;
 end:

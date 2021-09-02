@@ -19,22 +19,34 @@ extern "C" {
 
 typedef struct OpenAPI_preferred_search_s OpenAPI_preferred_search_t;
 typedef struct OpenAPI_preferred_search_s {
+    bool is_preferred_tai_match_ind;
     int preferred_tai_match_ind;
+    bool is_preferred_full_plmn_match_ind;
     int preferred_full_plmn_match_ind;
+    bool is_preferred_api_versions_match_ind;
     int preferred_api_versions_match_ind;
+    bool is_other_api_versions_ind;
     int other_api_versions_ind;
+    bool is_preferred_locality_match_ind;
     int preferred_locality_match_ind;
+    bool is_other_locality_ind;
     int other_locality_ind;
 } OpenAPI_preferred_search_t;
 
 OpenAPI_preferred_search_t *OpenAPI_preferred_search_create(
+    bool is_preferred_tai_match_ind,
     int preferred_tai_match_ind,
+    bool is_preferred_full_plmn_match_ind,
     int preferred_full_plmn_match_ind,
+    bool is_preferred_api_versions_match_ind,
     int preferred_api_versions_match_ind,
+    bool is_other_api_versions_ind,
     int other_api_versions_ind,
+    bool is_preferred_locality_match_ind,
     int preferred_locality_match_ind,
+    bool is_other_locality_ind,
     int other_locality_ind
-    );
+);
 void OpenAPI_preferred_search_free(OpenAPI_preferred_search_t *preferred_search);
 OpenAPI_preferred_search_t *OpenAPI_preferred_search_parseFromJSON(cJSON *preferred_searchJSON);
 cJSON *OpenAPI_preferred_search_convertToJSON(OpenAPI_preferred_search_t *preferred_search);

@@ -560,7 +560,7 @@ int ogs_gtp_xact_commit(ogs_gtp_xact_t *xact)
     rv = ogs_gtp_sendto(xact->gnode, pkbuf);
     ogs_expect(rv == OGS_OK);
 
-    return OGS_OK;
+    return rv;
 }
 
 static void response_timeout(void *data)
@@ -687,7 +687,6 @@ int ogs_gtp_xact_receive(
 
 ogs_gtp_xact_t *ogs_gtp_xact_find(ogs_index_t index)
 {
-    ogs_assert(index);
     return ogs_pool_find(&pool, index);
 }
 

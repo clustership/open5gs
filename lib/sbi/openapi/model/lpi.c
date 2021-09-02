@@ -7,7 +7,7 @@
 OpenAPI_lpi_t *OpenAPI_lpi_create(
     OpenAPI_location_privacy_ind_e location_privacy_ind,
     OpenAPI_valid_time_period_t *valid_time_period
-    )
+)
 {
     OpenAPI_lpi_t *lpi_local_var = OpenAPI_malloc(sizeof(OpenAPI_lpi_t));
     if (!lpi_local_var) {
@@ -39,26 +39,22 @@ cJSON *OpenAPI_lpi_convertToJSON(OpenAPI_lpi_t *lpi)
     }
 
     item = cJSON_CreateObject();
-    if (!lpi->location_privacy_ind) {
-        ogs_error("OpenAPI_lpi_convertToJSON() failed [location_privacy_ind]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "locationPrivacyInd", OpenAPI_location_privacy_ind_ToString(lpi->location_privacy_ind)) == NULL) {
         ogs_error("OpenAPI_lpi_convertToJSON() failed [location_privacy_ind]");
         goto end;
     }
 
     if (lpi->valid_time_period) {
-        cJSON *valid_time_period_local_JSON = OpenAPI_valid_time_period_convertToJSON(lpi->valid_time_period);
-        if (valid_time_period_local_JSON == NULL) {
-            ogs_error("OpenAPI_lpi_convertToJSON() failed [valid_time_period]");
-            goto end;
-        }
-        cJSON_AddItemToObject(item, "validTimePeriod", valid_time_period_local_JSON);
-        if (item->child == NULL) {
-            ogs_error("OpenAPI_lpi_convertToJSON() failed [valid_time_period]");
-            goto end;
-        }
+    cJSON *valid_time_period_local_JSON = OpenAPI_valid_time_period_convertToJSON(lpi->valid_time_period);
+    if (valid_time_period_local_JSON == NULL) {
+        ogs_error("OpenAPI_lpi_convertToJSON() failed [valid_time_period]");
+        goto end;
+    }
+    cJSON_AddItemToObject(item, "validTimePeriod", valid_time_period_local_JSON);
+    if (item->child == NULL) {
+        ogs_error("OpenAPI_lpi_convertToJSON() failed [valid_time_period]");
+        goto end;
+    }
     }
 
 end:
@@ -75,7 +71,6 @@ OpenAPI_lpi_t *OpenAPI_lpi_parseFromJSON(cJSON *lpiJSON)
     }
 
     OpenAPI_location_privacy_ind_e location_privacy_indVariable;
-
     if (!cJSON_IsString(location_privacy_ind)) {
         ogs_error("OpenAPI_lpi_parseFromJSON() failed [location_privacy_ind]");
         goto end;
@@ -86,13 +81,13 @@ OpenAPI_lpi_t *OpenAPI_lpi_parseFromJSON(cJSON *lpiJSON)
 
     OpenAPI_valid_time_period_t *valid_time_period_local_nonprim = NULL;
     if (valid_time_period) {
-        valid_time_period_local_nonprim = OpenAPI_valid_time_period_parseFromJSON(valid_time_period);
+    valid_time_period_local_nonprim = OpenAPI_valid_time_period_parseFromJSON(valid_time_period);
     }
 
     lpi_local_var = OpenAPI_lpi_create (
         location_privacy_indVariable,
         valid_time_period ? valid_time_period_local_nonprim : NULL
-        );
+    );
 
     return lpi_local_var;
 end:

@@ -45,8 +45,6 @@ ogs_pkbuf_t *emm_build_attach_accept(
     ogs_assert(mme_ue);
     ogs_assert(esmbuf);
 
-    ogs_debug("Attach accept");
-
     memset(&message, 0, sizeof(message));
     message.h.security_header_type = 
        OGS_NAS_SECURITY_HEADER_INTEGRITY_PROTECTED_AND_CIPHERED;
@@ -70,9 +68,10 @@ ogs_pkbuf_t *emm_build_attach_accept(
     ogs_debug("    SERVED_TAI_INDEX[%d]", served_tai_index);
     ogs_assert(served_tai_index >= 0 &&
             served_tai_index < OGS_MAX_NUM_OF_SERVED_TAI);
-    ogs_nas_tai_list_build(&attach_accept->tai_list,
+    ogs_assert(OGS_OK ==
+        ogs_nas_tai_list_build(&attach_accept->tai_list,
             &mme_self()->served_tai[served_tai_index].list0,
-            &mme_self()->served_tai[served_tai_index].list2);
+            &mme_self()->served_tai[served_tai_index].list2));
 
     attach_accept->esm_message_container.buffer = esmbuf->data;
     attach_accept->esm_message_container.length = esmbuf->len;
@@ -364,9 +363,6 @@ ogs_pkbuf_t *emm_build_detach_accept(mme_ue_t *mme_ue)
         OGS_NAS_SECURITY_HEADER_INTEGRITY_PROTECTED_AND_CIPHERED;
     message.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
 
-    ogs_debug("Detach accept");
-    ogs_debug("    IMSI[%s]", mme_ue->imsi_bcd);
-
     message.emm.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
     message.emm.h.message_type = OGS_NAS_EPS_DETACH_ACCEPT;
 
@@ -441,9 +437,10 @@ ogs_pkbuf_t *emm_build_tau_accept(mme_ue_t *mme_ue)
     ogs_debug("    SERVED_TAI_INDEX[%d]", served_tai_index);
     ogs_assert(served_tai_index >= 0 &&
             served_tai_index < OGS_MAX_NUM_OF_SERVED_TAI);
-    ogs_nas_tai_list_build(&tau_accept->tai_list,
+    ogs_assert(OGS_OK ==
+        ogs_nas_tai_list_build(&tau_accept->tai_list,
             &mme_self()->served_tai[served_tai_index].list0,
-            &mme_self()->served_tai[served_tai_index].list2);
+            &mme_self()->served_tai[served_tai_index].list2));
 
     /* Set EPS bearer context status */
     tau_accept->presencemask |=
@@ -512,9 +509,7 @@ ogs_pkbuf_t *emm_build_tau_reject(
 
     ogs_assert(mme_ue);
 
-    ogs_debug("Tracking area update reject");
-    ogs_debug("    IMSI[%s] Cause[%d]",
-            MME_UE_HAVE_IMSI(mme_ue) ? mme_ue->imsi_bcd : "Unknown", emm_cause);
+    ogs_debug("    Cause[%d]", emm_cause);
 
     memset(&message, 0, sizeof(message));
     message.emm.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
@@ -532,9 +527,6 @@ ogs_pkbuf_t *emm_build_service_reject(
     ogs_nas_eps_service_reject_t *service_reject = &message.emm.service_reject;
 
     ogs_assert(mme_ue);
-
-    ogs_debug("Service reject");
-    ogs_debug("    Cause[%d]", emm_cause);
 
     memset(&message, 0, sizeof(message));
     message.emm.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;

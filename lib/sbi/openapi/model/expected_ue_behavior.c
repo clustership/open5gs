@@ -7,7 +7,7 @@
 OpenAPI_expected_ue_behavior_t *OpenAPI_expected_ue_behavior_create(
     OpenAPI_list_t *exp_move_trajectory,
     char *validity_time
-    )
+)
 {
     OpenAPI_expected_ue_behavior_t *expected_ue_behavior_local_var = OpenAPI_malloc(sizeof(OpenAPI_expected_ue_behavior_t));
     if (!expected_ue_behavior_local_var) {
@@ -43,10 +43,6 @@ cJSON *OpenAPI_expected_ue_behavior_convertToJSON(OpenAPI_expected_ue_behavior_t
     }
 
     item = cJSON_CreateObject();
-    if (!expected_ue_behavior->exp_move_trajectory) {
-        ogs_error("OpenAPI_expected_ue_behavior_convertToJSON() failed [exp_move_trajectory]");
-        goto end;
-    }
     cJSON *exp_move_trajectoryList = cJSON_AddArrayToObject(item, "expMoveTrajectory");
     if (exp_move_trajectoryList == NULL) {
         ogs_error("OpenAPI_expected_ue_behavior_convertToJSON() failed [exp_move_trajectory]");
@@ -65,10 +61,6 @@ cJSON *OpenAPI_expected_ue_behavior_convertToJSON(OpenAPI_expected_ue_behavior_t
         }
     }
 
-    if (!expected_ue_behavior->validity_time) {
-        ogs_error("OpenAPI_expected_ue_behavior_convertToJSON() failed [validity_time]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "validityTime", expected_ue_behavior->validity_time) == NULL) {
         ogs_error("OpenAPI_expected_ue_behavior_convertToJSON() failed [validity_time]");
         goto end;
@@ -88,9 +80,8 @@ OpenAPI_expected_ue_behavior_t *OpenAPI_expected_ue_behavior_parseFromJSON(cJSON
     }
 
     OpenAPI_list_t *exp_move_trajectoryList;
-
     cJSON *exp_move_trajectory_local_nonprimitive;
-    if (!cJSON_IsArray(exp_move_trajectory)) {
+    if (!cJSON_IsArray(exp_move_trajectory)){
         ogs_error("OpenAPI_expected_ue_behavior_parseFromJSON() failed [exp_move_trajectory]");
         goto end;
     }
@@ -113,7 +104,6 @@ OpenAPI_expected_ue_behavior_t *OpenAPI_expected_ue_behavior_parseFromJSON(cJSON
         goto end;
     }
 
-
     if (!cJSON_IsString(validity_time)) {
         ogs_error("OpenAPI_expected_ue_behavior_parseFromJSON() failed [validity_time]");
         goto end;
@@ -121,8 +111,8 @@ OpenAPI_expected_ue_behavior_t *OpenAPI_expected_ue_behavior_parseFromJSON(cJSON
 
     expected_ue_behavior_local_var = OpenAPI_expected_ue_behavior_create (
         exp_move_trajectoryList,
-        ogs_strdup(validity_time->valuestring)
-        );
+        ogs_strdup_or_assert(validity_time->valuestring)
+    );
 
     return expected_ue_behavior_local_var;
 end:

@@ -6,7 +6,7 @@
 
 OpenAPI_gad_shape_t *OpenAPI_gad_shape_create(
     OpenAPI_supported_gad_shapes_t *shape
-    )
+)
 {
     OpenAPI_gad_shape_t *gad_shape_local_var = OpenAPI_malloc(sizeof(OpenAPI_gad_shape_t));
     if (!gad_shape_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_gad_shape_convertToJSON(OpenAPI_gad_shape_t *gad_shape)
     }
 
     item = cJSON_CreateObject();
-    if (!gad_shape->shape) {
-        ogs_error("OpenAPI_gad_shape_convertToJSON() failed [shape]");
-        goto end;
-    }
     cJSON *shape_local_JSON = OpenAPI_supported_gad_shapes_convertToJSON(gad_shape->shape);
     if (shape_local_JSON == NULL) {
         ogs_error("OpenAPI_gad_shape_convertToJSON() failed [shape]");
@@ -66,12 +62,11 @@ OpenAPI_gad_shape_t *OpenAPI_gad_shape_parseFromJSON(cJSON *gad_shapeJSON)
     }
 
     OpenAPI_supported_gad_shapes_t *shape_local_nonprim = NULL;
-
     shape_local_nonprim = OpenAPI_supported_gad_shapes_parseFromJSON(shape);
 
     gad_shape_local_var = OpenAPI_gad_shape_create (
         shape_local_nonprim
-        );
+    );
 
     return gad_shape_local_var;
 end:

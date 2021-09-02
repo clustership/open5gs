@@ -53,6 +53,7 @@ The Open5GS 5G SA Core contains the following functions:
 * UDR - Unified Data Repository
 * PCF - Policy and Charging Function
 * NSSF - Network Slice Selection Function
+* BSF - Binding Support Function
 
 The 5G SA core works in a different way to the 4G core - it uses a **Service Based Architecture** (SBI). **Control plane** functions are configured to register with the NRF, and the NRF then helps them discover the other core functions. Running through the other functions: The AMF handles connection and mobility management; a subset of what the 4G MME is tasked with. gNBs (5G basestations) connect to the AMF. The UDM, AUSF and UDR carry out similar operations as the 4G HSS, generating SIM authentication vectors and holding the subscriber profile. Session management is all handled by the SMF (previously the responsibility of the 4G MME/ SGWC/ PGWC). The NSSF provides a way to select the network slice. Finally there is the PCF, used for charging and enforcing subscriber policies.
 
@@ -107,10 +108,9 @@ https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/Debian
 https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/Debian_Unstable/
 https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/Raspbian_10/
 https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_18.04/
-https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_19.04/
-https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_19.10/
 https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_20.04/
 https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_20.10/
+https://download.opensuse.org/repositories/home:/acetcom:/open5gs:/latest/xUbuntu_21.04/
 ```
 
 #### openSUSE
@@ -144,10 +144,9 @@ https://download.opensuse.org/repositories/network:/osmocom:/nightly/Debian_Test
 https://download.opensuse.org/repositories/network:/osmocom:/nightly/Debian_Unstable/
 https://download.opensuse.org/repositories/network:/osmocom:/nightly/Raspbian_10/
 https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_18.04/
-https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_19.04/
-https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_19.10/
 https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_20.04/
 https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_20.10/
+https://download.opensuse.org/repositories/network:/osmocom:/nightly/xUbuntu_21.04/
 ```
 
 
@@ -164,7 +163,7 @@ The WebUI allows you to interactively edit subscriber data. While it is not esse
     ```bash
     $ sudo apt update
     $ sudo apt install curl
-    $ curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    $ curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
     $ sudo apt install nodejs
     ```
 
@@ -177,7 +176,7 @@ The WebUI allows you to interactively edit subscriber data. While it is not esse
 You can now install WebUI of Open5GS.
 
 ```bash
-$ curl -sL {{ site.url }}{{ site.baseurl }}/assets/webui/install | sudo -E bash -
+$ curl -fsSL {{ site.url }}{{ site.baseurl }}/assets/webui/install | sudo -E bash -
 ```
 
 ## 4. Configure Open5GS
@@ -192,13 +191,14 @@ MongoDB   = 127.0.0.1 (subscriber data) - http://localhost:3000
 
 MME-s1ap  = 127.0.0.2 :36412 for S1-MME
 MME-gtpc  = 127.0.0.2 :2123 for S11
-MME-frDi  = 127.0.0.2 :3868 for S6a auth
+MME-frDi  = 127.0.0.2 :3868 for S6a
 
 SGWC-gtpc = 127.0.0.3 :2123 for S11
 SGWC-pfcp = 127.0.0.3 :8805 for Sxa
 
-SMF-gtpc  = 127.0.0.4 :2123 for S5/8c, N11
-SMF-pfcp  = 127.0.0.4 :8805 for N4
+SMF-gtpc  = 127.0.0.4 :2123 for S5c, N11
+SMF-gtpu  = 127.0.0.4 :2152 for N4u (Sxu)
+SMF-pfcp  = 127.0.0.4 :8805 for N4 (Sxb)
 SMF-frDi  = 127.0.0.4 :3868 for Gx auth
 SMF-sbi   = 127.0.0.4 :7777 for 5G SBI (N7,N10,N11)
 
@@ -206,20 +206,21 @@ AMF-ngap  = 127.0.0.5 :38412 for N2
 AMF-sbi   = 127.0.0.5 :7777 for 5G SBI (N8,N12,N11)
 
 SGWU-pfcp = 127.0.0.6 :8805 for Sxa
-SGWU-gtpu = 127.0.0.6 :2152 for S1-U, S5/8u
+SGWU-gtpu = 127.0.0.6 :2152 for S1-U, S5u
 
-UPF-pfcp  = 127.0.0.7 :8805 for N4
-UPF-gtpu  = 127.0.0.7 :2152 for S5/8u, N3
+UPF-pfcp  = 127.0.0.7 :8805 for N4 (Sxb)
+UPF-gtpu  = 127.0.0.7 :2152 for S5u, N3, N4u (Sxu)
 
-HSS-frDi  = 127.0.0.8 :3868 for S6a auth
+HSS-frDi  = 127.0.0.8 :3868 for S6a, Cx
 
-PCRF-frDi = 127.0.0.9 :3868 for Gx auth
+PCRF-frDi = 127.0.0.9 :3868 for Gx
 
 NRF-sbi   = 127.0.0.10:7777 for 5G SBI
 AUSF-sbi  = 127.0.0.11:7777 for 5G SBI
 UDM-sbi   = 127.0.0.12:7777 for 5G SBI
 PCF-sbi   = 127.0.0.13:7777 for 5G SBI
 NSSF-sbi  = 127.0.0.14:7777 for 5G SBI
+BSF-sbi   = 127.0.0.15:7777 for 5G SBI
 UDR-sbi   = 127.0.0.20:7777 for 5G SBI
 ```
 
@@ -466,6 +467,7 @@ $ sudo systemctl stop open5gs-ausfd
 $ sudo systemctl stop open5gs-udmd
 $ sudo systemctl stop open5gs-pcfd
 $ sudo systemctl stop open5gs-nssfd
+$ sudo systemctl stop open5gs-bsfd
 $ sudo systemctl stop open5gs-udrd
 $ sudo systemctl stop open5gs-webui
 ```
@@ -484,6 +486,7 @@ $ sudo systemctl restart open5gs-ausfd
 $ sudo systemctl restart open5gs-udmd
 $ sudo systemctl restart open5gs-pcfd
 $ sudo systemctl restart open5gs-nssfd
+$ sudo systemctl restart open5gs-bsfd
 $ sudo systemctl restart open5gs-udrd
 $ sudo systemctl restart open5gs-webui
 ```
@@ -515,6 +518,6 @@ $ sudo rm -Rf /var/log/open5gs
 The WebUI of Open5GS can be removed as follows:
 
 ```bash
-curl -sL {{ site.url }}{{ site.baseurl }}/assets/webui/uninstall | sudo -E bash -
+curl -fsSL {{ site.url }}{{ site.baseurl }}/assets/webui/uninstall | sudo -E bash -
 ```
 

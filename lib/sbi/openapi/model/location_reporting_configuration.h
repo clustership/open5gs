@@ -1,7 +1,7 @@
 /*
  * location_reporting_configuration.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_location_reporting_configuration_H_
@@ -21,6 +21,7 @@ extern "C" {
 typedef struct OpenAPI_location_reporting_configuration_s OpenAPI_location_reporting_configuration_t;
 typedef struct OpenAPI_location_reporting_configuration_s {
     int current_location;
+    bool is_one_time;
     int one_time;
     struct OpenAPI_location_accuracy_s *accuracy;
     struct OpenAPI_location_accuracy_s *n3gpp_accuracy;
@@ -28,10 +29,11 @@ typedef struct OpenAPI_location_reporting_configuration_s {
 
 OpenAPI_location_reporting_configuration_t *OpenAPI_location_reporting_configuration_create(
     int current_location,
+    bool is_one_time,
     int one_time,
     OpenAPI_location_accuracy_t *accuracy,
     OpenAPI_location_accuracy_t *n3gpp_accuracy
-    );
+);
 void OpenAPI_location_reporting_configuration_free(OpenAPI_location_reporting_configuration_t *location_reporting_configuration);
 OpenAPI_location_reporting_configuration_t *OpenAPI_location_reporting_configuration_parseFromJSON(cJSON *location_reporting_configurationJSON);
 cJSON *OpenAPI_location_reporting_configuration_convertToJSON(OpenAPI_location_reporting_configuration_t *location_reporting_configuration);

@@ -7,7 +7,7 @@
 OpenAPI_resynchronization_info_t *OpenAPI_resynchronization_info_create(
     char *rand,
     char *auts
-    )
+)
 {
     OpenAPI_resynchronization_info_t *resynchronization_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_resynchronization_info_t));
     if (!resynchronization_info_local_var) {
@@ -40,19 +40,11 @@ cJSON *OpenAPI_resynchronization_info_convertToJSON(OpenAPI_resynchronization_in
     }
 
     item = cJSON_CreateObject();
-    if (!resynchronization_info->rand) {
-        ogs_error("OpenAPI_resynchronization_info_convertToJSON() failed [rand]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "rand", resynchronization_info->rand) == NULL) {
         ogs_error("OpenAPI_resynchronization_info_convertToJSON() failed [rand]");
         goto end;
     }
 
-    if (!resynchronization_info->auts) {
-        ogs_error("OpenAPI_resynchronization_info_convertToJSON() failed [auts]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "auts", resynchronization_info->auts) == NULL) {
         ogs_error("OpenAPI_resynchronization_info_convertToJSON() failed [auts]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_resynchronization_info_t *OpenAPI_resynchronization_info_parseFromJSON(c
         goto end;
     }
 
-
     if (!cJSON_IsString(rand)) {
         ogs_error("OpenAPI_resynchronization_info_parseFromJSON() failed [rand]");
         goto end;
@@ -83,16 +74,15 @@ OpenAPI_resynchronization_info_t *OpenAPI_resynchronization_info_parseFromJSON(c
         goto end;
     }
 
-
     if (!cJSON_IsString(auts)) {
         ogs_error("OpenAPI_resynchronization_info_parseFromJSON() failed [auts]");
         goto end;
     }
 
     resynchronization_info_local_var = OpenAPI_resynchronization_info_create (
-        ogs_strdup(rand->valuestring),
-        ogs_strdup(auts->valuestring)
-        );
+        ogs_strdup_or_assert(rand->valuestring),
+        ogs_strdup_or_assert(auts->valuestring)
+    );
 
     return resynchronization_info_local_var;
 end:

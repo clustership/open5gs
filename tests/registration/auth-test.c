@@ -60,7 +60,8 @@ static void test1_func(abts_case *tc, void *data)
 
     test_ue->nr_cgi.cell_id = 0x40001;
 
-    test_ue->nas.registration.type = OGS_NAS_KSI_NO_KEY_IS_AVAILABLE;
+    test_ue->nas.registration.tsc = 0;
+    test_ue->nas.registration.ksi = OGS_NAS_KSI_NO_KEY_IS_AVAILABLE;
     test_ue->nas.registration.follow_on_request = 1;
     test_ue->nas.registration.value = OGS_NAS_5GS_REGISTRATION_TYPE_INITIAL;
 
@@ -92,7 +93,6 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, test_db_insert_ue(test_ue, doc));
 
     /* Send Registration request */
-    test_ue->registration_request_param.gmm_capability = 1;
     gmmbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, gmmbuf);
     sendbuf = testngap_build_initial_ue_message(test_ue, gmmbuf, false, true);
@@ -142,7 +142,6 @@ static void test1_func(abts_case *tc, void *data)
             test_ue->ngap_procedure_code);
 
     /* Send Registration request */
-    test_ue->registration_request_param.gmm_capability = 1;
     gmmbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, gmmbuf);
     sendbuf = testngap_build_initial_ue_message(test_ue, gmmbuf, false, true);

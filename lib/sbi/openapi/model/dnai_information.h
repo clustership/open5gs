@@ -1,7 +1,7 @@
 /*
  * dnai_information.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_dnai_information_H_
@@ -20,15 +20,19 @@ extern "C" {
 typedef struct OpenAPI_dnai_information_s OpenAPI_dnai_information_t;
 typedef struct OpenAPI_dnai_information_s {
     char *dnai;
+    bool is_no_dnai_change_ind;
     int no_dnai_change_ind;
+    bool is_no_local_psa_change_ind;
     int no_local_psa_change_ind;
 } OpenAPI_dnai_information_t;
 
 OpenAPI_dnai_information_t *OpenAPI_dnai_information_create(
     char *dnai,
+    bool is_no_dnai_change_ind,
     int no_dnai_change_ind,
+    bool is_no_local_psa_change_ind,
     int no_local_psa_change_ind
-    );
+);
 void OpenAPI_dnai_information_free(OpenAPI_dnai_information_t *dnai_information);
 OpenAPI_dnai_information_t *OpenAPI_dnai_information_parseFromJSON(cJSON *dnai_informationJSON);
 cJSON *OpenAPI_dnai_information_convertToJSON(OpenAPI_dnai_information_t *dnai_information);

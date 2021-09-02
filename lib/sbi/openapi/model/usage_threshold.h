@@ -1,7 +1,7 @@
 /*
  * usage_threshold.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_usage_threshold_H_
@@ -19,18 +19,26 @@ extern "C" {
 
 typedef struct OpenAPI_usage_threshold_s OpenAPI_usage_threshold_t;
 typedef struct OpenAPI_usage_threshold_s {
+    bool is_duration;
     int duration;
+    bool is_total_volume;
     long total_volume;
+    bool is_downlink_volume;
     long downlink_volume;
+    bool is_uplink_volume;
     long uplink_volume;
 } OpenAPI_usage_threshold_t;
 
 OpenAPI_usage_threshold_t *OpenAPI_usage_threshold_create(
+    bool is_duration,
     int duration,
+    bool is_total_volume,
     long total_volume,
+    bool is_downlink_volume,
     long downlink_volume,
+    bool is_uplink_volume,
     long uplink_volume
-    );
+);
 void OpenAPI_usage_threshold_free(OpenAPI_usage_threshold_t *usage_threshold);
 OpenAPI_usage_threshold_t *OpenAPI_usage_threshold_parseFromJSON(cJSON *usage_thresholdJSON);
 cJSON *OpenAPI_usage_threshold_convertToJSON(OpenAPI_usage_threshold_t *usage_threshold);

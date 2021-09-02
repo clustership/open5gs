@@ -7,7 +7,7 @@
 OpenAPI_mapping_of_snssai_t *OpenAPI_mapping_of_snssai_create(
     OpenAPI_snssai_t *serving_snssai,
     OpenAPI_snssai_t *home_snssai
-    )
+)
 {
     OpenAPI_mapping_of_snssai_t *mapping_of_snssai_local_var = OpenAPI_malloc(sizeof(OpenAPI_mapping_of_snssai_t));
     if (!mapping_of_snssai_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_mapping_of_snssai_convertToJSON(OpenAPI_mapping_of_snssai_t *mapp
     }
 
     item = cJSON_CreateObject();
-    if (!mapping_of_snssai->serving_snssai) {
-        ogs_error("OpenAPI_mapping_of_snssai_convertToJSON() failed [serving_snssai]");
-        goto end;
-    }
     cJSON *serving_snssai_local_JSON = OpenAPI_snssai_convertToJSON(mapping_of_snssai->serving_snssai);
     if (serving_snssai_local_JSON == NULL) {
         ogs_error("OpenAPI_mapping_of_snssai_convertToJSON() failed [serving_snssai]");
@@ -55,10 +51,6 @@ cJSON *OpenAPI_mapping_of_snssai_convertToJSON(OpenAPI_mapping_of_snssai_t *mapp
         goto end;
     }
 
-    if (!mapping_of_snssai->home_snssai) {
-        ogs_error("OpenAPI_mapping_of_snssai_convertToJSON() failed [home_snssai]");
-        goto end;
-    }
     cJSON *home_snssai_local_JSON = OpenAPI_snssai_convertToJSON(mapping_of_snssai->home_snssai);
     if (home_snssai_local_JSON == NULL) {
         ogs_error("OpenAPI_mapping_of_snssai_convertToJSON() failed [home_snssai]");
@@ -84,7 +76,6 @@ OpenAPI_mapping_of_snssai_t *OpenAPI_mapping_of_snssai_parseFromJSON(cJSON *mapp
     }
 
     OpenAPI_snssai_t *serving_snssai_local_nonprim = NULL;
-
     serving_snssai_local_nonprim = OpenAPI_snssai_parseFromJSON(serving_snssai);
 
     cJSON *home_snssai = cJSON_GetObjectItemCaseSensitive(mapping_of_snssaiJSON, "homeSnssai");
@@ -94,13 +85,12 @@ OpenAPI_mapping_of_snssai_t *OpenAPI_mapping_of_snssai_parseFromJSON(cJSON *mapp
     }
 
     OpenAPI_snssai_t *home_snssai_local_nonprim = NULL;
-
     home_snssai_local_nonprim = OpenAPI_snssai_parseFromJSON(home_snssai);
 
     mapping_of_snssai_local_var = OpenAPI_mapping_of_snssai_create (
         serving_snssai_local_nonprim,
         home_snssai_local_nonprim
-        );
+    );
 
     return mapping_of_snssai_local_var;
 end:

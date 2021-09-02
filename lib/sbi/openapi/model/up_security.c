@@ -7,7 +7,7 @@
 OpenAPI_up_security_t *OpenAPI_up_security_create(
     OpenAPI_up_integrity_e up_integr,
     OpenAPI_up_confidentiality_e up_confid
-    )
+)
 {
     OpenAPI_up_security_t *up_security_local_var = OpenAPI_malloc(sizeof(OpenAPI_up_security_t));
     if (!up_security_local_var) {
@@ -38,19 +38,11 @@ cJSON *OpenAPI_up_security_convertToJSON(OpenAPI_up_security_t *up_security)
     }
 
     item = cJSON_CreateObject();
-    if (!up_security->up_integr) {
-        ogs_error("OpenAPI_up_security_convertToJSON() failed [up_integr]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "upIntegr", OpenAPI_up_integrity_ToString(up_security->up_integr)) == NULL) {
         ogs_error("OpenAPI_up_security_convertToJSON() failed [up_integr]");
         goto end;
     }
 
-    if (!up_security->up_confid) {
-        ogs_error("OpenAPI_up_security_convertToJSON() failed [up_confid]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "upConfid", OpenAPI_up_confidentiality_ToString(up_security->up_confid)) == NULL) {
         ogs_error("OpenAPI_up_security_convertToJSON() failed [up_confid]");
         goto end;
@@ -70,7 +62,6 @@ OpenAPI_up_security_t *OpenAPI_up_security_parseFromJSON(cJSON *up_securityJSON)
     }
 
     OpenAPI_up_integrity_e up_integrVariable;
-
     if (!cJSON_IsString(up_integr)) {
         ogs_error("OpenAPI_up_security_parseFromJSON() failed [up_integr]");
         goto end;
@@ -84,7 +75,6 @@ OpenAPI_up_security_t *OpenAPI_up_security_parseFromJSON(cJSON *up_securityJSON)
     }
 
     OpenAPI_up_confidentiality_e up_confidVariable;
-
     if (!cJSON_IsString(up_confid)) {
         ogs_error("OpenAPI_up_security_parseFromJSON() failed [up_confid]");
         goto end;
@@ -94,7 +84,7 @@ OpenAPI_up_security_t *OpenAPI_up_security_parseFromJSON(cJSON *up_securityJSON)
     up_security_local_var = OpenAPI_up_security_create (
         up_integrVariable,
         up_confidVariable
-        );
+    );
 
     return up_security_local_var;
 end:

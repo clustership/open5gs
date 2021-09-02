@@ -787,6 +787,7 @@ APN Configuration:
 ---------------------------------------------------------------------------------------------------------------------
 | ims      | IPv4 | 5   | 1   | Disabled   | Disabled       | 3850/1530           |                 |               |
 |          |      | 1   | 2   | Enabled    | Enabled        | 128/128             | 128/128         |               |
+|          |      | 2   | 4   | Enabled    | Enabled        | 128/128             | 128/128         |               |
 ---------------------------------------------------------------------------------------------------------------------
 </pre>
 
@@ -1131,13 +1132,13 @@ Visited Network = ims.mnc001.mcc001.3gppnetwork.org
 Click Add
 
 Associate IMPI(s) to IMPU
-IMPI Identity = 001011234567891@ims.mnc001.mcc001.3gppnetwork.org
+IMPI Identity = 001010123456791@ims.mnc001.mcc001.3gppnetwork.org
 Click Add
 
-2. sip:0198765432100
+2. sip:0198765432100@ims.mnc001.mcc001.3gppnetwork.org
 
 Public User Identity -IMPU-
-Identity = sip:0198765432100
+Identity = sip:0198765432100@ims.mnc001.mcc001.3gppnetwork.org
 Service Profile = default_sp
 Charging-Info Set = default_charging_set
 Can Register = Yes
@@ -1150,12 +1151,12 @@ Visited Network = ims.mnc001.mcc001.3gppnetwork.org
 Click Add
 
 Associate IMPI(s) to IMPU
-IMPI Identity = 001011234567891@ims.mnc001.mcc001.3gppnetwork.org
+IMPI Identity = 001010123456791@ims.mnc001.mcc001.3gppnetwork.org
 Click Add
 
-And, finally add these IMPUs as implicit set of IMSI derived IMPU in HSS i.e sip:001011234567891@ims.mnc001.mcc001.3gppnetwork.org as follows:
+And, finally add these IMPUs as implicit set of IMSI derived IMPU in HSS i.e sip:001010123456791@ims.mnc001.mcc001.3gppnetwork.org as follows:
 
-1. Goto to IMPU sip:001011234567891@ims.mnc001.mcc001.3gppnetwork.org
+1. Goto to IMPU sip:001010123456791@ims.mnc001.mcc001.3gppnetwork.org
 2. In "Add IMPU(s) to Implicit-Set" section give IMPU Identity created above to be added to this IMPU
 ```
 

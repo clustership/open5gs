@@ -7,7 +7,7 @@
 OpenAPI_network_node_diameter_address_t *OpenAPI_network_node_diameter_address_create(
     char *name,
     char *realm
-    )
+)
 {
     OpenAPI_network_node_diameter_address_t *network_node_diameter_address_local_var = OpenAPI_malloc(sizeof(OpenAPI_network_node_diameter_address_t));
     if (!network_node_diameter_address_local_var) {
@@ -40,19 +40,11 @@ cJSON *OpenAPI_network_node_diameter_address_convertToJSON(OpenAPI_network_node_
     }
 
     item = cJSON_CreateObject();
-    if (!network_node_diameter_address->name) {
-        ogs_error("OpenAPI_network_node_diameter_address_convertToJSON() failed [name]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "name", network_node_diameter_address->name) == NULL) {
         ogs_error("OpenAPI_network_node_diameter_address_convertToJSON() failed [name]");
         goto end;
     }
 
-    if (!network_node_diameter_address->realm) {
-        ogs_error("OpenAPI_network_node_diameter_address_convertToJSON() failed [realm]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "realm", network_node_diameter_address->realm) == NULL) {
         ogs_error("OpenAPI_network_node_diameter_address_convertToJSON() failed [realm]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_network_node_diameter_address_t *OpenAPI_network_node_diameter_address_p
         goto end;
     }
 
-
     if (!cJSON_IsString(name)) {
         ogs_error("OpenAPI_network_node_diameter_address_parseFromJSON() failed [name]");
         goto end;
@@ -83,16 +74,15 @@ OpenAPI_network_node_diameter_address_t *OpenAPI_network_node_diameter_address_p
         goto end;
     }
 
-
     if (!cJSON_IsString(realm)) {
         ogs_error("OpenAPI_network_node_diameter_address_parseFromJSON() failed [realm]");
         goto end;
     }
 
     network_node_diameter_address_local_var = OpenAPI_network_node_diameter_address_create (
-        ogs_strdup(name->valuestring),
-        ogs_strdup(realm->valuestring)
-        );
+        ogs_strdup_or_assert(name->valuestring),
+        ogs_strdup_or_assert(realm->valuestring)
+    );
 
     return network_node_diameter_address_local_var;
 end:

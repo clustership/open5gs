@@ -28,7 +28,7 @@
 /*******************************************************************************
  * This file had been created by nas-message.py script v0.1.0
  * Please do not modify this file but regenerate it via script.
- * Created on: 2020-08-16 17:47:29.440664 by acetcom
+ * Created on: 2021-06-21 14:44:53.390608 by acetcom
  * from 24301-g40.docx
  ******************************************************************************/
 
@@ -3243,7 +3243,7 @@ ogs_pkbuf_t *ogs_nas_emm_encode(ogs_nas_eps_message_t *message)
     /* The Packet Buffer(ogs_pkbuf_t) for NAS message MUST make a HEADROOM. 
      * When calculating AES_CMAC, we need to use the headroom of the packet. */
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
-    ogs_assert(pkbuf);
+    ogs_expect_or_return_val(pkbuf, NULL);
     ogs_pkbuf_reserve(pkbuf, OGS_NAS_HEADROOM);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-OGS_NAS_HEADROOM);
 
@@ -3429,7 +3429,7 @@ ogs_pkbuf_t *ogs_nas_esm_encode(ogs_nas_eps_message_t *message)
     /* The Packet Buffer(ogs_pkbuf_t) for NAS message MUST make a HEADROOM. 
      * When calculating AES_CMAC, we need to use the headroom of the packet. */
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
-    ogs_assert(pkbuf);
+    ogs_expect_or_return_val(pkbuf, NULL);
     ogs_pkbuf_reserve(pkbuf, OGS_NAS_HEADROOM);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-OGS_NAS_HEADROOM);
 

@@ -45,8 +45,11 @@ void upf_context_init(void)
     ogs_pool_init(&upf_sess_pool, ogs_app()->pool.sess);
 
     self.sess_hash = ogs_hash_make();
+    ogs_assert(self.sess_hash);
     self.ipv4_hash = ogs_hash_make();
+    ogs_assert(self.ipv4_hash);
     self.ipv6_hash = ogs_hash_make();
+    ogs_assert(self.ipv6_hash);
 
     context_initialized = 1;
 }
@@ -201,7 +204,6 @@ void upf_sess_remove_all(void)
 
 upf_sess_t *upf_sess_find(uint32_t index)
 {
-    ogs_assert(index);
     return ogs_pool_find(&upf_sess_pool, index);
 }
 
@@ -254,12 +256,14 @@ upf_sess_t *upf_sess_add_by_message(ogs_pfcp_message_t *message)
     return sess;
 }
 
-void upf_sess_set_ue_ip(upf_sess_t *sess,
+uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
         uint8_t session_type, ogs_pfcp_pdr_t *pdr)
 {
     ogs_pfcp_ue_ip_addr_t *ue_ip = NULL;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
+
+    uint8_t cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
     ogs_assert(sess);
     ogs_assert(session_type);
@@ -282,9 +286,13 @@ void upf_sess_set_ue_ip(upf_sess_t *sess,
     /* Set PDN-Type and UE IP Address */
     if (session_type == OGS_PDU_SESSION_TYPE_IPV4) {
         if (ue_ip->ipv4 || pdr->dnn) {
-            sess->ipv4 = ogs_pfcp_ue_ip_alloc(
-                    AF_INET, pdr->dnn, (uint8_t *)&(ue_ip->addr));
-            ogs_assert(sess->ipv4);
+            sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
+                            pdr->dnn, (uint8_t *)&(ue_ip->addr));
+            if (!sess->ipv4) {
+                ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
+                ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
+                return cause_value;
+            }
             ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, sess);
         } else {
             ogs_warn("Cannot support PDN-Type[%d], [IPv4:%d IPv6:%d DNN:%s]",
@@ -293,8 +301,13 @@ void upf_sess_set_ue_ip(upf_sess_t *sess,
         }
     } else if (session_type == OGS_PDU_SESSION_TYPE_IPV6) {
         if (ue_ip->ipv6 || pdr->dnn) {
-            sess->ipv6 = ogs_pfcp_ue_ip_alloc(AF_INET6, pdr->dnn, ue_ip->addr6);
-            ogs_assert(sess->ipv6);
+            sess->ipv6 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET6,
+                            pdr->dnn, ue_ip->addr6);
+            if (!sess->ipv6) {
+                ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
+                ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
+                return cause_value;
+            }
             ogs_hash_set(self.ipv6_hash, sess->ipv6->addr,
                     OGS_IPV6_DEFAULT_PREFIX_LEN >> 3, sess);
         } else {
@@ -304,9 +317,13 @@ void upf_sess_set_ue_ip(upf_sess_t *sess,
         }
     } else if (session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
         if (ue_ip->ipv4 || pdr->dnn) {
-            sess->ipv4 = ogs_pfcp_ue_ip_alloc(
-                    AF_INET, pdr->dnn, (uint8_t *)&(ue_ip->both.addr));
-            ogs_assert(sess->ipv4);
+            sess->ipv4 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET,
+                            pdr->dnn, (uint8_t *)&(ue_ip->both.addr));
+            if (!sess->ipv4) {
+                ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
+                ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
+                return cause_value;
+            }
             ogs_hash_set(self.ipv4_hash, sess->ipv4->addr, OGS_IPV4_LEN, sess);
         } else {
             ogs_warn("Cannot support PDN-Type[%d], [IPv4:%d IPv6:%d DNN:%s]",
@@ -315,9 +332,19 @@ void upf_sess_set_ue_ip(upf_sess_t *sess,
         }
 
         if (ue_ip->ipv6 || pdr->dnn) {
-            sess->ipv6 = ogs_pfcp_ue_ip_alloc(
-                    AF_INET6, pdr->dnn, ue_ip->both.addr6);
-            ogs_assert(sess->ipv6);
+            sess->ipv6 = ogs_pfcp_ue_ip_alloc(&cause_value, AF_INET6,
+                            pdr->dnn, ue_ip->both.addr6);
+            if (!sess->ipv6) {
+                ogs_error("ogs_pfcp_ue_ip_alloc() failed[%d]", cause_value);
+                ogs_assert(cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
+                if (sess->ipv4) {
+                    ogs_hash_set(self.ipv4_hash,
+                            sess->ipv4->addr, OGS_IPV4_LEN, NULL);
+                    ogs_pfcp_ue_ip_free(sess->ipv4);
+                    sess->ipv4 = NULL;
+                }
+                return cause_value;
+            }
             ogs_hash_set(self.ipv6_hash, sess->ipv6->addr,
                     OGS_IPV6_DEFAULT_PREFIX_LEN >> 3, sess);
         } else {
@@ -337,4 +364,6 @@ void upf_sess_set_ue_ip(upf_sess_t *sess,
         pdr->dnn, session_type,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
+
+    return cause_value;
 }

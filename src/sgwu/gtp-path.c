@@ -71,6 +71,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         ogs_debug("[RECV] Echo Request from [%s]", OGS_ADDR(&from, buf));
         echo_rsp = ogs_gtp_handle_echo_req(pkbuf);
+        ogs_expect(echo_rsp);
         if (echo_rsp) {
             ssize_t sent;
 
@@ -133,14 +134,16 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         far = ogs_pfcp_far_find_by_error_indication(pkbuf);
         if (far) {
-            ogs_pfcp_up_handle_error_indication(far, &report);
+            ogs_assert(true ==
+                ogs_pfcp_up_handle_error_indication(far, &report));
 
             if (report.type.error_indication_report) {
                 ogs_assert(far->sess);
                 sess = SGWU_SESS(far->sess);
                 ogs_assert(sess);
 
-                sgwu_pfcp_send_session_report_request(sess, &report);
+                ogs_assert(OGS_OK ==
+                    sgwu_pfcp_send_session_report_request(sess, &report));
             }
 
         } else {
@@ -205,7 +208,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
         }
 
         ogs_assert(pdr);
-        ogs_pfcp_up_handle_pdr(pdr, pkbuf, &report);
+        ogs_assert(true == ogs_pfcp_up_handle_pdr(pdr, pkbuf, &report));
 
         if (report.type.downlink_data_report) {
             ogs_assert(pdr->sess);
@@ -216,7 +219,8 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
             report.downlink_data.pdr_id = pdr->id;
             report.downlink_data.qfi = qfi; /* for 5GC */
 
-            sgwu_pfcp_send_session_report_request(sess, &report);
+            ogs_assert(OGS_OK ==
+                sgwu_pfcp_send_session_report_request(sess, &report));
         }
     } else {
         ogs_error("[DROP] Invalid GTPU Type [%d]", gtp_h->type);
@@ -251,7 +255,7 @@ int sgwu_gtp_open(void)
 
     ogs_list_for_each(&ogs_gtp_self()->gtpu_list, node) {
         sock = ogs_gtp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
 
         if (sock->family == AF_INET)
             ogs_gtp_self()->gtpu_sock = sock;
@@ -260,6 +264,7 @@ int sgwu_gtp_open(void)
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, _gtpv1_u_recv_cb, sock);
+        ogs_assert(node->poll);
     }
 
     OGS_SETUP_GTPU_SERVER;

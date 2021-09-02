@@ -1,7 +1,7 @@
 /*
  * qos_flow_profile.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_qos_flow_profile_H_
@@ -34,6 +34,7 @@ typedef struct OpenAPI_qos_flow_profile_s {
     OpenAPI_reflective_qo_s_attribute_e rqa;
     OpenAPI_additional_qos_flow_info_e additional_qos_flow_info;
     OpenAPI_qos_monitoring_req_e qos_monitoring_req;
+    bool is_qos_rep_period;
     int qos_rep_period;
 } OpenAPI_qos_flow_profile_t;
 
@@ -46,8 +47,9 @@ OpenAPI_qos_flow_profile_t *OpenAPI_qos_flow_profile_create(
     OpenAPI_reflective_qo_s_attribute_e rqa,
     OpenAPI_additional_qos_flow_info_e additional_qos_flow_info,
     OpenAPI_qos_monitoring_req_e qos_monitoring_req,
+    bool is_qos_rep_period,
     int qos_rep_period
-    );
+);
 void OpenAPI_qos_flow_profile_free(OpenAPI_qos_flow_profile_t *qos_flow_profile);
 OpenAPI_qos_flow_profile_t *OpenAPI_qos_flow_profile_parseFromJSON(cJSON *qos_flow_profileJSON);
 cJSON *OpenAPI_qos_flow_profile_convertToJSON(OpenAPI_qos_flow_profile_t *qos_flow_profile);

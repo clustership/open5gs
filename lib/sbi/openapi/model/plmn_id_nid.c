@@ -8,7 +8,7 @@ OpenAPI_plmn_id_nid_t *OpenAPI_plmn_id_nid_create(
     char *mcc,
     char *mnc,
     char *nid
-    )
+)
 {
     OpenAPI_plmn_id_nid_t *plmn_id_nid_local_var = OpenAPI_malloc(sizeof(OpenAPI_plmn_id_nid_t));
     if (!plmn_id_nid_local_var) {
@@ -43,29 +43,21 @@ cJSON *OpenAPI_plmn_id_nid_convertToJSON(OpenAPI_plmn_id_nid_t *plmn_id_nid)
     }
 
     item = cJSON_CreateObject();
-    if (!plmn_id_nid->mcc) {
-        ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [mcc]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "mcc", plmn_id_nid->mcc) == NULL) {
         ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [mcc]");
         goto end;
     }
 
-    if (!plmn_id_nid->mnc) {
-        ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [mnc]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "mnc", plmn_id_nid->mnc) == NULL) {
         ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [mnc]");
         goto end;
     }
 
     if (plmn_id_nid->nid) {
-        if (cJSON_AddStringToObject(item, "nid", plmn_id_nid->nid) == NULL) {
-            ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [nid]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "nid", plmn_id_nid->nid) == NULL) {
+        ogs_error("OpenAPI_plmn_id_nid_convertToJSON() failed [nid]");
+        goto end;
+    }
     }
 
 end:
@@ -81,7 +73,6 @@ OpenAPI_plmn_id_nid_t *OpenAPI_plmn_id_nid_parseFromJSON(cJSON *plmn_id_nidJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(mcc)) {
         ogs_error("OpenAPI_plmn_id_nid_parseFromJSON() failed [mcc]");
         goto end;
@@ -93,7 +84,6 @@ OpenAPI_plmn_id_nid_t *OpenAPI_plmn_id_nid_parseFromJSON(cJSON *plmn_id_nidJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(mnc)) {
         ogs_error("OpenAPI_plmn_id_nid_parseFromJSON() failed [mnc]");
         goto end;
@@ -102,17 +92,17 @@ OpenAPI_plmn_id_nid_t *OpenAPI_plmn_id_nid_parseFromJSON(cJSON *plmn_id_nidJSON)
     cJSON *nid = cJSON_GetObjectItemCaseSensitive(plmn_id_nidJSON, "nid");
 
     if (nid) {
-        if (!cJSON_IsString(nid)) {
-            ogs_error("OpenAPI_plmn_id_nid_parseFromJSON() failed [nid]");
-            goto end;
-        }
+    if (!cJSON_IsString(nid)) {
+        ogs_error("OpenAPI_plmn_id_nid_parseFromJSON() failed [nid]");
+        goto end;
+    }
     }
 
     plmn_id_nid_local_var = OpenAPI_plmn_id_nid_create (
-        ogs_strdup(mcc->valuestring),
-        ogs_strdup(mnc->valuestring),
-        nid ? ogs_strdup(nid->valuestring) : NULL
-        );
+        ogs_strdup_or_assert(mcc->valuestring),
+        ogs_strdup_or_assert(mnc->valuestring),
+        nid ? ogs_strdup_or_assert(nid->valuestring) : NULL
+    );
 
     return plmn_id_nid_local_var;
 end:

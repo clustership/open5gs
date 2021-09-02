@@ -61,7 +61,7 @@ struct ogs_hash_t {
 
 static ogs_hash_entry_t **alloc_array(ogs_hash_t *ht, unsigned int max)
 {
-   return ogs_calloc(1, sizeof(*ht->array) * (max + 1));
+   return ogs_calloc_or_assert(1, sizeof(*ht->array) * (max + 1));
 }
 
 ogs_hash_t *ogs_hash_make()
@@ -70,6 +70,7 @@ ogs_hash_t *ogs_hash_make()
     ogs_time_t now = ogs_get_monotonic_time();
 
     ht = ogs_malloc(sizeof(ogs_hash_t));
+    ogs_expect_or_return_val(ht, NULL);
 
     ht->free = NULL;
     ht->count = 0;
@@ -85,6 +86,7 @@ ogs_hash_t *ogs_hash_make()
 ogs_hash_t *ogs_hash_make_custom(ogs_hashfunc_t hash_func)
 {
     ogs_hash_t *ht = ogs_hash_make();
+    ogs_expect_or_return_val(ht, NULL);
     ht->hash_func = hash_func;
     return ht;
 }
@@ -258,7 +260,7 @@ unsigned int ogs_hashfunc_default(const char *char_key, int *klen)
 }
 
 static ogs_hash_entry_t **find_entry(ogs_hash_t *ht,
-        const void *key, int klen, const void *val)
+        const void *key, int klen, const void *val, const char *file_line)
 {
     ogs_hash_entry_t **hep, *he;
     unsigned int hash;
@@ -283,7 +285,7 @@ static ogs_hash_entry_t **find_entry(ogs_hash_t *ht,
     if ((he = ht->free) != NULL)
         ht->free = he->next;
     else
-        he = ogs_malloc(sizeof(*he));
+        he = ogs_malloc_debug(sizeof(*he), file_line, true);
     he->next = NULL;
     he->hash = hash;
     he->key  = key;
@@ -294,7 +296,8 @@ static ogs_hash_entry_t **find_entry(ogs_hash_t *ht,
     return hep;
 }
 
-void *ogs_hash_get(ogs_hash_t *ht, const void *key, int klen)
+void *ogs_hash_get_debug(ogs_hash_t *ht,
+        const void *key, int klen, const char *file_line)
 {
     ogs_hash_entry_t *he;
 
@@ -302,14 +305,15 @@ void *ogs_hash_get(ogs_hash_t *ht, const void *key, int klen)
     ogs_assert(key);
     ogs_assert(klen);
 
-    he = *find_entry(ht, key, klen, NULL);
+    he = *find_entry(ht, key, klen, NULL, file_line);
     if (he)
         return (void *)he->val;
     else
         return NULL;
 }
 
-void ogs_hash_set(ogs_hash_t *ht, const void *key, int klen, const void *val)
+void ogs_hash_set_debug(ogs_hash_t *ht,
+        const void *key, int klen, const void *val, const char *file_line)
 {
     ogs_hash_entry_t **hep;
 
@@ -317,7 +321,7 @@ void ogs_hash_set(ogs_hash_t *ht, const void *key, int klen, const void *val)
     ogs_assert(key);
     ogs_assert(klen);
 
-    hep = find_entry(ht, key, klen, val);
+    hep = find_entry(ht, key, klen, val, file_line);
     if (*hep) {
         if (!val) {
             /* delete entry */
@@ -338,8 +342,8 @@ void ogs_hash_set(ogs_hash_t *ht, const void *key, int klen, const void *val)
     /* else key not present and val==NULL */
 }
 
-void *ogs_hash_get_or_set(ogs_hash_t *ht, 
-        const void *key, int klen, const void *val)
+void *ogs_hash_get_or_set_debug(ogs_hash_t *ht,
+        const void *key, int klen, const void *val, const char *file_line)
 {
     ogs_hash_entry_t **hep;
 
@@ -347,7 +351,7 @@ void *ogs_hash_get_or_set(ogs_hash_t *ht,
     ogs_assert(key);
     ogs_assert(klen);
 
-    hep = find_entry(ht, key, klen, val);
+    hep = find_entry(ht, key, klen, val, file_line);
     if (*hep) {
         val = (*hep)->val;
         /* check that the collision rate isn't too high */

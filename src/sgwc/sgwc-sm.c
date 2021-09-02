@@ -80,21 +80,9 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        rv = sgwc_gtp_open();
-        if (rv != OGS_OK) {
-            ogs_error("Can't establish SGW path");
-            break;
-        }
-        rv = sgwc_pfcp_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish N4-PFCP path");
-            break;
-        }
         break;
 
     case OGS_FSM_EXIT_SIG:
-        sgwc_gtp_close();
-        sgwc_pfcp_close();
         break;
 
     case SGWC_EVT_SXA_MESSAGE:
@@ -282,6 +270,10 @@ void sgwc_state_operational(ogs_fsm_t *s, sgwc_event_t *e)
             break;
         case OGS_GTP_DELETE_SESSION_RESPONSE_TYPE:
             sgwc_s5c_handle_delete_session_response(
+                    sess, gtp_xact, recvbuf, &gtp_message);
+            break;
+        case OGS_GTP_MODIFY_BEARER_RESPONSE_TYPE:
+            sgwc_s5c_handle_modify_bearer_response(
                     sess, gtp_xact, recvbuf, &gtp_message);
             break;
         case OGS_GTP_CREATE_BEARER_REQUEST_TYPE:

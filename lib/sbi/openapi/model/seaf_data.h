@@ -1,7 +1,7 @@
 /*
  * seaf_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_seaf_data_H_
@@ -24,8 +24,11 @@ typedef struct OpenAPI_seaf_data_s {
     struct OpenAPI_ng_ksi_s *ng_ksi;
     struct OpenAPI_key_amf_s *key_amf;
     char *nh;
+    bool is_ncc;
     int ncc;
+    bool is_key_amf_change_ind;
     int key_amf_change_ind;
+    bool is_key_amf_h_derivation_ind;
     int key_amf_h_derivation_ind;
 } OpenAPI_seaf_data_t;
 
@@ -33,10 +36,13 @@ OpenAPI_seaf_data_t *OpenAPI_seaf_data_create(
     OpenAPI_ng_ksi_t *ng_ksi,
     OpenAPI_key_amf_t *key_amf,
     char *nh,
+    bool is_ncc,
     int ncc,
+    bool is_key_amf_change_ind,
     int key_amf_change_ind,
+    bool is_key_amf_h_derivation_ind,
     int key_amf_h_derivation_ind
-    );
+);
 void OpenAPI_seaf_data_free(OpenAPI_seaf_data_t *seaf_data);
 OpenAPI_seaf_data_t *OpenAPI_seaf_data_parseFromJSON(cJSON *seaf_dataJSON);
 cJSON *OpenAPI_seaf_data_convertToJSON(OpenAPI_seaf_data_t *seaf_data);

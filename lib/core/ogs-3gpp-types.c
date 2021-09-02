@@ -64,6 +64,29 @@ void *ogs_plmn_id_build(ogs_plmn_id_t *plmn_id,
     return plmn_id;
 }
 
+void *ogs_nas_from_plmn_id(
+        ogs_nas_plmn_id_t *ogs_nas_plmn_id, ogs_plmn_id_t *plmn_id)
+{
+    memcpy(ogs_nas_plmn_id, plmn_id, OGS_PLMN_ID_LEN);
+    if (plmn_id->mnc1 != 0xf) {
+        ogs_nas_plmn_id->mnc1 = plmn_id->mnc1;
+        ogs_nas_plmn_id->mnc2 = plmn_id->mnc2;
+        ogs_nas_plmn_id->mnc3 = plmn_id->mnc3;
+    }
+    return ogs_nas_plmn_id;
+}
+void *ogs_nas_to_plmn_id(
+        ogs_plmn_id_t *plmn_id, ogs_nas_plmn_id_t *ogs_nas_plmn_id)
+{
+    memcpy(plmn_id, ogs_nas_plmn_id, OGS_PLMN_ID_LEN);
+    if (plmn_id->mnc1 != 0xf) {
+        plmn_id->mnc1 = ogs_nas_plmn_id->mnc1;
+        plmn_id->mnc2 = ogs_nas_plmn_id->mnc2;
+        plmn_id->mnc3 = ogs_nas_plmn_id->mnc3;
+    }
+    return plmn_id;
+}
+
 char *ogs_serving_network_name_from_plmn_id(ogs_plmn_id_t *plmn_id)
 {
     ogs_assert(plmn_id);
@@ -137,7 +160,7 @@ char *ogs_amf_id_to_string(ogs_amf_id_t *amf_id)
     ogs_assert(amf_id);
 
     str = ogs_calloc(1, OGS_AMFIDSTRLEN);
-    ogs_assert(str);
+    ogs_expect_or_return_val(str, NULL);
 
     ogs_hex_to_ascii(amf_id, sizeof(ogs_amf_id_t), str, OGS_AMFIDSTRLEN);
 
@@ -182,6 +205,7 @@ char *ogs_supi_from_suci(char *suci)
 
     ogs_assert(suci);
     tmp = ogs_strdup(suci);
+    ogs_expect_or_return_val(tmp, NULL);
 
     p = strtok_r(tmp, "-", &saveptr);
 
@@ -222,10 +246,12 @@ char *ogs_id_get_type(char *str)
 
     ogs_assert(str);
     tmp = ogs_strdup(str);
+    ogs_expect_or_return_val(tmp, NULL);
 
     p = strtok_r(tmp, "-", &saveptr);
     ogs_assert(p);
     type = ogs_strdup(p);
+    ogs_expect_or_return_val(type, NULL);
 
     ogs_free(tmp);
     return type;
@@ -239,12 +265,14 @@ char *ogs_id_get_value(char *str)
 
     ogs_assert(str);
     tmp = ogs_strdup(str);
+    ogs_expect_or_return_val(tmp, NULL);
 
     p = strtok_r(tmp, "-", &saveptr);
     ogs_assert(p);
     p = strtok_r(NULL, "-", &saveptr);
     ogs_assert(p);
     ueid = ogs_strdup(p);
+    ogs_expect_or_return_val(ueid, NULL);
 
     ogs_free(tmp);
     return ueid;
@@ -252,10 +280,15 @@ char *ogs_id_get_value(char *str)
 
 char *ogs_s_nssai_sd_to_string(ogs_uint24_t sd)
 {
+    char *string = NULL;
+
     if (sd.v == OGS_S_NSSAI_NO_SD_VALUE)
         return NULL;
 
-    return ogs_uint24_to_0string(sd);
+    string = ogs_uint24_to_0string(sd);
+    ogs_expect(string);
+
+    return string;
 }
 
 ogs_uint24_t ogs_s_nssai_sd_from_string(const char *hex)
@@ -391,12 +424,12 @@ int ogs_ip_to_sockaddr(ogs_ip_t *ip, uint16_t port, ogs_sockaddr_t **list)
     ogs_assert(list);
 
     addr = ogs_calloc(1, sizeof(ogs_sockaddr_t));
-    ogs_assert(addr);
+    ogs_expect_or_return_val(addr, OGS_ERROR);
     addr->ogs_sa_family = AF_INET;
     addr->ogs_sin_port = htobe16(port);
 
     addr6 = ogs_calloc(1, sizeof(ogs_sockaddr_t));
-    ogs_assert(addr6);
+    ogs_expect_or_return_val(addr6, OGS_ERROR);
     addr6->ogs_sa_family = AF_INET6;
     addr6->ogs_sin_port = htobe16(port);
 
@@ -457,20 +490,110 @@ char *ogs_ipv4_to_string(uint32_t addr)
     char *buf = NULL;
 
     buf = ogs_calloc(1, OGS_ADDRSTRLEN);
-    ogs_assert(buf);
+    ogs_expect_or_return_val(buf, NULL);
 
     return (char*)OGS_INET_NTOP(&addr, buf);
 }
 
-char *ogs_ipv6_to_string(uint8_t *addr6)
+char *ogs_ipv6addr_to_string(uint8_t *addr6)
 {
     char *buf = NULL;
     ogs_assert(addr6);
 
     buf = ogs_calloc(1, OGS_ADDRSTRLEN);
-    ogs_assert(buf);
+    ogs_expect_or_return_val(buf, NULL);
 
     return (char *)OGS_INET6_NTOP(addr6, buf);
+}
+
+char *ogs_ipv6prefix_to_string(uint8_t *addr6, uint8_t prefixlen)
+{
+    char *buf = NULL;
+    uint8_t tmp[OGS_IPV6_LEN];
+    ogs_assert(addr6);
+
+    memset(tmp, 0, OGS_IPV6_LEN);
+    memcpy(tmp, addr6, prefixlen >> 3);
+
+    buf = ogs_calloc(1, OGS_ADDRSTRLEN);
+    ogs_expect_or_return_val(buf, NULL);
+
+    if (OGS_INET6_NTOP(tmp, buf) == NULL) {
+        ogs_fatal("Invalid IPv6 address");
+        ogs_log_hexdump(OGS_LOG_FATAL, addr6, OGS_IPV6_LEN);
+        ogs_assert_if_reached();
+    }
+    return ogs_mstrcatf(buf, "/%d", prefixlen);
+}
+
+int ogs_ipv4_from_string(uint32_t *addr, char *string)
+{
+    int rv;
+    ogs_sockaddr_t tmp;
+
+    ogs_assert(addr);
+    ogs_assert(string);
+
+    rv = ogs_inet_pton(AF_INET, string, &tmp);
+    if (rv != OGS_OK) {
+        ogs_error("Invalid IPv4 string = %s", string);
+        return OGS_ERROR;
+    }
+
+    *addr = tmp.sin.sin_addr.s_addr;
+
+    return OGS_OK;
+}
+
+int ogs_ipv6addr_from_string(uint8_t *addr6, char *string)
+{
+    int rv;
+    ogs_sockaddr_t tmp;
+
+    ogs_assert(addr6);
+    ogs_assert(string);
+
+    rv = ogs_inet_pton(AF_INET6, string, &tmp);
+    if (rv != OGS_OK) {
+        ogs_error("Invalid IPv6 string = %s", string);
+        return OGS_ERROR;
+    }
+
+    memcpy(addr6, tmp.sin6.sin6_addr.s6_addr, OGS_IPV6_LEN);
+
+    return OGS_OK;
+}
+
+int ogs_ipv6prefix_from_string(uint8_t *addr6, uint8_t *prefixlen, char *string)
+{
+    int rv;
+    ogs_sockaddr_t tmp;
+    char *v = NULL, *pv = NULL, *ipstr = NULL, *mask_or_numbits = NULL;
+
+    ogs_assert(addr6);
+    ogs_assert(prefixlen);
+    ogs_assert(string);
+    pv = v = ogs_strdup(string);
+    ogs_expect_or_return_val(v, OGS_ERROR);
+
+    ipstr = strsep(&v, "/");
+    if (ipstr)
+        mask_or_numbits = v;
+
+    if (!ipstr || !mask_or_numbits) {
+        ogs_error("Invalid IPv6 Prefix string = %s", v);
+        ogs_free(v);
+        return OGS_ERROR;
+    }
+
+    rv = ogs_inet_pton(AF_INET6, ipstr, &tmp);
+    ogs_expect_or_return_val(rv == OGS_OK, rv);
+
+    memcpy(addr6, tmp.sin6.sin6_addr.s6_addr, OGS_IPV6_LEN);
+    *prefixlen = atoi(mask_or_numbits);
+
+    ogs_free(pv);
+    return OGS_OK;
 }
 
 int ogs_sockaddr_to_user_plane_ip_resource_info(
@@ -573,4 +696,28 @@ void ogs_session_data_free(ogs_session_data_t *session_data)
 
     for (i = 0; i < session_data->num_of_pcc_rule; i++)
         OGS_PCC_RULE_FREE(&session_data->pcc_rule[i]);
+}
+
+void ogs_ims_data_free(ogs_ims_data_t *ims_data)
+{
+    int i, j, k;
+
+    ogs_assert(ims_data);
+
+    for (i = 0; i < ims_data->num_of_media_component; i++) {
+        ogs_media_component_t *media_component = &ims_data->media_component[i];
+
+        for (j = 0; j < media_component->num_of_sub; j++) {
+            ogs_media_sub_component_t *sub = &media_component->sub[j];
+
+            for (k = 0; k < sub->num_of_flow; k++) {
+                ogs_flow_t *flow = &sub->flow[k];
+
+                if (flow->description) {
+                    ogs_free(flow->description);
+                } else
+                    ogs_assert_if_reached();
+            }
+        }
+    }
 }

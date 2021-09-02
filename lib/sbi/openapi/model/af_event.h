@@ -1,7 +1,7 @@
 /*
  * af_event.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_af_event_H_
@@ -17,16 +17,11 @@
 extern "C" {
 #endif
 
-typedef struct OpenAPI_af_event_s OpenAPI_af_event_t;
-typedef struct OpenAPI_af_event_s {
-} OpenAPI_af_event_t;
+typedef enum { OpenAPI_af_event_NULL = 0, OpenAPI_af_event_ACCESS_TYPE_CHANGE, OpenAPI_af_event_ANI_REPORT, OpenAPI_af_event_CHARGING_CORRELATION, OpenAPI_af_event_EPS_FALLBACK, OpenAPI_af_event_FAILED_RESOURCES_ALLOCATION, OpenAPI_af_event_OUT_OF_CREDIT, OpenAPI_af_event_PLMN_CHG, OpenAPI_af_event_QOS_MONITORING, OpenAPI_af_event_QOS_NOTIF, OpenAPI_af_event_RAN_NAS_CAUSE, OpenAPI_af_event_REALLOCATION_OF_CREDIT, OpenAPI_af_event_SUCCESSFUL_RESOURCES_ALLOCATION, OpenAPI_af_event_TSN_BRIDGE_INFO, OpenAPI_af_event_USAGE_REPORT } OpenAPI_af_event_e;
 
-OpenAPI_af_event_t *OpenAPI_af_event_create(
-    );
-void OpenAPI_af_event_free(OpenAPI_af_event_t *af_event);
-OpenAPI_af_event_t *OpenAPI_af_event_parseFromJSON(cJSON *af_eventJSON);
-cJSON *OpenAPI_af_event_convertToJSON(OpenAPI_af_event_t *af_event);
-OpenAPI_af_event_t *OpenAPI_af_event_copy(OpenAPI_af_event_t *dst, OpenAPI_af_event_t *src);
+char* OpenAPI_af_event_ToString(OpenAPI_af_event_e af_event);
+
+OpenAPI_af_event_e OpenAPI_af_event_FromString(char* af_event);
 
 #ifdef __cplusplus
 }

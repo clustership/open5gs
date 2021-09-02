@@ -7,7 +7,7 @@
 OpenAPI_nssai_ack_data_t *OpenAPI_nssai_ack_data_create(
     char *provisioning_time,
     OpenAPI_ue_update_status_e ue_update_status
-    )
+)
 {
     OpenAPI_nssai_ack_data_t *nssai_ack_data_local_var = OpenAPI_malloc(sizeof(OpenAPI_nssai_ack_data_t));
     if (!nssai_ack_data_local_var) {
@@ -39,19 +39,11 @@ cJSON *OpenAPI_nssai_ack_data_convertToJSON(OpenAPI_nssai_ack_data_t *nssai_ack_
     }
 
     item = cJSON_CreateObject();
-    if (!nssai_ack_data->provisioning_time) {
-        ogs_error("OpenAPI_nssai_ack_data_convertToJSON() failed [provisioning_time]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "provisioningTime", nssai_ack_data->provisioning_time) == NULL) {
         ogs_error("OpenAPI_nssai_ack_data_convertToJSON() failed [provisioning_time]");
         goto end;
     }
 
-    if (!nssai_ack_data->ue_update_status) {
-        ogs_error("OpenAPI_nssai_ack_data_convertToJSON() failed [ue_update_status]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "ueUpdateStatus", OpenAPI_ue_update_status_ToString(nssai_ack_data->ue_update_status)) == NULL) {
         ogs_error("OpenAPI_nssai_ack_data_convertToJSON() failed [ue_update_status]");
         goto end;
@@ -70,7 +62,6 @@ OpenAPI_nssai_ack_data_t *OpenAPI_nssai_ack_data_parseFromJSON(cJSON *nssai_ack_
         goto end;
     }
 
-
     if (!cJSON_IsString(provisioning_time)) {
         ogs_error("OpenAPI_nssai_ack_data_parseFromJSON() failed [provisioning_time]");
         goto end;
@@ -83,7 +74,6 @@ OpenAPI_nssai_ack_data_t *OpenAPI_nssai_ack_data_parseFromJSON(cJSON *nssai_ack_
     }
 
     OpenAPI_ue_update_status_e ue_update_statusVariable;
-
     if (!cJSON_IsString(ue_update_status)) {
         ogs_error("OpenAPI_nssai_ack_data_parseFromJSON() failed [ue_update_status]");
         goto end;
@@ -91,9 +81,9 @@ OpenAPI_nssai_ack_data_t *OpenAPI_nssai_ack_data_parseFromJSON(cJSON *nssai_ack_
     ue_update_statusVariable = OpenAPI_ue_update_status_FromString(ue_update_status->valuestring);
 
     nssai_ack_data_local_var = OpenAPI_nssai_ack_data_create (
-        ogs_strdup(provisioning_time->valuestring),
+        ogs_strdup_or_assert(provisioning_time->valuestring),
         ue_update_statusVariable
-        );
+    );
 
     return nssai_ack_data_local_var;
 end:

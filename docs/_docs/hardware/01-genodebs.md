@@ -10,8 +10,11 @@ If you have tested radio hardware from a vendor not listed with Open5GS, please 
 ### Commercial 5G
 ---
  * Airspan 5G OpenRange vCU + Airspan 5G OpenRange vDU + Airspan 5G OpenRANGE06 AirVelocity 2700 RU
+ * LIONS RANathon O-CU and O-DU + RANathon RS8601 Indoor O-RU + RANathon XG8600 Fronthaul Gateway
  * NOKIA AEQE (SW: 5G20A)
  * NOKIA AEQD (SW: 5G20A)
+ * NOKIA AEQP (SW: 5G21A)
+ * Huawei BTS5900
 
 ### Commercial 4G
 ---
@@ -28,16 +31,21 @@ If you have tested radio hardware from a vendor not listed with Open5GS, please 
  * Baicells Nova 436Q
  * Baicells Nova 227 (EBS & CBRS)
  * Baicells Nova 233
+ * Ericsson BaseBand 6630 (21Q1 Software)
  * Gemtek WLTGFC-101 (S/W version 2.1.1746.1116)
- * Huawei BTS 3900 (S/W version V100R011C10SPC230)
- * NOKIA FW2PC BC28 Flexi Zone G2 Outdoor Micro FDD LTE 700 MHz High Power
- * NOKIA FWH1 B38 Flexi Zone Outdoor Micro TD LTE 2600 MHz
+ * Huawei BTS3900 (S/W version V100R011C10SPC230)
+ * Huawei BBU5900 with RRU5304W Band 7 FDD 2600Mhz 40W Version V100R016C10
+ * Nokia FW2PC BC28 Flexi Zone G2 Outdoor Micro FDD LTE 700 MHz High Power
+ * Nokia FWH1 B38 Flexi Zone Outdoor Micro TD LTE 2600 MHz
+ * Nokia FRGY Flexi BTS BBU with Nokia FRCG RRU Band 5 850Mhz FDD 40W. Version 16.1A to 19.0
+ * Ruckus Q710 and Q910
 
 ### 4G/5G Software Stacks + SDRs
 ---
 
  * [Amarisoft](https://www.amarisoft.com/) + LimeSDR, USRP, Amarisoft PCI Express Card
  * [srsLTE / srsENB](https://github.com/srsLTE/srsLTE) + LimeSDR, USRP, BladeRF x40 (BladeRF Not stable)
+ * Open Air Interface 5G ([NR_SA_F1AP_5GRECORDS branch](https://gitlab.eurecom.fr/oai/openairinterface5g/-/tree/NR_SA_F1AP_5GRECORDS)) + USRP B210
 
 ### Misc Radio Hardware
 ---

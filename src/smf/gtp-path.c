@@ -37,10 +37,13 @@
 
 #include "event.h"
 #include "gtp-path.h"
+#include "pfcp-path.h"
 #include "s5c-build.h"
 
 static bool check_if_router_solicit(ogs_pkbuf_t *pkbuf);
 static void send_router_advertisement(smf_sess_t *sess, uint8_t *ip6_dst);
+
+static void bearer_timeout(ogs_gtp_xact_t *xact, void *data);
 
 static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
 {
@@ -130,6 +133,7 @@ static void _gtpv1_u_recv_cb(short when, ogs_socket_t fd, void *data)
 
         ogs_debug("[RECV] Echo Request from [%s]", OGS_ADDR(&from, buf));
         echo_rsp = ogs_gtp_handle_echo_req(pkbuf);
+        ogs_expect(echo_rsp);
         if (echo_rsp) {
             ssize_t sent;
 
@@ -229,24 +233,26 @@ int smf_gtp_open(void)
 
     ogs_list_for_each(&ogs_gtp_self()->gtpc_list, node) {
         sock = ogs_gtp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
         
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, _gtpv2_c_recv_cb, sock);
+        ogs_assert(node->poll);
     }
     ogs_list_for_each(&ogs_gtp_self()->gtpc_list6, node) {
         sock = ogs_gtp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, _gtpv2_c_recv_cb, sock);
+        ogs_assert(node->poll);
     }
 
     OGS_SETUP_GTPC_SERVER;
 
     ogs_list_for_each(&ogs_gtp_self()->gtpu_list, node) {
         sock = ogs_gtp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
 
         if (sock->family == AF_INET)
             ogs_gtp_self()->gtpu_sock = sock;
@@ -255,6 +261,7 @@ int smf_gtp_open(void)
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, _gtpv1_u_recv_cb, sock);
+        ogs_assert(node->poll);
     }
 
     OGS_SETUP_GTPU_SERVER;
@@ -270,7 +277,7 @@ void smf_gtp_close(void)
     ogs_socknode_remove_all(&ogs_gtp_self()->gtpu_list);
 }
 
-void smf_gtp_send_create_session_response(
+int smf_gtp_send_create_session_response(
         smf_sess_t *sess, ogs_gtp_xact_t *xact)
 {
     int rv;
@@ -285,16 +292,18 @@ void smf_gtp_send_create_session_response(
     h.teid = sess->sgw_s5c_teid;
 
     pkbuf = smf_s5c_build_create_session_response(h.type, sess);
-    ogs_expect_or_return(pkbuf);
+    ogs_expect_or_return_val(pkbuf, OGS_ERROR);
 
     rv = ogs_gtp_xact_update_tx(xact, &h, pkbuf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_gtp_send_delete_session_response(
+int smf_gtp_send_delete_session_response(
         smf_sess_t *sess, ogs_gtp_xact_t *xact)
 {
     int rv;
@@ -309,13 +318,48 @@ void smf_gtp_send_delete_session_response(
     h.teid = sess->sgw_s5c_teid;
 
     pkbuf = smf_s5c_build_delete_session_response(h.type, sess);
-    ogs_expect_or_return(pkbuf);
+    ogs_expect_or_return_val(pkbuf, OGS_ERROR);
 
     rv = ogs_gtp_xact_update_tx(xact, &h, pkbuf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
+int smf_gtp_send_delete_bearer_request(
+        smf_bearer_t *bearer, uint8_t pti, uint8_t cause_value)
+{
+    int rv;
+
+    ogs_gtp_xact_t *xact = NULL;
+    ogs_gtp_header_t h;
+    ogs_pkbuf_t *pkbuf = NULL;
+
+    smf_sess_t *sess = NULL;
+
+    ogs_assert(bearer);
+    sess = bearer->sess;
+    ogs_assert(sess);
+
+    memset(&h, 0, sizeof(ogs_gtp_header_t));
+    h.type = OGS_GTP_DELETE_BEARER_REQUEST_TYPE;
+    h.teid = sess->sgw_s5c_teid;
+
+    pkbuf = smf_s5c_build_delete_bearer_request(
+                h.type, bearer, pti, cause_value);
+    ogs_expect_or_return_val(pkbuf, OGS_ERROR);
+
+    xact = ogs_gtp_xact_local_create(
+            sess->gnode, &h, pkbuf, bearer_timeout, bearer);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
+
+    rv = ogs_gtp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 static bool check_if_router_solicit(ogs_pkbuf_t *pkbuf)
@@ -439,4 +483,38 @@ static void send_router_advertisement(smf_sess_t *sess, uint8_t *ip6_dst)
     }
 
     ogs_pkbuf_free(pkbuf);
+}
+
+static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
+{
+    smf_bearer_t *bearer = data;
+    smf_sess_t *sess = NULL;
+    smf_ue_t *smf_ue = NULL;
+    uint8_t type = 0;
+
+    ogs_assert(bearer);
+    sess = bearer->sess;
+    ogs_assert(sess);
+    smf_ue = sess->smf_ue;
+    ogs_assert(smf_ue);
+
+    type = xact->seq[0].type;
+
+    switch (type) {
+    case OGS_GTP_DELETE_BEARER_REQUEST_TYPE:
+        ogs_error("[%s] No Delete Bearer Response", smf_ue->imsi_bcd);
+        if (!smf_bearer_cycle(bearer)) {
+            ogs_warn("[%s] Bearer has already been removed", smf_ue->imsi_bcd);
+            break;
+        }
+
+        ogs_assert(OGS_OK ==
+            smf_epc_pfcp_send_bearer_modification_request(
+                bearer, OGS_PFCP_MODIFY_REMOVE));
+        break;
+    default:
+        ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
+                smf_ue->imsi_bcd, type);
+        break;
+    }
 }

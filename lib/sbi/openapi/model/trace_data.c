@@ -12,7 +12,7 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_create(
     char *collection_entity_ipv4_addr,
     char *collection_entity_ipv6_addr,
     char *interface_list
-    )
+)
 {
     OpenAPI_trace_data_t *trace_data_local_var = OpenAPI_malloc(sizeof(OpenAPI_trace_data_t));
     if (!trace_data_local_var) {
@@ -54,61 +54,45 @@ cJSON *OpenAPI_trace_data_convertToJSON(OpenAPI_trace_data_t *trace_data)
     }
 
     item = cJSON_CreateObject();
-    if (!trace_data->trace_ref) {
-        ogs_error("OpenAPI_trace_data_convertToJSON() failed [trace_ref]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "traceRef", trace_data->trace_ref) == NULL) {
         ogs_error("OpenAPI_trace_data_convertToJSON() failed [trace_ref]");
         goto end;
     }
 
-    if (!trace_data->trace_depth) {
-        ogs_error("OpenAPI_trace_data_convertToJSON() failed [trace_depth]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "traceDepth", OpenAPI_trace_depth_ToString(trace_data->trace_depth)) == NULL) {
         ogs_error("OpenAPI_trace_data_convertToJSON() failed [trace_depth]");
         goto end;
     }
 
-    if (!trace_data->ne_type_list) {
-        ogs_error("OpenAPI_trace_data_convertToJSON() failed [ne_type_list]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "neTypeList", trace_data->ne_type_list) == NULL) {
         ogs_error("OpenAPI_trace_data_convertToJSON() failed [ne_type_list]");
         goto end;
     }
 
-    if (!trace_data->event_list) {
-        ogs_error("OpenAPI_trace_data_convertToJSON() failed [event_list]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "eventList", trace_data->event_list) == NULL) {
         ogs_error("OpenAPI_trace_data_convertToJSON() failed [event_list]");
         goto end;
     }
 
     if (trace_data->collection_entity_ipv4_addr) {
-        if (cJSON_AddStringToObject(item, "collectionEntityIpv4Addr", trace_data->collection_entity_ipv4_addr) == NULL) {
-            ogs_error("OpenAPI_trace_data_convertToJSON() failed [collection_entity_ipv4_addr]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "collectionEntityIpv4Addr", trace_data->collection_entity_ipv4_addr) == NULL) {
+        ogs_error("OpenAPI_trace_data_convertToJSON() failed [collection_entity_ipv4_addr]");
+        goto end;
+    }
     }
 
     if (trace_data->collection_entity_ipv6_addr) {
-        if (cJSON_AddStringToObject(item, "collectionEntityIpv6Addr", trace_data->collection_entity_ipv6_addr) == NULL) {
-            ogs_error("OpenAPI_trace_data_convertToJSON() failed [collection_entity_ipv6_addr]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "collectionEntityIpv6Addr", trace_data->collection_entity_ipv6_addr) == NULL) {
+        ogs_error("OpenAPI_trace_data_convertToJSON() failed [collection_entity_ipv6_addr]");
+        goto end;
+    }
     }
 
     if (trace_data->interface_list) {
-        if (cJSON_AddStringToObject(item, "interfaceList", trace_data->interface_list) == NULL) {
-            ogs_error("OpenAPI_trace_data_convertToJSON() failed [interface_list]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "interfaceList", trace_data->interface_list) == NULL) {
+        ogs_error("OpenAPI_trace_data_convertToJSON() failed [interface_list]");
+        goto end;
+    }
     }
 
 end:
@@ -124,7 +108,6 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_parseFromJSON(cJSON *trace_dataJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(trace_ref)) {
         ogs_error("OpenAPI_trace_data_parseFromJSON() failed [trace_ref]");
         goto end;
@@ -137,7 +120,6 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_parseFromJSON(cJSON *trace_dataJSON)
     }
 
     OpenAPI_trace_depth_e trace_depthVariable;
-
     if (!cJSON_IsString(trace_depth)) {
         ogs_error("OpenAPI_trace_data_parseFromJSON() failed [trace_depth]");
         goto end;
@@ -150,7 +132,6 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_parseFromJSON(cJSON *trace_dataJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(ne_type_list)) {
         ogs_error("OpenAPI_trace_data_parseFromJSON() failed [ne_type_list]");
         goto end;
@@ -162,7 +143,6 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_parseFromJSON(cJSON *trace_dataJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(event_list)) {
         ogs_error("OpenAPI_trace_data_parseFromJSON() failed [event_list]");
         goto end;
@@ -171,39 +151,39 @@ OpenAPI_trace_data_t *OpenAPI_trace_data_parseFromJSON(cJSON *trace_dataJSON)
     cJSON *collection_entity_ipv4_addr = cJSON_GetObjectItemCaseSensitive(trace_dataJSON, "collectionEntityIpv4Addr");
 
     if (collection_entity_ipv4_addr) {
-        if (!cJSON_IsString(collection_entity_ipv4_addr)) {
-            ogs_error("OpenAPI_trace_data_parseFromJSON() failed [collection_entity_ipv4_addr]");
-            goto end;
-        }
+    if (!cJSON_IsString(collection_entity_ipv4_addr)) {
+        ogs_error("OpenAPI_trace_data_parseFromJSON() failed [collection_entity_ipv4_addr]");
+        goto end;
+    }
     }
 
     cJSON *collection_entity_ipv6_addr = cJSON_GetObjectItemCaseSensitive(trace_dataJSON, "collectionEntityIpv6Addr");
 
     if (collection_entity_ipv6_addr) {
-        if (!cJSON_IsString(collection_entity_ipv6_addr)) {
-            ogs_error("OpenAPI_trace_data_parseFromJSON() failed [collection_entity_ipv6_addr]");
-            goto end;
-        }
+    if (!cJSON_IsString(collection_entity_ipv6_addr)) {
+        ogs_error("OpenAPI_trace_data_parseFromJSON() failed [collection_entity_ipv6_addr]");
+        goto end;
+    }
     }
 
     cJSON *interface_list = cJSON_GetObjectItemCaseSensitive(trace_dataJSON, "interfaceList");
 
     if (interface_list) {
-        if (!cJSON_IsString(interface_list)) {
-            ogs_error("OpenAPI_trace_data_parseFromJSON() failed [interface_list]");
-            goto end;
-        }
+    if (!cJSON_IsString(interface_list)) {
+        ogs_error("OpenAPI_trace_data_parseFromJSON() failed [interface_list]");
+        goto end;
+    }
     }
 
     trace_data_local_var = OpenAPI_trace_data_create (
-        ogs_strdup(trace_ref->valuestring),
+        ogs_strdup_or_assert(trace_ref->valuestring),
         trace_depthVariable,
-        ogs_strdup(ne_type_list->valuestring),
-        ogs_strdup(event_list->valuestring),
-        collection_entity_ipv4_addr ? ogs_strdup(collection_entity_ipv4_addr->valuestring) : NULL,
-        collection_entity_ipv6_addr ? ogs_strdup(collection_entity_ipv6_addr->valuestring) : NULL,
-        interface_list ? ogs_strdup(interface_list->valuestring) : NULL
-        );
+        ogs_strdup_or_assert(ne_type_list->valuestring),
+        ogs_strdup_or_assert(event_list->valuestring),
+        collection_entity_ipv4_addr ? ogs_strdup_or_assert(collection_entity_ipv4_addr->valuestring) : NULL,
+        collection_entity_ipv6_addr ? ogs_strdup_or_assert(collection_entity_ipv6_addr->valuestring) : NULL,
+        interface_list ? ogs_strdup_or_assert(interface_list->valuestring) : NULL
+    );
 
     return trace_data_local_var;
 end:

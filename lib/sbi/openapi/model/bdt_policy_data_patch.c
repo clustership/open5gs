@@ -6,7 +6,7 @@
 
 OpenAPI_bdt_policy_data_patch_t *OpenAPI_bdt_policy_data_patch_create(
     char *bdt_ref_id
-    )
+)
 {
     OpenAPI_bdt_policy_data_patch_t *bdt_policy_data_patch_local_var = OpenAPI_malloc(sizeof(OpenAPI_bdt_policy_data_patch_t));
     if (!bdt_policy_data_patch_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_bdt_policy_data_patch_convertToJSON(OpenAPI_bdt_policy_data_patch
     }
 
     item = cJSON_CreateObject();
-    if (!bdt_policy_data_patch->bdt_ref_id) {
-        ogs_error("OpenAPI_bdt_policy_data_patch_convertToJSON() failed [bdt_ref_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "bdtRefId", bdt_policy_data_patch->bdt_ref_id) == NULL) {
         ogs_error("OpenAPI_bdt_policy_data_patch_convertToJSON() failed [bdt_ref_id]");
         goto end;
@@ -59,15 +55,14 @@ OpenAPI_bdt_policy_data_patch_t *OpenAPI_bdt_policy_data_patch_parseFromJSON(cJS
         goto end;
     }
 
-
     if (!cJSON_IsString(bdt_ref_id)) {
         ogs_error("OpenAPI_bdt_policy_data_patch_parseFromJSON() failed [bdt_ref_id]");
         goto end;
     }
 
     bdt_policy_data_patch_local_var = OpenAPI_bdt_policy_data_patch_create (
-        ogs_strdup(bdt_ref_id->valuestring)
-        );
+        ogs_strdup_or_assert(bdt_ref_id->valuestring)
+    );
 
     return bdt_policy_data_patch_local_var;
 end:

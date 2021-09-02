@@ -55,7 +55,6 @@ struct dict_object *ogs_diam_rx_specific_action = NULL;
 struct dict_object *ogs_diam_rx_framed_ip_address = NULL;
 struct dict_object *ogs_diam_rx_framed_ipv6_prefix = NULL;
 struct dict_object *ogs_diam_rx_ip_can_type = NULL;
-struct dict_object *ogs_diam_rx_rat_type = NULL;
 struct dict_object *ogs_diam_rx_abort_cause = NULL;
 struct dict_object *ogs_diam_rx_termination_cause = NULL;
 
@@ -100,35 +99,8 @@ int ogs_diam_rx_init(void)
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Framed-IP-Address", &ogs_diam_rx_framed_ip_address);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Framed-IPv6-Prefix", &ogs_diam_rx_framed_ipv6_prefix);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "IP-CAN-Type", &ogs_diam_rx_ip_can_type);
-    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "RAT-Type", &ogs_diam_rx_rat_type);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Abort-Cause", &ogs_diam_rx_abort_cause);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Termination-Cause", &ogs_diam_rx_termination_cause);
 
     return 0;
-}
-
-void ogs_diam_rx_message_free(ogs_diam_rx_message_t *rx_message)
-{
-    int i, j, k;
-
-    ogs_assert(rx_message);
-
-    for (i = 0; i < rx_message->num_of_media_component; i++) {
-        ogs_diam_rx_media_component_t *media_component =
-            &rx_message->media_component[i];
-
-        for (j = 0; j < media_component->num_of_sub; j++) {
-            ogs_diam_rx_media_sub_component_t *sub = &media_component->sub[j];
-
-            for (k = 0; k < sub->num_of_flow; k++) {
-                ogs_flow_t *flow = &sub->flow[k];
-
-                if (flow->description) {
-                    ogs_free(flow->description);
-                }
-                else
-                    ogs_assert_if_reached();
-            }
-        }
-    }
 }

@@ -62,11 +62,11 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
         return OGS_ERROR;
     }
 
-    pdu_session_id = N1N2MessageTransferReqData->pdu_session_id;
-    if (pdu_session_id == OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED) {
+    if (N1N2MessageTransferReqData->is_pdu_session_id == false) {
         ogs_error("No PDU Session Identity");
         return OGS_ERROR;
     }
+    pdu_session_id = N1N2MessageTransferReqData->pdu_session_id;
 
     supi = recvmsg->h.resource.component[1];
     if (!supi) {
@@ -284,10 +284,11 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
                 AMF_SESS_STORE_N2_TRANSFER(
                         sess, pdu_session_resource_setup_request, n2buf);
 
-                ngap_send_paging(amf_ue);
+                ogs_assert(OGS_OK == ngap_send_paging(amf_ue));
 
             } else if (CM_CONNECTED(amf_ue)) {
-                ngap_send_pdu_resource_setup_request(sess, n2buf);
+                ogs_assert(OGS_OK ==
+                    ngap_send_pdu_resource_setup_request(sess, n2buf));
 
             } else {
 
@@ -340,7 +341,8 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
             if (n2buf)
                 ogs_pkbuf_free(n2buf);
 
-            if (N1N2MessageTransferReqData->skip_ind == true) {
+            if (N1N2MessageTransferReqData->is_skip_ind == true &&
+                N1N2MessageTransferReqData->skip_ind == true) {
                 N1N2MessageTransferRspData.cause =
                     OpenAPI_n1_n2_message_transfer_cause_N1_MSG_NOT_TRANSFERRED;
             } else {
@@ -370,7 +372,7 @@ int amf_namf_comm_handle_n1_n2_message_transfer(
 
     response = ogs_sbi_build_response(&sendmsg, status);
     ogs_assert(response);
-    ogs_sbi_server_send_response(stream, response);
+    ogs_assert(true == ogs_sbi_server_send_response(stream, response));
 
     if (sendmsg.http.location)
         ogs_free(sendmsg.http.location);
@@ -473,7 +475,7 @@ cleanup:
 
     response = ogs_sbi_build_response(&sendmsg, status);
     ogs_assert(response);
-    ogs_sbi_server_send_response(stream, response);
+    ogs_assert(true == ogs_sbi_server_send_response(stream, response));
 
     return OGS_OK;
 }

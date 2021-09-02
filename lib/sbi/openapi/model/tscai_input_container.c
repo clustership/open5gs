@@ -5,14 +5,16 @@
 #include "tscai_input_container.h"
 
 OpenAPI_tscai_input_container_t *OpenAPI_tscai_input_container_create(
+    bool is_periodicity,
     int periodicity,
     char *burst_arrival_time
-    )
+)
 {
     OpenAPI_tscai_input_container_t *tscai_input_container_local_var = OpenAPI_malloc(sizeof(OpenAPI_tscai_input_container_t));
     if (!tscai_input_container_local_var) {
         return NULL;
     }
+    tscai_input_container_local_var->is_periodicity = is_periodicity;
     tscai_input_container_local_var->periodicity = periodicity;
     tscai_input_container_local_var->burst_arrival_time = burst_arrival_time;
 
@@ -39,18 +41,18 @@ cJSON *OpenAPI_tscai_input_container_convertToJSON(OpenAPI_tscai_input_container
     }
 
     item = cJSON_CreateObject();
-    if (tscai_input_container->periodicity) {
-        if (cJSON_AddNumberToObject(item, "periodicity", tscai_input_container->periodicity) == NULL) {
-            ogs_error("OpenAPI_tscai_input_container_convertToJSON() failed [periodicity]");
-            goto end;
-        }
+    if (tscai_input_container->is_periodicity) {
+    if (cJSON_AddNumberToObject(item, "periodicity", tscai_input_container->periodicity) == NULL) {
+        ogs_error("OpenAPI_tscai_input_container_convertToJSON() failed [periodicity]");
+        goto end;
+    }
     }
 
     if (tscai_input_container->burst_arrival_time) {
-        if (cJSON_AddStringToObject(item, "burstArrivalTime", tscai_input_container->burst_arrival_time) == NULL) {
-            ogs_error("OpenAPI_tscai_input_container_convertToJSON() failed [burst_arrival_time]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "burstArrivalTime", tscai_input_container->burst_arrival_time) == NULL) {
+        ogs_error("OpenAPI_tscai_input_container_convertToJSON() failed [burst_arrival_time]");
+        goto end;
+    }
     }
 
 end:
@@ -63,25 +65,26 @@ OpenAPI_tscai_input_container_t *OpenAPI_tscai_input_container_parseFromJSON(cJS
     cJSON *periodicity = cJSON_GetObjectItemCaseSensitive(tscai_input_containerJSON, "periodicity");
 
     if (periodicity) {
-        if (!cJSON_IsNumber(periodicity)) {
-            ogs_error("OpenAPI_tscai_input_container_parseFromJSON() failed [periodicity]");
-            goto end;
-        }
+    if (!cJSON_IsNumber(periodicity)) {
+        ogs_error("OpenAPI_tscai_input_container_parseFromJSON() failed [periodicity]");
+        goto end;
+    }
     }
 
     cJSON *burst_arrival_time = cJSON_GetObjectItemCaseSensitive(tscai_input_containerJSON, "burstArrivalTime");
 
     if (burst_arrival_time) {
-        if (!cJSON_IsString(burst_arrival_time)) {
-            ogs_error("OpenAPI_tscai_input_container_parseFromJSON() failed [burst_arrival_time]");
-            goto end;
-        }
+    if (!cJSON_IsString(burst_arrival_time)) {
+        ogs_error("OpenAPI_tscai_input_container_parseFromJSON() failed [burst_arrival_time]");
+        goto end;
+    }
     }
 
     tscai_input_container_local_var = OpenAPI_tscai_input_container_create (
+        periodicity ? true : false,
         periodicity ? periodicity->valuedouble : 0,
-        burst_arrival_time ? ogs_strdup(burst_arrival_time->valuestring) : NULL
-        );
+        burst_arrival_time ? ogs_strdup_or_assert(burst_arrival_time->valuestring) : NULL
+    );
 
     return tscai_input_container_local_var;
 end:

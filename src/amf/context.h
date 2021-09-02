@@ -162,6 +162,7 @@ struct ran_ue_s {
     /* UE context */
     bool            ue_context_requested;
     bool            initial_context_setup_request_sent;
+    bool            ue_ambr_sent;
 
     /* Handover Info */
     ran_ue_t        *source_ue;
@@ -221,20 +222,14 @@ struct amf_ue_s {
         uint8_t message_type; /* Type of last specific NAS message received */
         int access_type; /* 3GPP or Non-3GPP */
 
-        /* InitialUEMessage or UplinkNASTrasnport */
-        NGAP_ProcedureCode_t ngapProcedureCode;
+        struct {
+        ED3(uint8_t tsc:1;,
+            uint8_t ksi:3;,
+            uint8_t spare:4;)
+        } amf, ue;
 
-        union {
-            struct {
-            ED3(uint8_t tsc:1;,
-                uint8_t ksi:3;,
-                uint8_t value:4;)
-            };
-            ogs_nas_5gs_registration_type_t registration;
-            ogs_nas_de_registration_type_t de_registration;
-
-            uint8_t data;
-        };
+        ogs_nas_5gs_registration_type_t registration;
+        ogs_nas_de_registration_type_t de_registration;
 
         struct {
         ED4(uint8_t uplink_data_status:1;,
@@ -300,15 +295,7 @@ struct amf_ue_s {
     ((__aMF) && \
     ((__aMF)->security_context_available == 1) && \
      ((__aMF)->mac_failed == 0) && \
-     ((__aMF)->nas.ksi != OGS_NAS_KSI_NO_KEY_IS_AVAILABLE))
-#define CLEAR_SECURITY_CONTEXT(__aMF) \
-    do { \
-        ogs_assert((__aMF)); \
-        (__aMF)->security_context_available = 0; \
-        (__aMF)->mac_failed = 0; \
-        (__aMF)->nas.tsc = 0; \
-        (__aMF)->nas.ksi = 0; \
-    } while(0)
+     ((__aMF)->nas.ue.ksi != OGS_NAS_KSI_NO_KEY_IS_AVAILABLE))
     int             security_context_available;
     int             mac_failed;
 
@@ -522,7 +509,9 @@ typedef struct amf_sess_s {
         AMF_SESS_CLEAR_PAGING_INFO(__sESS) \
         (__sESS)->paging.ongoing = true; \
         ((__sESS)->paging.location) = ogs_strdup(__lOCATION); \
+        ogs_assert((__sESS)->paging.location); \
         ((__sESS)->paging.n1n2_failure_txf_notif_uri) = ogs_strdup(__uRI); \
+        ogs_assert((__sESS)->paging.n1n2_failure_txf_notif_uri); \
     } while(0);
 #define AMF_SESS_CLEAR_PAGING_INFO(__sESS) \
     do { \
@@ -698,6 +687,9 @@ int amf_sess_xact_state_count(amf_ue_t *amf_ue, int state);
 #define PDU_RES_SETUP_REQ_TRANSFER_NEEDED(__aMF) \
     (amf_pdu_res_setup_req_transfer_needed(__aMF) == true)
 bool amf_pdu_res_setup_req_transfer_needed(amf_ue_t *amf_ue);
+#define HANDOVER_REQUEST_TRANSFER_NEEDED(__aMF) \
+    (amf_handover_request_transfer_needed(__aMF) == true)
+bool amf_handover_request_transfer_needed(amf_ue_t *amf_ue);
 
 int amf_find_served_tai(ogs_5gs_tai_t *nr_tai);
 ogs_s_nssai_t *amf_find_s_nssai(

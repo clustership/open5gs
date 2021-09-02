@@ -7,7 +7,7 @@
 OpenAPI_assign_ebi_error_t *OpenAPI_assign_ebi_error_create(
     OpenAPI_problem_details_t *error,
     OpenAPI_assign_ebi_failed_t *failure_details
-    )
+)
 {
     OpenAPI_assign_ebi_error_t *assign_ebi_error_local_var = OpenAPI_malloc(sizeof(OpenAPI_assign_ebi_error_t));
     if (!assign_ebi_error_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_assign_ebi_error_convertToJSON(OpenAPI_assign_ebi_error_t *assign
     }
 
     item = cJSON_CreateObject();
-    if (!assign_ebi_error->error) {
-        ogs_error("OpenAPI_assign_ebi_error_convertToJSON() failed [error]");
-        goto end;
-    }
     cJSON *error_local_JSON = OpenAPI_problem_details_convertToJSON(assign_ebi_error->error);
     if (error_local_JSON == NULL) {
         ogs_error("OpenAPI_assign_ebi_error_convertToJSON() failed [error]");
@@ -55,10 +51,6 @@ cJSON *OpenAPI_assign_ebi_error_convertToJSON(OpenAPI_assign_ebi_error_t *assign
         goto end;
     }
 
-    if (!assign_ebi_error->failure_details) {
-        ogs_error("OpenAPI_assign_ebi_error_convertToJSON() failed [failure_details]");
-        goto end;
-    }
     cJSON *failure_details_local_JSON = OpenAPI_assign_ebi_failed_convertToJSON(assign_ebi_error->failure_details);
     if (failure_details_local_JSON == NULL) {
         ogs_error("OpenAPI_assign_ebi_error_convertToJSON() failed [failure_details]");
@@ -84,7 +76,6 @@ OpenAPI_assign_ebi_error_t *OpenAPI_assign_ebi_error_parseFromJSON(cJSON *assign
     }
 
     OpenAPI_problem_details_t *error_local_nonprim = NULL;
-
     error_local_nonprim = OpenAPI_problem_details_parseFromJSON(error);
 
     cJSON *failure_details = cJSON_GetObjectItemCaseSensitive(assign_ebi_errorJSON, "failureDetails");
@@ -94,13 +85,12 @@ OpenAPI_assign_ebi_error_t *OpenAPI_assign_ebi_error_parseFromJSON(cJSON *assign
     }
 
     OpenAPI_assign_ebi_failed_t *failure_details_local_nonprim = NULL;
-
     failure_details_local_nonprim = OpenAPI_assign_ebi_failed_parseFromJSON(failure_details);
 
     assign_ebi_error_local_var = OpenAPI_assign_ebi_error_create (
         error_local_nonprim,
         failure_details_local_nonprim
-        );
+    );
 
     return assign_ebi_error_local_var;
 end:

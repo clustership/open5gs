@@ -51,6 +51,7 @@ void sgwc_context_init(void)
     ogs_pool_init(&sgwc_tunnel_pool, ogs_app()->pool.tunnel);
 
     self.imsi_ue_hash = ogs_hash_make();
+    ogs_assert(self.imsi_ue_hash);
 
     ogs_list_init(&self.sgw_ue_list);
 
@@ -332,48 +333,32 @@ static ogs_pfcp_node_t *selected_sgwu_node(
     ogs_assert(current);
     ogs_assert(sess);
 
-    int RR = 0, selected = 0;
+    /* continue search from current position */
+    next = ogs_list_next(current);
+    for (node = next; node; node = ogs_list_next(node)) {
+        if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
+            compare_ue_info(node, sess) == true) return node;
+    }
+    /* cyclic search from top to current position */
+    for (node = ogs_list_first(&ogs_pfcp_self()->pfcp_peer_list);
+            node != next; node = ogs_list_next(node)) {
+        if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
+            compare_ue_info(node, sess) == true) return node;
+    }
 
-    while (!selected) {
+    if (ogs_app()->parameter.no_pfcp_rr_select == 0) {
         /* continue search from current position */
         next = ogs_list_next(current);
         for (node = next; node; node = ogs_list_next(node)) {
-            if (!RR) {
-                if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
-                    compare_ue_info(node, sess) == true) return node;
-            } else {
-                /*
-                 * we are in RR mode - use next PFCP associated
-                 * node that is suited for full list RR
-                 */
-                if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
-                    node->rr_enable == 1) return node;
-            }
+            if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated))
+                return node;
         }
         /* cyclic search from top to current position */
         for (node = ogs_list_first(&ogs_pfcp_self()->pfcp_peer_list);
                 node != next; node = ogs_list_next(node)) {
-            if (!RR) {
-                if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
-                    compare_ue_info(node, sess) == true) return node;
-            } else {
-                /*
-                 * we are in RR mode - use next PFCP associated
-                 * node that is suited for full list RR
-                 */
-                if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated) &&
-                    node->rr_enable == 1) return node;
-            }
+            if (OGS_FSM_CHECK(&node->sm, sgwc_pfcp_state_associated))
+                return node;
         }
-
-        /* if a round robin search has already been carried out */
-        if (RR) break;
-
-        /*
-         * re-run search in round robin mode,
-         * find and use next PFCP associated node
-         */
-        RR = 1;
     }
 
     ogs_error("No SGWUs are PFCP associated that are suited to RR");
@@ -441,7 +426,6 @@ void sgwc_sess_remove_all(sgwc_ue_t *sgwc_ue)
 
 sgwc_sess_t *sgwc_sess_find(uint32_t index)
 {
-    ogs_assert(index);
     return ogs_pool_find(&sgwc_sess_pool, index);
 }
 
@@ -647,7 +631,6 @@ sgwc_tunnel_t *sgwc_tunnel_add(
 {
     sgwc_sess_t *sess = NULL;
     sgwc_tunnel_t *tunnel = NULL;
-    ogs_gtpu_resource_t *resource = NULL;
 
     ogs_pfcp_pdr_t *pdr = NULL;
     ogs_pfcp_far_t *far = NULL;
@@ -693,8 +676,10 @@ sgwc_tunnel_t *sgwc_tunnel_add(
     ogs_assert(pdr);
     pdr->src_if = src_if;
 
-    if (sess->session.name)
+    if (sess->session.name) {
         pdr->apn = ogs_strdup(sess->session.name);
+        ogs_assert(pdr->apn);
+    }
 
     pdr->outer_header_removal_len = 1;
     if (sess->session.session_type == OGS_PDU_SESSION_TYPE_IPV4) {
@@ -724,6 +709,14 @@ sgwc_tunnel_t *sgwc_tunnel_add(
         pdr->f_teid.ch = 1;
         pdr->f_teid_len = 1;
     } else {
+        char buf[OGS_ADDRSTRLEN];
+        ogs_gtpu_resource_t *resource = NULL;
+        ogs_sockaddr_t *addr = sess->pfcp_node->sa_list;
+        ogs_assert(addr);
+
+        ogs_error("F-TEID allocation/release not supported with peer [%s]:%d",
+                OGS_ADDR(addr, buf), OGS_PORT(addr));
+
         resource = ogs_pfcp_find_gtpu_resource(
                 &sess->pfcp_node->gtpu_resource_list,
                 sess->session.name, OGS_PFCP_INTERFACE_ACCESS);
@@ -738,18 +731,23 @@ sgwc_tunnel_t *sgwc_tunnel_add(
                 tunnel->local_teid = tunnel->index;
         } else {
             if (sess->pfcp_node->addr.ogs_sa_family == AF_INET)
-                ogs_copyaddrinfo(&tunnel->local_addr, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &tunnel->local_addr, &sess->pfcp_node->addr));
             else if (sess->pfcp_node->addr.ogs_sa_family == AF_INET6)
-                ogs_copyaddrinfo(&tunnel->local_addr6, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &tunnel->local_addr6, &sess->pfcp_node->addr));
             else
                 ogs_assert_if_reached();
 
             tunnel->local_teid = tunnel->index;
         }
 
-        ogs_assert(tunnel->local_addr || tunnel->local_addr6);
-        ogs_pfcp_sockaddr_to_f_teid(tunnel->local_addr, tunnel->local_addr6,
-                &pdr->f_teid, &pdr->f_teid_len);
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
+                tunnel->local_addr, tunnel->local_addr6,
+                &pdr->f_teid, &pdr->f_teid_len));
         pdr->f_teid.teid = tunnel->local_teid;
     }
 

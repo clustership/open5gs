@@ -68,6 +68,7 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
     int state = AMF_CREATE_SM_CONTEXT_NO_STATE;
     ogs_sbi_stream_t *stream = NULL;
     ogs_sbi_request_t *sbi_request = NULL;
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
 
     ogs_sbi_nf_instance_t *nf_instance = NULL;
     ogs_sbi_subscription_t *subscription = NULL;
@@ -80,22 +81,9 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        rv = amf_sbi_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish SBI path");
-        }
-
-        rv = ngap_open();
-        if (rv != OGS_OK) {
-            ogs_error("Can't establish NGAP path");
-            break;
-        }
-
         break;
 
     case OGS_FSM_EXIT_SIG:
-        ngap_close();
-        amf_sbi_close();
         break;
 
     case AMF_EVT_SBI_SERVER:
@@ -108,8 +96,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
         if (rv != OGS_OK) {
             /* 'sbi_message' buffer is released in ogs_sbi_parse_request() */
             ogs_error("cannot parse HTTP sbi_message");
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    NULL, "cannot parse HTTP sbi_message", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    NULL, "cannot parse HTTP sbi_message", NULL));
             break;
         }
 
@@ -124,8 +114,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
         ogs_assert(api_version);
         if (strcmp(sbi_message.h.api.version, api_version) != 0) {
             ogs_error("Not supported version [%s]", sbi_message.h.api.version);
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    &sbi_message, "Not supported version", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    &sbi_message, "Not supported version", NULL));
             ogs_sbi_message_free(&sbi_message);
             break;
         }
@@ -142,19 +134,21 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 
                 DEFAULT
                     ogs_error("Invalid HTTP method [%s]", sbi_message.h.method);
-                    ogs_sbi_server_send_error(stream,
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
                             OGS_SBI_HTTP_STATUS_FORBIDDEN, &sbi_message,
-                            "Invalid HTTP method", sbi_message.h.method);
+                            "Invalid HTTP method", sbi_message.h.method));
                 END
                 break;
 
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         sbi_message.h.resource.component[0]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                         "Invalid resource name",
-                        sbi_message.h.resource.component[0]);
+                        sbi_message.h.resource.component[0]));
             END
             break;
 
@@ -168,38 +162,43 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
                         rv = amf_namf_comm_handle_n1_n2_message_transfer(
                                 stream, &sbi_message);
                         if (rv != OGS_OK) {
-                            ogs_sbi_server_send_error(stream,
-                                OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
-                                "No N1N2MessageTransferReqData", NULL);
+                            ogs_assert(true ==
+                                ogs_sbi_server_send_error(stream,
+                                    OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                                    &sbi_message,
+                                    "No N1N2MessageTransferReqData", NULL));
                         }
                         break;
 
                     DEFAULT
                         ogs_error("Invalid HTTP method [%s]",
                                 sbi_message.h.method);
-                        ogs_sbi_server_send_error(stream,
+                        ogs_assert(true ==
+                            ogs_sbi_server_send_error(stream,
                                 OGS_SBI_HTTP_STATUS_FORBIDDEN, &sbi_message,
-                                "Invalid HTTP method", sbi_message.h.method);
+                                "Invalid HTTP method", sbi_message.h.method));
                     END
                     break;
 
                 DEFAULT
                     ogs_error("Invalid resource name [%s]",
                             sbi_message.h.resource.component[2]);
-                    ogs_sbi_server_send_error(stream,
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
                             OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                             "Invalid resource name",
-                            sbi_message.h.resource.component[2]);
+                            sbi_message.h.resource.component[2]));
                 END
                 break;
 
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         sbi_message.h.resource.component[0]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                         "Invalid resource name",
-                        sbi_message.h.resource.component[0]);
+                        sbi_message.h.resource.component[0]));
             END
             break;
 
@@ -214,25 +213,28 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 #if 0
             CASE(OGS_SBI_RESOURCE_NAME_DEREG_NOTIFY)
                 break;
-            CASE(OGS_SBI_RESOURCE_NAME_AM_POLICY_NOTIFY)
-                break;
 #endif
+            CASE(OGS_SBI_RESOURCE_NAME_AM_POLICY_NOTIFY)
+                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+                break;
 
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         sbi_message.h.resource.component[1]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                         "Invalid resource name",
-                        sbi_message.h.resource.component[1]);
+                        sbi_message.h.resource.component[1]));
             END
             break;
 
         DEFAULT
             ogs_error("Invalid API name [%s]", sbi_message.h.service.name);
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
-                    "Invalid API name", sbi_message.h.resource.component[0]);
+                    "Invalid API name", sbi_message.h.resource.component[0]));
         END
 
         /* In lib/sbi/server.c, notify_completed() releases 'request' buffer. */
@@ -358,17 +360,21 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 
             amf_ue = (amf_ue_t *)sbi_xact->sbi_object;
             ogs_assert(amf_ue);
-            amf_ue = amf_ue_cycle(amf_ue);
-            ogs_assert(amf_ue);
-
-            ogs_assert(OGS_FSM_STATE(&amf_ue->sm));
-
-            e->amf_ue = amf_ue;
-            e->sbi.message = &sbi_message;;
 
             ogs_sbi_xact_remove(sbi_xact);
 
-            ogs_fsm_dispatch(&amf_ue->sm, e);
+            amf_ue = amf_ue_cycle(amf_ue);
+
+            if (amf_ue) {
+                ogs_assert(OGS_FSM_STATE(&amf_ue->sm));
+
+                e->amf_ue = amf_ue;
+                e->sbi.message = &sbi_message;;
+
+                ogs_fsm_dispatch(&amf_ue->sm, e);
+            } else {
+                ogs_error("UE(amf_ue) Context has already been removed");
+            }
             break;
 
         CASE(OGS_SBI_SERVICE_NAME_NSMF_PDUSESSION)
@@ -377,6 +383,11 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 
             sess = (amf_sess_t *)sbi_xact->sbi_object;
             ogs_assert(sess);
+
+            state = sbi_xact->state;
+
+            ogs_sbi_xact_remove(sbi_xact);
+
             sess = amf_sess_cycle(sess);
 
             /*
@@ -413,10 +424,6 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
             e->amf_ue = amf_ue;
             e->sess = sess;
             e->sbi.message = &sbi_message;;
-
-            state = sbi_xact->state;
-
-            ogs_sbi_xact_remove(sbi_xact);
 
             SWITCH(sbi_message.h.resource.component[2])
             CASE(OGS_SBI_RESOURCE_NAME_MODIFY)
@@ -473,6 +480,11 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
 
             sess = (amf_sess_t *)sbi_xact->sbi_object;
             ogs_assert(sess);
+
+            state = sbi_xact->state;
+
+            ogs_sbi_xact_remove(sbi_xact);
+
             sess = amf_sess_cycle(sess);
             ogs_assert(sess);
 
@@ -486,10 +498,6 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
             e->amf_ue = amf_ue;
             e->sess = sess;
             e->sbi.message = &sbi_message;;
-
-            state = sbi_xact->state;
-
-            ogs_sbi_xact_remove(sbi_xact);
 
             amf_nnssf_nsselection_handle_get(sess, &sbi_message);
             break;
@@ -525,9 +533,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
             subscription = e->sbi.data;
             ogs_assert(subscription);
 
-            ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
+            ogs_assert(true ==
+                ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
                     amf_self()->nf_type, subscription->req_nf_instance_id,
-                    subscription->subscr_cond.nf_type);
+                    subscription->subscr_cond.nf_type));
 
             ogs_info("[%s] Subscription validity expired", subscription->id);
             ogs_sbi_subscription_remove(subscription);
@@ -540,6 +549,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
             sbi_object = sbi_xact->sbi_object;
             ogs_assert(sbi_object);
 
+            target_nf_type = sbi_xact->target_nf_type;
+
+            ogs_sbi_xact_remove(sbi_xact);
+
             ogs_assert(sbi_object->type > OGS_SBI_OBJ_BASE &&
                         sbi_object->type < OGS_SBI_OBJ_TOP);
 
@@ -548,8 +561,9 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
                 amf_ue = (amf_ue_t *)sbi_object;
                 ogs_assert(amf_ue);
                 ogs_error("[%s] Cannot receive SBI message", amf_ue->suci);
-                nas_5gs_send_gmm_reject_from_sbi(amf_ue,
-                        OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+                ogs_assert(OGS_OK ==
+                    nas_5gs_send_gmm_reject_from_sbi(amf_ue,
+                        OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT));
                 break;
 
             case OGS_SBI_OBJ_SESS_TYPE:
@@ -558,23 +572,24 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
                 ogs_error("[%d:%d] Cannot receive SBI message",
                         sess->psi, sess->pti);
                 if (sess->payload_container_type) {
-                    nas_5gs_send_back_5gsm_message_from_sbi(sess,
-                            OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+                    ogs_assert(OGS_OK ==
+                        nas_5gs_send_back_gsm_message(sess,
+                            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED,
+                            AMF_NAS_BACKOFF_TIME));
                 } else {
-                    ngap_send_error_indication2(amf_ue,
+                    ogs_assert(OGS_OK ==
+                        ngap_send_error_indication2(amf_ue,
                             NGAP_Cause_PR_transport,
-                            NGAP_CauseTransport_transport_resource_unavailable);
+                            NGAP_CauseTransport_transport_resource_unavailable)
+                    );
                 }
                 break;
 
             default:
                 ogs_fatal("Not implemented [%s:%d]",
-                    OpenAPI_nf_type_ToString(sbi_xact->target_nf_type),
-                    sbi_object->type);
+                    OpenAPI_nf_type_ToString(target_nf_type), sbi_object->type);
                 ogs_assert_if_reached();
             }
-
-            ogs_sbi_xact_remove(sbi_xact);
             break;
 
         default:
@@ -670,9 +685,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
             ogs_fsm_dispatch(&gnb->sm, e);
         } else {
             ogs_error("Cannot decode NGAP message");
-            ngap_send_error_indication(
+            ogs_assert(OGS_OK ==
+                ngap_send_error_indication(
                     gnb, NULL, NULL, NGAP_Cause_PR_protocol, 
-                    NGAP_CauseProtocol_abstract_syntax_error_falsely_constructed_message);
+                    NGAP_CauseProtocol_abstract_syntax_error_falsely_constructed_message));
         }
 
         ogs_ngap_free(&ngap_message);
@@ -777,9 +793,10 @@ void amf_state_operational(ogs_fsm_t *s, amf_event_t *e)
                 /* De-associate NG with NAS/EMM */
                 ran_ue_deassociate(amf_ue->ran_ue);
 
-                ngap_send_ran_ue_context_release_command(amf_ue->ran_ue,
+                ogs_assert(OGS_OK ==
+                    ngap_send_ran_ue_context_release_command(amf_ue->ran_ue,
                         NGAP_Cause_PR_nas, NGAP_CauseNas_normal_release,
-                        NGAP_UE_CTX_REL_NG_CONTEXT_REMOVE, 0);
+                        NGAP_UE_CTX_REL_NG_CONTEXT_REMOVE, 0));
             }
             amf_ue_associate_ran_ue(amf_ue, ran_ue);
         }

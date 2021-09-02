@@ -69,7 +69,7 @@ typedef struct ogs_gtp_extension_header_s {
 } __attribute__ ((packed)) ogs_gtp_extension_header_t;
 
 /* 8.4 Cause */
-#define OGS_GTP_CAUSE_INVALID_VALUE 0
+#define OGS_GTP_CAUSE_UNDEFINED_VALUE 0
 #define OGS_GTP_CAUSE_LOCAL_DETACH 2
 #define OGS_GTP_CAUSE_COMPLETE_DETACH_3
 #define OGS_GTP_CAUSE_RAT_CHANGED_FROM_3GPP_TO_NON_3GPP 4
@@ -302,7 +302,7 @@ ED3(uint8_t code:3;,
         };
         uint8_t precedence;
         ogs_pf_content_t content;
-    } pf[OGS_MAX_NUM_OF_PACKET_FILTER];
+    } pf[OGS_MAX_NUM_OF_FLOW_IN_GTP];
 } ogs_gtp_tft_t;
 
 int16_t ogs_gtp_parse_tft(ogs_gtp_tft_t *tft, ogs_tlv_octet_t *octet);
@@ -312,27 +312,37 @@ int16_t ogs_gtp_build_tft(
 /* 8.21 User Location Information (ULI) */
 #define OGS_GTP_MAX_ULI_LEN sizeof(ogs_gtp_uli_t)
 typedef struct ogs_gtp_uli_cgi_s {
-    ogs_plmn_id_t plmn_id;
+    ogs_nas_plmn_id_t nas_plmn_id;
     uint16_t lac;
     uint16_t ci;
 } __attribute__ ((packed)) ogs_gtp_uli_cgi_t;
 
 typedef struct ogs_gtp_uli_sai_s {
-    ogs_plmn_id_t plmn_id;
+    ogs_nas_plmn_id_t nas_plmn_id;
     uint16_t lac;
     uint16_t sac;
 } __attribute__ ((packed)) ogs_gtp_uli_sai_t;
 
 typedef struct ogs_gtp_uli_rai_s {
-    ogs_plmn_id_t plmn_id;
+    ogs_nas_plmn_id_t nas_plmn_id;
     uint16_t lac;
     uint16_t rac;
 } __attribute__ ((packed)) ogs_gtp_uli_rai_t;
 
 typedef struct ogs_gtp_uli_lai_s {
-    ogs_plmn_id_t plmn_id;
+    ogs_nas_plmn_id_t nas_plmn_id;
     uint16_t lac;
 } __attribute__ ((packed)) ogs_gtp_uli_lai_t;
+
+typedef struct ogs_gtp_uli_tai_s {
+    ogs_nas_plmn_id_t nas_plmn_id;
+    uint16_t tac;
+} __attribute__ ((packed)) ogs_gtp_uli_tai_t;
+
+typedef struct ogs_gtp_uli_e_cgi_s {
+    ogs_nas_plmn_id_t nas_plmn_id;
+    uint32_t cell_id;
+} __attribute__ ((packed)) ogs_gtp_uli_e_cgi_t;
 
 typedef struct ogs_gtp_uli_s {
     struct {
@@ -347,8 +357,8 @@ typedef struct ogs_gtp_uli_s {
     ogs_gtp_uli_cgi_t cgi;
     ogs_gtp_uli_sai_t sai;
     ogs_gtp_uli_rai_t rai;
-    ogs_eps_tai_t tai;
-    ogs_e_cgi_t e_cgi;
+    ogs_gtp_uli_tai_t tai;
+    ogs_gtp_uli_e_cgi_t e_cgi;
     ogs_gtp_uli_lai_t lai;
 } ogs_gtp_uli_t;
 

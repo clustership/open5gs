@@ -27,6 +27,7 @@ typedef struct OpenAPI_pcf_info_s {
     OpenAPI_list_t *gpsi_ranges;
     char *rx_diam_host;
     char *rx_diam_realm;
+    bool is_v2x_support_ind;
     int v2x_support_ind;
 } OpenAPI_pcf_info_t;
 
@@ -37,8 +38,9 @@ OpenAPI_pcf_info_t *OpenAPI_pcf_info_create(
     OpenAPI_list_t *gpsi_ranges,
     char *rx_diam_host,
     char *rx_diam_realm,
+    bool is_v2x_support_ind,
     int v2x_support_ind
-    );
+);
 void OpenAPI_pcf_info_free(OpenAPI_pcf_info_t *pcf_info);
 OpenAPI_pcf_info_t *OpenAPI_pcf_info_parseFromJSON(cJSON *pcf_infoJSON);
 cJSON *OpenAPI_pcf_info_convertToJSON(OpenAPI_pcf_info_t *pcf_info);

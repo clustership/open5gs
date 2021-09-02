@@ -7,7 +7,7 @@
 OpenAPI_ng_ksi_t *OpenAPI_ng_ksi_create(
     OpenAPI_sc_type_e tsc,
     int ksi
-    )
+)
 {
     OpenAPI_ng_ksi_t *ng_ksi_local_var = OpenAPI_malloc(sizeof(OpenAPI_ng_ksi_t));
     if (!ng_ksi_local_var) {
@@ -38,19 +38,11 @@ cJSON *OpenAPI_ng_ksi_convertToJSON(OpenAPI_ng_ksi_t *ng_ksi)
     }
 
     item = cJSON_CreateObject();
-    if (!ng_ksi->tsc) {
-        ogs_error("OpenAPI_ng_ksi_convertToJSON() failed [tsc]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "tsc", OpenAPI_sc_type_ToString(ng_ksi->tsc)) == NULL) {
         ogs_error("OpenAPI_ng_ksi_convertToJSON() failed [tsc]");
         goto end;
     }
 
-    if (!ng_ksi->ksi) {
-        ogs_error("OpenAPI_ng_ksi_convertToJSON() failed [ksi]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "ksi", ng_ksi->ksi) == NULL) {
         ogs_error("OpenAPI_ng_ksi_convertToJSON() failed [ksi]");
         goto end;
@@ -70,7 +62,6 @@ OpenAPI_ng_ksi_t *OpenAPI_ng_ksi_parseFromJSON(cJSON *ng_ksiJSON)
     }
 
     OpenAPI_sc_type_e tscVariable;
-
     if (!cJSON_IsString(tsc)) {
         ogs_error("OpenAPI_ng_ksi_parseFromJSON() failed [tsc]");
         goto end;
@@ -83,7 +74,6 @@ OpenAPI_ng_ksi_t *OpenAPI_ng_ksi_parseFromJSON(cJSON *ng_ksiJSON)
         goto end;
     }
 
-
     if (!cJSON_IsNumber(ksi)) {
         ogs_error("OpenAPI_ng_ksi_parseFromJSON() failed [ksi]");
         goto end;
@@ -91,8 +81,9 @@ OpenAPI_ng_ksi_t *OpenAPI_ng_ksi_parseFromJSON(cJSON *ng_ksiJSON)
 
     ng_ksi_local_var = OpenAPI_ng_ksi_create (
         tscVariable,
+        
         ksi->valuedouble
-        );
+    );
 
     return ng_ksi_local_var;
 end:

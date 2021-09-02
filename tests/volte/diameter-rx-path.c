@@ -42,8 +42,9 @@ static __inline__ struct sess_state *new_state(os0_t sid)
     struct sess_state *new = NULL;
 
     new = ogs_calloc(1, sizeof(*new));
+    ogs_expect_or_return_val(new, NULL);
     new->sid = (os0_t)ogs_strdup((char *)sid);
-    ogs_assert(new->sid);
+    ogs_expect_or_return_val(new->sid, NULL);
 
     return new;
 }
@@ -1821,7 +1822,7 @@ static int pcscf_rx_asr_cb( struct msg **msg, struct avp *avp,
     /* Set the Auth-Request-Type AVP */
     ret = fd_msg_avp_new(ogs_diam_auth_request_type, 0, &avp);
     ogs_assert(ret == 0);
-    val.i32 = 1;
+    val.i32 = OGS_DIAM_AUTH_REQUEST_TYPE_AUTHENTICATE_ONLY;
     ret = fd_msg_avp_setvalue(avp, &val);
     ogs_assert(ret == 0);
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
@@ -1875,6 +1876,7 @@ void test_rx_send_str(uint8_t *rx_sid)
     struct sess_state *sess_data = NULL, *svg;
     struct session *session = NULL;
     int new;
+    size_t sidlen;
 
     ogs_assert(rx_sid);
 
@@ -1889,7 +1891,7 @@ void test_rx_send_str(uint8_t *rx_sid)
     }
 
     /* Retrieve session by Session-Id */
-    size_t sidlen = strlen((char*)rx_sid);
+    sidlen = strlen((char*)rx_sid);
     ret = fd_sess_fromsid_msg(rx_sid, sidlen, &session, &new);
     ogs_assert(ret == 0);
     ogs_assert(new == 0);

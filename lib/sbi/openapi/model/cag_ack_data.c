@@ -7,7 +7,7 @@
 OpenAPI_cag_ack_data_t *OpenAPI_cag_ack_data_create(
     char *provisioning_time,
     OpenAPI_ue_update_status_e ue_update_status
-    )
+)
 {
     OpenAPI_cag_ack_data_t *cag_ack_data_local_var = OpenAPI_malloc(sizeof(OpenAPI_cag_ack_data_t));
     if (!cag_ack_data_local_var) {
@@ -39,19 +39,11 @@ cJSON *OpenAPI_cag_ack_data_convertToJSON(OpenAPI_cag_ack_data_t *cag_ack_data)
     }
 
     item = cJSON_CreateObject();
-    if (!cag_ack_data->provisioning_time) {
-        ogs_error("OpenAPI_cag_ack_data_convertToJSON() failed [provisioning_time]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "provisioningTime", cag_ack_data->provisioning_time) == NULL) {
         ogs_error("OpenAPI_cag_ack_data_convertToJSON() failed [provisioning_time]");
         goto end;
     }
 
-    if (!cag_ack_data->ue_update_status) {
-        ogs_error("OpenAPI_cag_ack_data_convertToJSON() failed [ue_update_status]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "ueUpdateStatus", OpenAPI_ue_update_status_ToString(cag_ack_data->ue_update_status)) == NULL) {
         ogs_error("OpenAPI_cag_ack_data_convertToJSON() failed [ue_update_status]");
         goto end;
@@ -70,7 +62,6 @@ OpenAPI_cag_ack_data_t *OpenAPI_cag_ack_data_parseFromJSON(cJSON *cag_ack_dataJS
         goto end;
     }
 
-
     if (!cJSON_IsString(provisioning_time)) {
         ogs_error("OpenAPI_cag_ack_data_parseFromJSON() failed [provisioning_time]");
         goto end;
@@ -83,7 +74,6 @@ OpenAPI_cag_ack_data_t *OpenAPI_cag_ack_data_parseFromJSON(cJSON *cag_ack_dataJS
     }
 
     OpenAPI_ue_update_status_e ue_update_statusVariable;
-
     if (!cJSON_IsString(ue_update_status)) {
         ogs_error("OpenAPI_cag_ack_data_parseFromJSON() failed [ue_update_status]");
         goto end;
@@ -91,9 +81,9 @@ OpenAPI_cag_ack_data_t *OpenAPI_cag_ack_data_parseFromJSON(cJSON *cag_ack_dataJS
     ue_update_statusVariable = OpenAPI_ue_update_status_FromString(ue_update_status->valuestring);
 
     cag_ack_data_local_var = OpenAPI_cag_ack_data_create (
-        ogs_strdup(provisioning_time->valuestring),
+        ogs_strdup_or_assert(provisioning_time->valuestring),
         ue_update_statusVariable
-        );
+    );
 
     return cag_ack_data_local_var;
 end:

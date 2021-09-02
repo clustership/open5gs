@@ -24,8 +24,6 @@
 #endif
 #endif
 
-#include "ogs-ipfw.h"
-
 #include "ipfw2.h"
 #include "objs/include_e/netinet/ip_fw.h"
 
@@ -45,7 +43,7 @@ int ogs_ipfw_compile_rule(ogs_ipfw_rule_t *ipfw_rule, char *flow_description)
 	int rbufsize;
 	struct ip_fw_rule *rule = (struct ip_fw_rule *)rulebuf;
 
-	int l;
+	int x, l;
 	ipfw_insn *cmd;
 
     char *description = NULL;
@@ -92,9 +90,9 @@ int ogs_ipfw_compile_rule(ogs_ipfw_rule_t *ipfw_rule, char *flow_description)
     av[i] = NULL;
 
     /* "to assigned" --> "to any" */
-    for (i = 2; av[i] != NULL; i++) {
-        if (strcmp(av[i], "assigned") == 0 && strcmp(av[i-1], "to") == 0) {
-            av[i] = "any";
+    for (x = 2; av[x] != NULL; x++) {
+        if (strcmp(av[x], "assigned") == 0 && strcmp(av[x-1], "to") == 0) {
+            av[x] = "any";
             break;
         }
     }

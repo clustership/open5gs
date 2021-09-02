@@ -30,12 +30,23 @@ extern "C" {
 
 #define OGS_MAX_NUM_OF_SESS             4   /* Num of APN(Session) per UE */
 #define OGS_MAX_NUM_OF_BEARER           4   /* Num of Bearer per Session */
-#define OGS_MAX_NUM_OF_RULE             4   /* Num of Rule per Session */
-#define OGS_MAX_NUM_OF_PF               16  /* Num of PacketFilter per Bearer */
 #define OGS_MAX_NUM_OF_PACKET_BUFFER    64  /* Num of PacketBuffer per UE */
 
-/* Num of PacketFilter per Bearer(GTP) or QoS(NAS-5GS) */
-#define OGS_MAX_NUM_OF_PACKET_FILTER    16
+/*
+ * The array of TLV messages is limited to 8.
+ * So, Flow(PDI.SDF_Filter) in PDR is limited to 8.
+ *
+ * However, the number of flow in bearer context seems to need more than 16.
+ *
+ * Therefore, the maximum number of flows of messages is defined as 8,
+ * and the maximum number of flows stored by the context is 16.
+ */
+#define OGS_MAX_NUM_OF_FLOW_IN_PDR      8
+#define OGS_MAX_NUM_OF_FLOW_IN_GTP      OGS_MAX_NUM_OF_FLOW_IN_PDR
+#define OGS_MAX_NUM_OF_FLOW_IN_NAS      OGS_MAX_NUM_OF_FLOW_IN_PDR
+#define OGS_MAX_NUM_OF_FLOW_IN_PCC_RULE OGS_MAX_NUM_OF_FLOW_IN_PDR
+#define OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT OGS_MAX_NUM_OF_FLOW_IN_PDR
+#define OGS_MAX_NUM_OF_FLOW_IN_BEARER   16
 
 #define OGS_MAX_NUM_OF_GTPU_RESOURCE    4
 
@@ -120,6 +131,22 @@ char *ogs_plmn_id_mnc_string(ogs_plmn_id_t *plmn_id);
 #define OGS_PLMNIDSTRLEN    (sizeof(ogs_plmn_id_t)*2+1)
 char *ogs_plmn_id_to_string(ogs_plmn_id_t *plmn_id, char *buf);
 
+/*************************
+ * NAS PLMN_ID Structure */
+typedef struct ogs_nas_plmn_id_s {
+ED2(uint8_t mcc2:4;,
+    uint8_t mcc1:4;)
+ED2(uint8_t mnc3:4;,
+    uint8_t mcc3:4;)
+ED2(uint8_t mnc2:4;,
+    uint8_t mnc1:4;)
+} __attribute__ ((packed)) ogs_nas_plmn_id_t;
+
+void *ogs_nas_from_plmn_id(
+        ogs_nas_plmn_id_t *ogs_nas_plmn_id, ogs_plmn_id_t *plmn_id);
+void *ogs_nas_to_plmn_id(
+        ogs_plmn_id_t *plmn_id, ogs_nas_plmn_id_t *ogs_nas_plmn_id);
+
 /************************************
  * AMF_ID Structure                 */
 typedef struct ogs_amf_id_s {
@@ -199,6 +226,7 @@ ogs_uint24_t ogs_s_nssai_sd_from_string(const char *hex);
 #define OGS_IPV4_LEN                        4
 #define OGS_IPV6_LEN                        16
 #define OGS_IPV6_DEFAULT_PREFIX_LEN         64
+#define OGS_IPV6_128_PREFIX_LEN             128
 #define OGS_IPV4V6_LEN                      20
 typedef struct ogs_ip_s {
     uint32_t addr;
@@ -212,8 +240,14 @@ ED3(uint8_t ipv4:1;,
 int ogs_ip_to_sockaddr(ogs_ip_t *ip, uint16_t port, ogs_sockaddr_t **list);
 void ogs_sockaddr_to_ip(
         ogs_sockaddr_t *addr, ogs_sockaddr_t *addr6, ogs_ip_t *ip);
+
 char *ogs_ipv4_to_string(uint32_t addr);
-char *ogs_ipv6_to_string(uint8_t *addr6);
+char *ogs_ipv6addr_to_string(uint8_t *addr6);
+char *ogs_ipv6prefix_to_string(uint8_t *addr6, uint8_t prefixlen);
+int ogs_ipv4_from_string(uint32_t *addr, char *string);
+int ogs_ipv6addr_from_string(uint8_t *addr6, char *string);
+int ogs_ipv6prefix_from_string(
+        uint8_t *addr6, uint8_t *prefixlen, char *string);
 
 /**************************************************
  * 8.14 PDN Address Allocation (PAA) */
@@ -314,8 +348,7 @@ typedef struct ogs_flow_s {
 
 #define OGS_FLOW_FREE(__fLOW) \
     do { \
-        if ((__fLOW)->description) \
-        { \
+        if ((__fLOW)->description) { \
             ogs_free((__fLOW)->description); \
         } \
         else \
@@ -332,16 +365,9 @@ typedef struct ogs_pcc_rule_s {
     char *id;   /* 5GC */
     char *name; /* EPC */
 
-/* Num of Flow per PCC Rule */
-#define OGS_MAX_NUM_OF_FLOW                     8
-    ogs_flow_t flow[OGS_MAX_NUM_OF_FLOW];
+    ogs_flow_t flow[OGS_MAX_NUM_OF_FLOW_IN_PCC_RULE];
     int num_of_flow;
 
-#define OGS_FLOW_STATUS_ENABLED_UPLINK          0
-#define OGS_FLOW_STATUS_ENABLED_DOWNLINK        1
-#define OGS_FLOW_STATUS_ENABLED                 2
-#define OGS_FLOW_STATUS_DISABLED                3
-#define OGS_FLOW_STATUS_REMOVE                  4
     int flow_status;
     uint32_t precedence;
         
@@ -623,6 +649,46 @@ typedef struct ogs_session_data_s {
 } ogs_session_data_t;
 
 void ogs_session_data_free(ogs_session_data_t *session_data);
+
+typedef struct ogs_media_sub_component_s {
+    uint32_t            flow_number;
+    uint32_t            flow_usage;
+    ogs_flow_t          flow[OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT];
+    int                 num_of_flow;
+} ogs_media_sub_component_t;
+
+typedef struct ogs_media_component_s {
+    uint32_t            media_component_number;
+    uint32_t            media_type;
+
+    uint64_t            max_requested_bandwidth_dl;
+    uint64_t            max_requested_bandwidth_ul;
+    uint64_t            min_requested_bandwidth_dl;
+    uint64_t            min_requested_bandwidth_ul;
+    uint64_t            rr_bandwidth;
+    uint64_t            rs_bandwidth;
+
+    int                 flow_status;
+
+#define OGS_MAX_NUM_OF_MEDIA_SUB_COMPONENT     8
+    ogs_media_sub_component_t sub[OGS_MAX_NUM_OF_MEDIA_SUB_COMPONENT];
+    int                 num_of_sub;
+} ogs_media_component_t;
+
+typedef struct ogs_ims_data_s {
+    int num_of_msisdn;
+    struct {
+        uint8_t buf[OGS_MAX_MSISDN_LEN];
+        int len;
+        char bcd[OGS_MAX_MSISDN_BCD_LEN+1];
+    } msisdn[OGS_MAX_NUM_OF_MSISDN];
+
+#define OGS_MAX_NUM_OF_MEDIA_COMPONENT 16
+    ogs_media_component_t media_component[OGS_MAX_NUM_OF_MEDIA_COMPONENT];
+    int num_of_media_component;
+} ogs_ims_data_t;
+
+void ogs_ims_data_free(ogs_ims_data_t *ims_data);
 
 #ifdef __cplusplus
 }

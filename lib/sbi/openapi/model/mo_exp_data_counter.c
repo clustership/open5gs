@@ -7,7 +7,7 @@
 OpenAPI_mo_exp_data_counter_t *OpenAPI_mo_exp_data_counter_create(
     int counter,
     char *time_stamp
-    )
+)
 {
     OpenAPI_mo_exp_data_counter_t *mo_exp_data_counter_local_var = OpenAPI_malloc(sizeof(OpenAPI_mo_exp_data_counter_t));
     if (!mo_exp_data_counter_local_var) {
@@ -39,20 +39,16 @@ cJSON *OpenAPI_mo_exp_data_counter_convertToJSON(OpenAPI_mo_exp_data_counter_t *
     }
 
     item = cJSON_CreateObject();
-    if (!mo_exp_data_counter->counter) {
-        ogs_error("OpenAPI_mo_exp_data_counter_convertToJSON() failed [counter]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "counter", mo_exp_data_counter->counter) == NULL) {
         ogs_error("OpenAPI_mo_exp_data_counter_convertToJSON() failed [counter]");
         goto end;
     }
 
     if (mo_exp_data_counter->time_stamp) {
-        if (cJSON_AddStringToObject(item, "timeStamp", mo_exp_data_counter->time_stamp) == NULL) {
-            ogs_error("OpenAPI_mo_exp_data_counter_convertToJSON() failed [time_stamp]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "timeStamp", mo_exp_data_counter->time_stamp) == NULL) {
+        ogs_error("OpenAPI_mo_exp_data_counter_convertToJSON() failed [time_stamp]");
+        goto end;
+    }
     }
 
 end:
@@ -68,7 +64,6 @@ OpenAPI_mo_exp_data_counter_t *OpenAPI_mo_exp_data_counter_parseFromJSON(cJSON *
         goto end;
     }
 
-
     if (!cJSON_IsNumber(counter)) {
         ogs_error("OpenAPI_mo_exp_data_counter_parseFromJSON() failed [counter]");
         goto end;
@@ -77,16 +72,17 @@ OpenAPI_mo_exp_data_counter_t *OpenAPI_mo_exp_data_counter_parseFromJSON(cJSON *
     cJSON *time_stamp = cJSON_GetObjectItemCaseSensitive(mo_exp_data_counterJSON, "timeStamp");
 
     if (time_stamp) {
-        if (!cJSON_IsString(time_stamp)) {
-            ogs_error("OpenAPI_mo_exp_data_counter_parseFromJSON() failed [time_stamp]");
-            goto end;
-        }
+    if (!cJSON_IsString(time_stamp)) {
+        ogs_error("OpenAPI_mo_exp_data_counter_parseFromJSON() failed [time_stamp]");
+        goto end;
+    }
     }
 
     mo_exp_data_counter_local_var = OpenAPI_mo_exp_data_counter_create (
+        
         counter->valuedouble,
-        time_stamp ? ogs_strdup(time_stamp->valuestring) : NULL
-        );
+        time_stamp ? ogs_strdup_or_assert(time_stamp->valuestring) : NULL
+    );
 
     return mo_exp_data_counter_local_var;
 end:

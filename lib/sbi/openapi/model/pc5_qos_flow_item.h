@@ -1,7 +1,7 @@
 /*
  * pc5_qos_flow_item.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_pc5_qos_flow_item_H_
@@ -22,14 +22,16 @@ typedef struct OpenAPI_pc5_qos_flow_item_s OpenAPI_pc5_qos_flow_item_t;
 typedef struct OpenAPI_pc5_qos_flow_item_s {
     int pqi;
     struct OpenAPI_pc5_flow_bit_rates_s *pc5_flow_bit_rates;
+    bool is_range;
     int range;
 } OpenAPI_pc5_qos_flow_item_t;
 
 OpenAPI_pc5_qos_flow_item_t *OpenAPI_pc5_qos_flow_item_create(
     int pqi,
     OpenAPI_pc5_flow_bit_rates_t *pc5_flow_bit_rates,
+    bool is_range,
     int range
-    );
+);
 void OpenAPI_pc5_qos_flow_item_free(OpenAPI_pc5_qos_flow_item_t *pc5_qos_flow_item);
 OpenAPI_pc5_qos_flow_item_t *OpenAPI_pc5_qos_flow_item_parseFromJSON(cJSON *pc5_qos_flow_itemJSON);
 cJSON *OpenAPI_pc5_qos_flow_item_convertToJSON(OpenAPI_pc5_qos_flow_item_t *pc5_qos_flow_item);

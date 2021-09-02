@@ -1,7 +1,7 @@
 /*
  * release_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_release_data_H_
@@ -27,6 +27,7 @@ typedef struct OpenAPI_release_data_s OpenAPI_release_data_t;
 typedef struct OpenAPI_release_data_s {
     OpenAPI_cause_e cause;
     struct OpenAPI_ng_ap_cause_s *ng_ap_cause;
+    bool is__5g_mm_cause_value;
     int _5g_mm_cause_value;
     struct OpenAPI_user_location_s *ue_location;
     char *ue_time_zone;
@@ -41,6 +42,7 @@ typedef struct OpenAPI_release_data_s {
 OpenAPI_release_data_t *OpenAPI_release_data_create(
     OpenAPI_cause_e cause,
     OpenAPI_ng_ap_cause_t *ng_ap_cause,
+    bool is__5g_mm_cause_value,
     int _5g_mm_cause_value,
     OpenAPI_user_location_t *ue_location,
     char *ue_time_zone,
@@ -50,7 +52,7 @@ OpenAPI_release_data_t *OpenAPI_release_data_create(
     OpenAPI_n4_information_t *n4_info,
     OpenAPI_n4_information_t *n4_info_ext1,
     OpenAPI_n4_information_t *n4_info_ext2
-    );
+);
 void OpenAPI_release_data_free(OpenAPI_release_data_t *release_data);
 OpenAPI_release_data_t *OpenAPI_release_data_parseFromJSON(cJSON *release_dataJSON);
 cJSON *OpenAPI_release_data_convertToJSON(OpenAPI_release_data_t *release_data);

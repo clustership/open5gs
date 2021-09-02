@@ -28,7 +28,9 @@ typedef struct OpenAPI_smf_info_s {
     OpenAPI_list_t *tai_range_list;
     char *pgw_fqdn;
     OpenAPI_list_t *access_type;
+    bool is_priority;
     int priority;
+    bool is_vsmf_support_ind;
     int vsmf_support_ind;
 } OpenAPI_smf_info_t;
 
@@ -38,9 +40,11 @@ OpenAPI_smf_info_t *OpenAPI_smf_info_create(
     OpenAPI_list_t *tai_range_list,
     char *pgw_fqdn,
     OpenAPI_list_t *access_type,
+    bool is_priority,
     int priority,
+    bool is_vsmf_support_ind,
     int vsmf_support_ind
-    );
+);
 void OpenAPI_smf_info_free(OpenAPI_smf_info_t *smf_info);
 OpenAPI_smf_info_t *OpenAPI_smf_info_parseFromJSON(cJSON *smf_infoJSON);
 cJSON *OpenAPI_smf_info_convertToJSON(OpenAPI_smf_info_t *smf_info);

@@ -1,7 +1,7 @@
 /*
  * qos_flow_add_modify_request_item.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_qos_flow_add_modify_request_item_H_
@@ -22,6 +22,7 @@ extern "C" {
 typedef struct OpenAPI_qos_flow_add_modify_request_item_s OpenAPI_qos_flow_add_modify_request_item_t;
 typedef struct OpenAPI_qos_flow_add_modify_request_item_s {
     int qfi;
+    bool is_ebi;
     int ebi;
     char qos_rules;
     char qos_flow_description;
@@ -31,12 +32,13 @@ typedef struct OpenAPI_qos_flow_add_modify_request_item_s {
 
 OpenAPI_qos_flow_add_modify_request_item_t *OpenAPI_qos_flow_add_modify_request_item_create(
     int qfi,
+    bool is_ebi,
     int ebi,
     char qos_rules,
     char qos_flow_description,
     OpenAPI_qos_flow_profile_t *qos_flow_profile,
     OpenAPI_qos_flow_access_type_e associated_an_type
-    );
+);
 void OpenAPI_qos_flow_add_modify_request_item_free(OpenAPI_qos_flow_add_modify_request_item_t *qos_flow_add_modify_request_item);
 OpenAPI_qos_flow_add_modify_request_item_t *OpenAPI_qos_flow_add_modify_request_item_parseFromJSON(cJSON *qos_flow_add_modify_request_itemJSON);
 cJSON *OpenAPI_qos_flow_add_modify_request_item_convertToJSON(OpenAPI_qos_flow_add_modify_request_item_t *qos_flow_add_modify_request_item);

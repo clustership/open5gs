@@ -8,7 +8,7 @@ OpenAPI_uncertainty_ellipse_t *OpenAPI_uncertainty_ellipse_create(
     float semi_major,
     float semi_minor,
     int orientation_major
-    )
+)
 {
     OpenAPI_uncertainty_ellipse_t *uncertainty_ellipse_local_var = OpenAPI_malloc(sizeof(OpenAPI_uncertainty_ellipse_t));
     if (!uncertainty_ellipse_local_var) {
@@ -40,28 +40,16 @@ cJSON *OpenAPI_uncertainty_ellipse_convertToJSON(OpenAPI_uncertainty_ellipse_t *
     }
 
     item = cJSON_CreateObject();
-    if (!uncertainty_ellipse->semi_major) {
-        ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [semi_major]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "semiMajor", uncertainty_ellipse->semi_major) == NULL) {
         ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [semi_major]");
         goto end;
     }
 
-    if (!uncertainty_ellipse->semi_minor) {
-        ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [semi_minor]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "semiMinor", uncertainty_ellipse->semi_minor) == NULL) {
         ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [semi_minor]");
         goto end;
     }
 
-    if (!uncertainty_ellipse->orientation_major) {
-        ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [orientation_major]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "orientationMajor", uncertainty_ellipse->orientation_major) == NULL) {
         ogs_error("OpenAPI_uncertainty_ellipse_convertToJSON() failed [orientation_major]");
         goto end;
@@ -80,7 +68,6 @@ OpenAPI_uncertainty_ellipse_t *OpenAPI_uncertainty_ellipse_parseFromJSON(cJSON *
         goto end;
     }
 
-
     if (!cJSON_IsNumber(semi_major)) {
         ogs_error("OpenAPI_uncertainty_ellipse_parseFromJSON() failed [semi_major]");
         goto end;
@@ -91,7 +78,6 @@ OpenAPI_uncertainty_ellipse_t *OpenAPI_uncertainty_ellipse_parseFromJSON(cJSON *
         ogs_error("OpenAPI_uncertainty_ellipse_parseFromJSON() failed [semi_minor]");
         goto end;
     }
-
 
     if (!cJSON_IsNumber(semi_minor)) {
         ogs_error("OpenAPI_uncertainty_ellipse_parseFromJSON() failed [semi_minor]");
@@ -104,17 +90,19 @@ OpenAPI_uncertainty_ellipse_t *OpenAPI_uncertainty_ellipse_parseFromJSON(cJSON *
         goto end;
     }
 
-
     if (!cJSON_IsNumber(orientation_major)) {
         ogs_error("OpenAPI_uncertainty_ellipse_parseFromJSON() failed [orientation_major]");
         goto end;
     }
 
     uncertainty_ellipse_local_var = OpenAPI_uncertainty_ellipse_create (
+        
         semi_major->valuedouble,
+        
         semi_minor->valuedouble,
+        
         orientation_major->valuedouble
-        );
+    );
 
     return uncertainty_ellipse_local_var;
 end:

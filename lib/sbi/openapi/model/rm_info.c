@@ -7,7 +7,7 @@
 OpenAPI_rm_info_t *OpenAPI_rm_info_create(
     OpenAPI_rm_state_t *rm_state,
     OpenAPI_access_type_e access_type
-    )
+)
 {
     OpenAPI_rm_info_t *rm_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_rm_info_t));
     if (!rm_info_local_var) {
@@ -39,10 +39,6 @@ cJSON *OpenAPI_rm_info_convertToJSON(OpenAPI_rm_info_t *rm_info)
     }
 
     item = cJSON_CreateObject();
-    if (!rm_info->rm_state) {
-        ogs_error("OpenAPI_rm_info_convertToJSON() failed [rm_state]");
-        goto end;
-    }
     cJSON *rm_state_local_JSON = OpenAPI_rm_state_convertToJSON(rm_info->rm_state);
     if (rm_state_local_JSON == NULL) {
         ogs_error("OpenAPI_rm_info_convertToJSON() failed [rm_state]");
@@ -54,10 +50,6 @@ cJSON *OpenAPI_rm_info_convertToJSON(OpenAPI_rm_info_t *rm_info)
         goto end;
     }
 
-    if (!rm_info->access_type) {
-        ogs_error("OpenAPI_rm_info_convertToJSON() failed [access_type]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "accessType", OpenAPI_access_type_ToString(rm_info->access_type)) == NULL) {
         ogs_error("OpenAPI_rm_info_convertToJSON() failed [access_type]");
         goto end;
@@ -77,7 +69,6 @@ OpenAPI_rm_info_t *OpenAPI_rm_info_parseFromJSON(cJSON *rm_infoJSON)
     }
 
     OpenAPI_rm_state_t *rm_state_local_nonprim = NULL;
-
     rm_state_local_nonprim = OpenAPI_rm_state_parseFromJSON(rm_state);
 
     cJSON *access_type = cJSON_GetObjectItemCaseSensitive(rm_infoJSON, "accessType");
@@ -87,7 +78,6 @@ OpenAPI_rm_info_t *OpenAPI_rm_info_parseFromJSON(cJSON *rm_infoJSON)
     }
 
     OpenAPI_access_type_e access_typeVariable;
-
     if (!cJSON_IsString(access_type)) {
         ogs_error("OpenAPI_rm_info_parseFromJSON() failed [access_type]");
         goto end;
@@ -97,7 +87,7 @@ OpenAPI_rm_info_t *OpenAPI_rm_info_parseFromJSON(cJSON *rm_infoJSON)
     rm_info_local_var = OpenAPI_rm_info_create (
         rm_state_local_nonprim,
         access_typeVariable
-        );
+    );
 
     return rm_info_local_var;
 end:

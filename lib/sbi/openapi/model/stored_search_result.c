@@ -6,7 +6,7 @@
 
 OpenAPI_stored_search_result_t *OpenAPI_stored_search_result_create(
     OpenAPI_list_t *nf_instances
-    )
+)
 {
     OpenAPI_stored_search_result_t *stored_search_result_local_var = OpenAPI_malloc(sizeof(OpenAPI_stored_search_result_t));
     if (!stored_search_result_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_stored_search_result_convertToJSON(OpenAPI_stored_search_result_t
     }
 
     item = cJSON_CreateObject();
-    if (!stored_search_result->nf_instances) {
-        ogs_error("OpenAPI_stored_search_result_convertToJSON() failed [nf_instances]");
-        goto end;
-    }
     cJSON *nf_instancesList = cJSON_AddArrayToObject(item, "nfInstances");
     if (nf_instancesList == NULL) {
         ogs_error("OpenAPI_stored_search_result_convertToJSON() failed [nf_instances]");
@@ -76,9 +72,8 @@ OpenAPI_stored_search_result_t *OpenAPI_stored_search_result_parseFromJSON(cJSON
     }
 
     OpenAPI_list_t *nf_instancesList;
-
     cJSON *nf_instances_local_nonprimitive;
-    if (!cJSON_IsArray(nf_instances)) {
+    if (!cJSON_IsArray(nf_instances)){
         ogs_error("OpenAPI_stored_search_result_parseFromJSON() failed [nf_instances]");
         goto end;
     }
@@ -97,7 +92,7 @@ OpenAPI_stored_search_result_t *OpenAPI_stored_search_result_parseFromJSON(cJSON
 
     stored_search_result_local_var = OpenAPI_stored_search_result_create (
         nf_instancesList
-        );
+    );
 
     return stored_search_result_local_var;
 end:

@@ -7,7 +7,7 @@
 OpenAPI_point_altitude_all_of_t *OpenAPI_point_altitude_all_of_create(
     OpenAPI_geographical_coordinates_t *point,
     double altitude
-    )
+)
 {
     OpenAPI_point_altitude_all_of_t *point_altitude_all_of_local_var = OpenAPI_malloc(sizeof(OpenAPI_point_altitude_all_of_t));
     if (!point_altitude_all_of_local_var) {
@@ -39,10 +39,6 @@ cJSON *OpenAPI_point_altitude_all_of_convertToJSON(OpenAPI_point_altitude_all_of
     }
 
     item = cJSON_CreateObject();
-    if (!point_altitude_all_of->point) {
-        ogs_error("OpenAPI_point_altitude_all_of_convertToJSON() failed [point]");
-        goto end;
-    }
     cJSON *point_local_JSON = OpenAPI_geographical_coordinates_convertToJSON(point_altitude_all_of->point);
     if (point_local_JSON == NULL) {
         ogs_error("OpenAPI_point_altitude_all_of_convertToJSON() failed [point]");
@@ -54,10 +50,6 @@ cJSON *OpenAPI_point_altitude_all_of_convertToJSON(OpenAPI_point_altitude_all_of
         goto end;
     }
 
-    if (!point_altitude_all_of->altitude) {
-        ogs_error("OpenAPI_point_altitude_all_of_convertToJSON() failed [altitude]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "altitude", point_altitude_all_of->altitude) == NULL) {
         ogs_error("OpenAPI_point_altitude_all_of_convertToJSON() failed [altitude]");
         goto end;
@@ -77,7 +69,6 @@ OpenAPI_point_altitude_all_of_t *OpenAPI_point_altitude_all_of_parseFromJSON(cJS
     }
 
     OpenAPI_geographical_coordinates_t *point_local_nonprim = NULL;
-
     point_local_nonprim = OpenAPI_geographical_coordinates_parseFromJSON(point);
 
     cJSON *altitude = cJSON_GetObjectItemCaseSensitive(point_altitude_all_ofJSON, "altitude");
@@ -86,7 +77,6 @@ OpenAPI_point_altitude_all_of_t *OpenAPI_point_altitude_all_of_parseFromJSON(cJS
         goto end;
     }
 
-
     if (!cJSON_IsNumber(altitude)) {
         ogs_error("OpenAPI_point_altitude_all_of_parseFromJSON() failed [altitude]");
         goto end;
@@ -94,8 +84,9 @@ OpenAPI_point_altitude_all_of_t *OpenAPI_point_altitude_all_of_parseFromJSON(cJS
 
     point_altitude_all_of_local_var = OpenAPI_point_altitude_all_of_create (
         point_local_nonprim,
+        
         altitude->valuedouble
-        );
+    );
 
     return point_altitude_all_of_local_var;
 end:

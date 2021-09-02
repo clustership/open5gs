@@ -71,7 +71,8 @@ int amf_sbi_open(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
 
-    ogs_sbi_server_start_all(server_cb);
+    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
+        return OGS_ERROR;
 
     /*
      * The connection between NF and NRF is a little special.
@@ -87,6 +88,8 @@ int amf_sbi_open(void)
 
         /* Build NF instance information. It will be transmitted to NRF. */
         ogs_sbi_nf_instance_build_default(nf_instance, amf_self()->nf_type);
+        ogs_sbi_nf_instance_add_allowed_nf_type(
+                nf_instance, OpenAPI_nf_type_SMF);
 
         /* Build NF service information. It will be transmitted to NRF. */
         service = ogs_sbi_nf_service_build_default(nf_instance,
@@ -94,6 +97,7 @@ int amf_sbi_open(void)
         ogs_assert(service);
         ogs_sbi_nf_service_add_version(service, (char*)OGS_SBI_API_V1,
                 (char*)OGS_SBI_API_V1_0_0, NULL);
+        ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_SMF);
 
         /* Client callback is only used when NF sends to NRF */
         client = nf_instance->client;
@@ -113,7 +117,7 @@ void amf_sbi_close(void)
     ogs_sbi_server_stop_all();
 }
 
-void amf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
+bool amf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
 {
     ogs_sbi_request_t *request = NULL;
     ogs_sbi_client_t *client = NULL;
@@ -123,19 +127,18 @@ void amf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
     ogs_assert(client);
 
     request = amf_nnrf_nfm_build_register(nf_instance);
-    if (!request) {
-        ogs_error("ogs_nnrf_nfm_send_nf_register() failed");
-        return;
-    }
-    ogs_sbi_client_send_request(client, client->cb, request, nf_instance);
+    ogs_expect_or_return_val(request, false);
+
+    return ogs_sbi_client_send_request(
+            client, client->cb, request, nf_instance);
 }
 
-void amf_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact)
+bool amf_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact)
 {
-    ogs_sbi_send(nf_instance, client_cb, xact);
+    return ogs_sbi_send(nf_instance, client_cb, xact);
 }
 
-void amf_ue_sbi_discover_and_send(
+bool amf_ue_sbi_discover_and_send(
         OpenAPI_nf_type_e target_nf_type, amf_ue_t *amf_ue, void *data,
         ogs_sbi_request_t *(*build)(amf_ue_t *amf_ue, void *data))
 {
@@ -150,21 +153,26 @@ void amf_ue_sbi_discover_and_send(
             amf_timer_sbi_client_wait_expire);
     if (!xact) {
         ogs_error("amf_ue_sbi_discover_and_send() failed");
-        nas_5gs_send_gmm_reject_from_sbi(
-                amf_ue, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
-        return;
+        ogs_assert(OGS_OK ==
+            nas_5gs_send_gmm_reject_from_sbi(
+                amf_ue, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT));
+        return false;
     }
 
     if (ogs_sbi_discover_and_send(xact,
             (ogs_fsm_handler_t)amf_nf_state_registered, client_cb) != true) {
         ogs_error("amf_ue_sbi_discover_and_send() failed");
-        nas_5gs_send_gmm_reject_from_sbi(
-                amf_ue, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
-        return;
+        ogs_sbi_xact_remove(xact);
+        ogs_assert(OGS_OK ==
+            nas_5gs_send_gmm_reject_from_sbi(
+                amf_ue, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT));
+        return false;
     }
+
+    return true;
 }
 
-void amf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
+bool amf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
         amf_sess_t *sess, int state, void *data,
         ogs_sbi_request_t *(*build)(amf_sess_t *sess, void *data))
 {
@@ -179,9 +187,9 @@ void amf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
             amf_timer_sbi_client_wait_expire);
     if (!xact) {
         ogs_error("amf_sess_sbi_discover_and_send() failed");
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
-        return;
+        ogs_assert(OGS_OK == nas_5gs_send_back_gsm_message(sess,
+            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED, AMF_NAS_BACKOFF_TIME));
+        return false;
     }
 
     xact->state = state;
@@ -189,10 +197,13 @@ void amf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
     if (ogs_sbi_discover_and_send(xact,
             (ogs_fsm_handler_t)amf_nf_state_registered, client_cb) != true) {
         ogs_error("amf_sess_sbi_discover_and_send() failed");
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
-        return;
+        ogs_sbi_xact_remove(xact);
+        ogs_assert(OGS_OK == nas_5gs_send_back_gsm_message(sess,
+            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED, AMF_NAS_BACKOFF_TIME));
+        return false;
     }
+
+    return true;
 }
 static int client_discover_cb(ogs_sbi_response_t *response, void *data)
 {
@@ -208,24 +219,24 @@ static int client_discover_cb(ogs_sbi_response_t *response, void *data)
     rv = ogs_sbi_parse_response(&message, response);
     if (rv != OGS_OK) {
         ogs_error("cannot parse HTTP response");
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+        ogs_assert(OGS_OK == nas_5gs_send_back_gsm_message(sess,
+            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED, AMF_NAS_BACKOFF_TIME));
 
         goto cleanup;
     }
 
     if (message.res_status != OGS_SBI_HTTP_STATUS_OK) {
         ogs_error("NF-Discover failed [%d]", message.res_status);
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+        ogs_assert(OGS_OK == nas_5gs_send_back_gsm_message(sess,
+            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED, AMF_NAS_BACKOFF_TIME));
 
         goto cleanup;
     }
 
     if (!message.SearchResult) {
         ogs_error("No SearchResult");
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+        ogs_assert(OGS_OK == nas_5gs_send_back_gsm_message(sess,
+            OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED, AMF_NAS_BACKOFF_TIME));
 
         goto cleanup;
     }
@@ -236,8 +247,10 @@ static int client_discover_cb(ogs_sbi_response_t *response, void *data)
     if (!OGS_SBI_NF_INSTANCE(&sess->sbi, OpenAPI_nf_type_SMF)) {
         ogs_error("Cannot discover [%s]",
                     OpenAPI_nf_type_ToString(OpenAPI_nf_type_SMF));
-        nas_5gs_send_back_5gsm_message_from_sbi(
-                sess, OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+        ogs_assert(OGS_OK ==
+            nas_5gs_send_back_gsm_message(sess,
+                OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED,
+                AMF_NAS_BACKOFF_TIME));
 
         goto cleanup;
     }
@@ -253,7 +266,7 @@ cleanup:
     return OGS_ERROR;
 }
 
-void amf_sess_sbi_discover_by_nsi(
+bool amf_sess_sbi_discover_by_nsi(
         OpenAPI_nf_type_e target_nf_type, amf_sess_t *sess)
 {
     ogs_sbi_request_t *request = NULL;
@@ -266,14 +279,15 @@ void amf_sess_sbi_discover_by_nsi(
 
     request = amf_nnrf_disc_build_discover(
             sess->nssf.nrf.id, target_nf_type, amf_self()->nf_type);
-    ogs_assert(request);
-    ogs_sbi_client_send_request(
+    ogs_expect_or_return_val(request, false);
+
+    return ogs_sbi_client_send_request(
             client, client_discover_cb, request, sess);
 }
 
 void amf_sbi_send_activating_session(amf_sess_t *sess, int state)
 {
-    amf_nsmf_pdusession_update_sm_context_param_t param;
+    amf_nsmf_pdusession_sm_context_param_t param;
 
     ogs_assert(sess);
 
@@ -288,7 +302,7 @@ void amf_sbi_send_activating_session(amf_sess_t *sess, int state)
 void amf_sbi_send_deactivate_session(
         amf_sess_t *sess, int state, int group, int cause)
 {
-    amf_nsmf_pdusession_update_sm_context_param_t param;
+    amf_nsmf_pdusession_sm_context_param_t param;
 
     ogs_assert(sess);
 
@@ -350,6 +364,7 @@ void amf_sbi_send_deactivate_all_ue_in_gnb(amf_gnb_t *gnb, int state)
                 ran_ue_remove(ran_ue);
             } else {
                 /* At this point, it does not support other action */
+                ogs_fatal("Invalid state [%d]", state);
                 ogs_assert_if_reached();
             }
         }
@@ -405,7 +420,7 @@ static int client_notify_cb(ogs_sbi_response_t *response, void *data)
     return OGS_OK;
 }
 
-void amf_sbi_send_n1_n2_failure_notify(
+bool amf_sbi_send_n1_n2_failure_notify(
         amf_sess_t *sess, OpenAPI_n1_n2_message_transfer_cause_e cause)
 {
     ogs_sbi_request_t *request = NULL;
@@ -417,6 +432,7 @@ void amf_sbi_send_n1_n2_failure_notify(
     ogs_assert(client);
 
     request = amf_nsmf_callback_build_n1_n2_failure_notify(sess, cause);
-    ogs_assert(request);
-    ogs_sbi_client_send_request(client, client_notify_cb, request, NULL);
+    ogs_expect_or_return_val(request, false);
+
+    return ogs_sbi_client_send_request(client, client_notify_cb, request, NULL);
 }

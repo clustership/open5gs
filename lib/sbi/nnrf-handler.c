@@ -63,6 +63,9 @@ static void handle_smf_info(
                     ogs_assert(dnn_index < OGS_MAX_NUM_OF_DNN);
                     nf_info->smf.slice[nf_info->smf.num_of_slice].
                         dnn[dnn_index] = ogs_strdup(DnnSmfInfoItem->dnn);
+                    ogs_assert(
+                        nf_info->smf.slice[nf_info->smf.num_of_slice].
+                            dnn[dnn_index]);
                     nf_info->smf.slice[nf_info->smf.num_of_slice].
                         num_of_dnn++;
                 }
@@ -148,33 +151,6 @@ static void handle_smf_info(
             nf_info->smf.num_of_nr_tai_range++;
         }
     }
-
-#if 0
-    ogs_sbi_smf_info_t *smf_info = &nf_info->smf;
-    int i, j;
-    for (i = 0; i < smf_info->num_of_slice; i++) {
-        ogs_fatal("%d, %x", smf_info->slice[i].s_nssai.sst,
-                smf_info->slice[i].s_nssai.sd.v);
-        for (j = 0; j < smf_info->slice[i].num_of_dnn; j++)
-            ogs_fatal("   %s", smf_info->slice[i].dnn[j]);
-    }
-    for (i = 0; i < smf_info->num_of_nr_tai; i++) {
-        ogs_fatal("%d, %d, %x",
-                ogs_plmn_id_mcc(&smf_info->nr_tai[i].plmn_id),
-                ogs_plmn_id_mnc(&smf_info->nr_tai[i].plmn_id),
-                smf_info->nr_tai[i].tac.v);
-    }
-    for (i = 0; i < smf_info->num_of_nr_tai_range; i++) {
-        ogs_fatal("%d, %d",
-                ogs_plmn_id_mcc(&smf_info->nr_tai[i].plmn_id),
-                ogs_plmn_id_mnc(&smf_info->nr_tai[i].plmn_id));
-        for (j = 0; j < smf_info->nr_tai_range[i].num_of_tac_range; j++) {
-            ogs_fatal("   %d-%d",
-                smf_info->nr_tai_range[i].start[j].v,
-                smf_info->nr_tai_range[i].end[j].v);
-        }
-    }
-#endif
 }
 
 bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
@@ -192,32 +168,40 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
     if (!NFProfile) {
         ogs_error("No NFProfile");
         if (stream)
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                        message, "No NFProfile", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    message, "No NFProfile", NULL));
         return false;
     }
 
     if (!NFProfile->nf_instance_id) {
         ogs_error("No NFProfile.NFInstanceId");
         if (stream)
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                        message, "NFProfile", "No NFInstanceId");
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    message, "NFProfile", "No NFInstanceId"));
         return false;
     }
 
     if (!NFProfile->nf_type) {
         ogs_error("No NFProfile.NFType");
         if (stream)
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                        message, "NFProfile", "No NFType");
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    message, "NFProfile", "No NFType"));
         return false;
     }
 
     if (!NFProfile->nf_status) {
         ogs_error("No NFProfile.NFStatus");
         if (stream)
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                message, "NFProfile", "No NFStatus");
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    message, "NFProfile", "No NFStatus"));
         return false;
     }
 
@@ -260,11 +244,19 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
 
     nf_instance->nf_type = NFProfile->nf_type;
     nf_instance->nf_status = NFProfile->nf_status;
-    nf_instance->time.heartbeat_interval = NFProfile->heart_beat_timer;
+    if (NFProfile->is_heart_beat_timer == true)
+        nf_instance->time.heartbeat_interval = NFProfile->heart_beat_timer;
 
     if (NFProfile->fqdn)
         ogs_fqdn_parse(nf_instance->fqdn,
                 NFProfile->fqdn, strlen(NFProfile->fqdn));
+
+    if (NFProfile->is_priority == true)
+        nf_instance->priority = NFProfile->priority;
+    if (NFProfile->is_capacity == true)
+        nf_instance->capacity = NFProfile->capacity;
+    if (NFProfile->is_load == true)
+        nf_instance->load = NFProfile->load;
 
     /* Only one time handles RegisterNFInstance operation */
     OpenAPI_list_for_each(NFProfile->ipv4_addresses, node) {
@@ -275,7 +267,7 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
         if (nf_instance->num_of_ipv4 < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
 
             rv = ogs_getaddrinfo(&addr, AF_UNSPEC,
-                    node->data, OGS_SBI_HTTPS_PORT, 0);
+                    node->data, ogs_sbi_self()->sbi_port, 0);
             if (rv != OGS_OK) continue;
 
             nf_instance->ipv4[nf_instance->num_of_ipv4] = addr;
@@ -290,7 +282,7 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
         if (nf_instance->num_of_ipv6 < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
 
             rv = ogs_getaddrinfo(&addr, AF_UNSPEC,
-                    node->data, OGS_SBI_HTTPS_PORT, 0);
+                    node->data, ogs_sbi_self()->sbi_port, 0);
             if (rv != OGS_OK) continue;
 
             nf_instance->ipv6[nf_instance->num_of_ipv6] = addr;
@@ -302,6 +294,7 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
         OpenAPI_nf_service_t *NFService = node->data;
         OpenAPI_list_t *VersionList = NULL;
         OpenAPI_list_t *IpEndPointList = NULL;
+        OpenAPI_list_t *AllowedNfTypeList = NULL;
         OpenAPI_lnode_t *node2 = NULL;
 
         if (!NFService) continue;
@@ -310,6 +303,7 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
 
         VersionList = NFService->versions;
         IpEndPointList = NFService->ip_end_points;
+        AllowedNfTypeList = NFService->allowed_nf_types;
 
         nf_service = ogs_sbi_nf_service_find_by_id(nf_instance,
                 NFService->service_instance_id);
@@ -345,14 +339,15 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
             if (!IpEndPoint) continue;
 
             if (nf_service->num_of_addr < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
-                port = IpEndPoint->port;
-                if (!port) {
+                if (!IpEndPoint->is_port) {
                     if (nf_service->scheme == OpenAPI_uri_scheme_http)
                         port = OGS_SBI_HTTP_PORT;
                     else if (nf_service->scheme == OpenAPI_uri_scheme_https)
                         port = OGS_SBI_HTTPS_PORT;
                     else
                         continue;
+                } else {
+                    port = IpEndPoint->port;
                 }
 
                 if (IpEndPoint->ipv4_address) {
@@ -377,6 +372,26 @@ bool ogs_sbi_nnrf_handle_nf_profile(ogs_sbi_nf_instance_t *nf_instance,
                 }
             }
         }
+
+        OpenAPI_list_for_each(AllowedNfTypeList, node2) {
+            OpenAPI_nf_type_e AllowedNfType = (uintptr_t)node2->data;
+
+            if (!AllowedNfType) continue;
+
+            if (nf_service->num_of_allowed_nf_type <
+                    OGS_SBI_MAX_NUM_OF_NF_TYPE) {
+                nf_service->allowed_nf_types[
+                    nf_service->num_of_allowed_nf_type] = AllowedNfType;
+                nf_service->num_of_allowed_nf_type++;
+            }
+        }
+
+        if (NFService->is_priority == true)
+            nf_service->priority = NFService->priority;
+        if (NFService->is_capacity == true)
+            nf_service->capacity = NFService->capacity;
+        if (NFService->is_load == true)
+            nf_service->load = NFService->load;
     }
 
     ogs_sbi_nf_info_remove_all(&nf_instance->nf_info_list);

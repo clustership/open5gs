@@ -24,6 +24,8 @@
 
 #include "ogs-gtp.h"
 #include "ogs-diameter-gx.h"
+#include "ogs-diameter-rx.h"
+#include "ogs-diameter-s6b.h"
 #include "ogs-pfcp.h"
 #include "ogs-sbi.h"
 #include "ogs-app.h"
@@ -128,13 +130,17 @@ typedef struct smf_sess_s smf_sess_t;
 
 typedef struct smf_pf_s {
     ogs_lnode_t     lnode;
-    uint32_t        index;
+    ogs_lnode_t     to_add_node;
 
 ED3(uint8_t spare:2;,
     uint8_t direction:2;,
     uint8_t identifier:4;)
 
-    uint8_t *identifier_node;      /* Pool-Node for Identifier */
+    uint8_t precedence;             /* Only used in EPC */
+    uint8_t epc_precedence;         /* Only used in EPC */
+
+    uint8_t *identifier_node;       /* Pool-Node for Identifier */
+    uint8_t *precedence_node;       /* Pool-Node for Precedence */
 
     ogs_ipfw_rule_t ipfw_rule;
     char *flow_description;
@@ -164,17 +170,16 @@ typedef struct smf_bearer_s {
     ogs_ip_t        sgw_s5u_ip;     /* SGW-S5U IPv4/IPv6 */
 
     struct {
-        char            *name;      /* EPC: PCC Rule Name */
-        char            *id;        /* 5GC: PCC Rule Id */
+        char        *name;          /* EPC: PCC Rule Name */
+        char        *id;            /* 5GC: PCC Rule Id */
     } pcc_rule;
     ogs_qos_t       qos;            /* QoS Infomration */
 
     OGS_POOL(pf_identifier_pool, uint8_t);
 
-    /* Packet Filter Identifier Generator(1~15) */
-    uint8_t         pf_identifier;
     /* Packet Filter List */
     ogs_list_t      pf_list;
+    ogs_list_t      pf_to_add_list;
 
     smf_sess_t      *sess;
 } smf_bearer_t;
@@ -190,7 +195,9 @@ typedef struct smf_sess_s {
     uint64_t        smpolicycontrol_features; /* SBI features */
 
     uint32_t        smf_n4_teid;    /* SMF-N4-TEID is derived from INDEX */
+
     uint32_t        sgw_s5c_teid;   /* SGW-S5C-TEID is received from SGW */
+    ogs_ip_t        sgw_s5c_ip;     /* SGW-S5C IPv4/IPv6 */
 
     uint64_t        smf_n4_seid;    /* SMF SEID is dervied from INDEX */
     uint64_t        upf_n4_seid;    /* UPF SEID is received from Peer */
@@ -203,6 +210,9 @@ typedef struct smf_sess_s {
     ogs_ip_t        gnb_n3_ip;      /* gNB-N3 IPv4/IPv6 */
 
     char            *gx_sid;        /* Gx Session ID */
+    char            *s6b_sid;       /* S6b Session ID */
+
+    OGS_POOL(pf_precedence_pool, uint8_t);
 
 #define CLEAR_QOS_FLOW_ID(__sESS) \
     do { \
@@ -232,9 +242,6 @@ typedef struct smf_sess_s {
     ogs_eps_tai_t   e_tai;
     ogs_e_cgi_t     e_cgi;
 
-    /* Rat Type */
-    OpenAPI_rat_type_e rat_type;
-
     /* NR Location */
     ogs_5gs_tai_t   nr_tai;
     ogs_nr_cgi_t    nr_cgi;
@@ -260,6 +267,10 @@ typedef struct smf_sess_s {
 
     ogs_pfcp_ue_ip_t *ipv4;
     ogs_pfcp_ue_ip_t *ipv6;
+
+    /* RAT Type */
+    uint8_t gtp_rat_type;
+    OpenAPI_rat_type_e sbi_rat_type;
 
     struct {
         ogs_tlv_octet_t ue_pco;
@@ -311,6 +322,11 @@ typedef struct smf_sess_s {
         ogs_ip_t gnb_dl_ip;
     } handover;
 
+    /* Charging */
+    struct {
+        uint32_t id;
+    } charging;
+
     /* Data Forwarding between the CP and UP functions */
     ogs_pfcp_pdr_t  *cp2up_pdr;
     ogs_pfcp_pdr_t  *up2cp_pdr;
@@ -339,13 +355,13 @@ smf_ue_t *smf_ue_find_by_supi(char *supi);
 smf_ue_t *smf_ue_find_by_imsi(uint8_t *imsi, int imsi_len);
 
 smf_sess_t *smf_sess_add_by_gtp_message(ogs_gtp_message_t *message);
-smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn);
+smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type);
 
 smf_sess_t *smf_sess_add_by_sbi_message(ogs_sbi_message_t *message);
 smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi);
 
 void smf_sess_select_upf(smf_sess_t *sess);
-void smf_sess_set_ue_ip(smf_sess_t *sess);
+uint8_t smf_sess_set_ue_ip(smf_sess_t *sess);
 void smf_sess_set_paging_n1n2message_location(
         smf_sess_t *sess, char *n1n2message_location);
 
@@ -355,8 +371,9 @@ void smf_sess_remove_all(smf_ue_t *smf_ue);
 smf_sess_t *smf_sess_find(uint32_t index);
 smf_sess_t *smf_sess_find_by_teid(uint32_t teid);
 smf_sess_t *smf_sess_find_by_seid(uint64_t seid);
-smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn);
+smf_sess_t *smf_sess_find_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type);
 smf_sess_t *smf_sess_find_by_psi(smf_ue_t *smf_ue, uint8_t psi);
+smf_sess_t *smf_sess_find_by_charging_id(uint32_t charging_id);
 smf_sess_t *smf_sess_find_by_sm_context_ref(char *sm_context_ref);
 smf_sess_t *smf_sess_find_by_ipv4(uint32_t addr);
 smf_sess_t *smf_sess_find_by_ipv6(uint32_t *addr6);
@@ -381,7 +398,6 @@ smf_bearer_t *smf_qos_flow_find_by_pcc_rule_id(
 smf_bearer_t *smf_bearer_add(smf_sess_t *sess);
 int smf_bearer_remove(smf_bearer_t *bearer);
 void smf_bearer_remove_all(smf_sess_t *sess);
-smf_bearer_t *smf_bearer_find(uint32_t index);
 smf_bearer_t *smf_bearer_find_by_pgw_s5u_teid(
         smf_sess_t *sess, uint32_t pgw_s5u_teid);
 smf_bearer_t *smf_bearer_find_by_ebi(smf_sess_t *sess, uint8_t ebi);
@@ -390,9 +406,6 @@ smf_bearer_t *smf_bearer_find_by_pcc_rule_name(
 smf_bearer_t *smf_bearer_find_by_pdr_id(
         smf_sess_t *sess, ogs_pfcp_pdr_id_t pdr_id);
 smf_bearer_t *smf_default_bearer_in_sess(smf_sess_t *sess);
-bool smf_bearer_is_default(smf_bearer_t *bearer);
-smf_bearer_t *smf_bearer_first(smf_sess_t *sess);
-smf_bearer_t *smf_bearer_next(smf_bearer_t *bearer);
 
 smf_ue_t *smf_ue_cycle(smf_ue_t *smf_ue);
 smf_sess_t *smf_sess_cycle(smf_sess_t *sess);
@@ -405,6 +418,8 @@ smf_pf_t *smf_pf_add(smf_bearer_t *bearer);
 int smf_pf_remove(smf_pf_t *pf);
 void smf_pf_remove_all(smf_bearer_t *bearer);
 smf_pf_t *smf_pf_find_by_id(smf_bearer_t *smf_bearer, uint8_t id);
+smf_pf_t *smf_pf_find_by_flow(
+    smf_bearer_t *bearer, uint8_t direction, char *flow_description);
 smf_pf_t *smf_pf_first(smf_bearer_t *bearer);
 smf_pf_t *smf_pf_next(smf_pf_t *pf);
 
@@ -415,6 +430,9 @@ void smf_qfi_pool_final(smf_sess_t *sess);
 
 void smf_pf_identifier_pool_init(smf_bearer_t *bearer);
 void smf_pf_identifier_pool_final(smf_bearer_t *bearer);
+
+void smf_pf_precedence_pool_init(smf_sess_t *sess);
+void smf_pf_precedence_pool_final(smf_sess_t *sess);
 
 #ifdef __cplusplus
 }

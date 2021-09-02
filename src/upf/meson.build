@@ -18,11 +18,17 @@
 upf_conf = configuration_data()
 
 upf_headers = ('''
+    ifaddrs.h
+    net/ethernet.h
     net/if.h
+    net/if_dl.h
+    netinet/in.h
     netinet/ip.h
     netinet/ip6.h
     netinet/ip_icmp.h
     netinet/icmp6.h
+    sys/ioctl.h
+    sys/socket.h
 '''.split())
 
 foreach h : upf_headers
@@ -62,17 +68,42 @@ libupf_sources = files('''
     n4-handler.c
 '''.split())
 
+libtins_dep = dependency('libtins',
+    version: ['>=3.4'],
+    fallback: ['libtins', 'libtins_dep'])
+
+libarp_nd = static_library('arp_nd',
+    sources : files('''
+      arp-nd.cpp
+      arp-nd.h
+    '''.split()),
+    dependencies : libtins_dep,
+    install : false)
+libarp_nd_dep = declare_dependency(
+    link_with : libarp_nd,
+    dependencies : libtins_dep)
+
 libupf = static_library('upf',
     sources : libupf_sources,
     dependencies : [
-        libapp_dep, libdiameter_gx_dep, libgtp_dep, libpfcp_dep, libtun_dep
+        libapp_dep,
+        libdiameter_gx_dep,
+        libgtp_dep,
+        libpfcp_dep,
+        libtun_dep,
+        libarp_nd_dep,
     ],
     install : false)
 
 libupf_dep = declare_dependency(
     link_with : libupf,
     dependencies : [
-        libapp_dep, libdiameter_gx_dep, libgtp_dep, libpfcp_dep, libtun_dep
+        libapp_dep,
+        libdiameter_gx_dep,
+        libgtp_dep,
+        libpfcp_dep,
+        libtun_dep,
+        libarp_nd_dep,
     ])
 
 upf_sources = files('''

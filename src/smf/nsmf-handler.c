@@ -155,7 +155,7 @@ bool smf_nsmf_handle_create_sm_context(
 
     ogs_sbi_parse_plmn_id_nid(&sess->plmn_id, servingNetwork);
 
-    sess->rat_type = SmContextCreateData->rat_type;
+    sess->sbi_rat_type = SmContextCreateData->rat_type;
 
     ogs_sbi_parse_nr_location(&sess->nr_tai, &sess->nr_cgi, NrLocation);
     if (NrLocation->ue_location_timestamp)
@@ -174,6 +174,7 @@ bool smf_nsmf_handle_create_sm_context(
         ogs_free(sess->sm_context_status_uri);
     sess->sm_context_status_uri =
         ogs_strdup(SmContextCreateData->sm_context_status_uri);
+    ogs_assert(sess->sm_context_status_uri);
 
     client = ogs_sbi_client_find(addr);
     if (!client) {
@@ -187,11 +188,13 @@ bool smf_nsmf_handle_create_sm_context(
     if (SmContextCreateData->dnn) {
         if (sess->session.name) ogs_free(sess->session.name);
         sess->session.name = ogs_strdup(SmContextCreateData->dnn);
+        ogs_assert(sess->session.name);
     }
 
     if (SmContextCreateData->pcf_id) {
         if (sess->pcf_id) ogs_free(sess->pcf_id);
         sess->pcf_id = ogs_strdup(SmContextCreateData->pcf_id);
+        ogs_assert(sess->pcf_id);
     }
 
     /*
@@ -347,10 +350,20 @@ bool smf_nsmf_handle_update_sm_context(
         /*********************************************************
          * Handle DEACTIVATED
          ********************************************************/
-            smf_5gc_pfcp_send_session_modification_request(
-                    sess, stream,
-                    OGS_PFCP_MODIFY_DL_ONLY|OGS_PFCP_MODIFY_DEACTIVATE,
-                    0);
+            if (ogs_list_count(&sess->bearer_list) == 0) {
+                /* If there is no Qos-Flow,
+                 * we assume that there is no PFCP context in the UPF.
+                 *
+                 * PFCP deactivation is skipped. */
+                smf_sbi_send_sm_context_updated_data_up_cnx_state(
+                        sess, stream, OpenAPI_up_cnx_state_DEACTIVATED);
+            } else {
+                ogs_assert(OGS_OK ==
+                    smf_5gc_pfcp_send_session_modification_request(
+                        sess, stream,
+                        OGS_PFCP_MODIFY_DL_ONLY|OGS_PFCP_MODIFY_DEACTIVATE,
+                        0));
+            }
 
         } else if (SmContextUpdateData->up_cnx_state ==
                 OpenAPI_up_cnx_state_ACTIVATING) {
@@ -424,7 +437,7 @@ bool smf_nsmf_handle_update_sm_context(
 
             response = ogs_sbi_build_response(&sendmsg, OGS_SBI_HTTP_STATUS_OK);
             ogs_assert(response);
-            ogs_sbi_server_send_response(stream, response);
+            ogs_assert(true == ogs_sbi_server_send_response(stream, response));
 
             for (i = 0; i < sendmsg.num_of_part; i++)
                 if (sendmsg.part[i].pkbuf)
@@ -471,21 +484,23 @@ bool smf_nsmf_handle_update_sm_context(
                     }
 
                     dl_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
-                    ogs_pfcp_ip_to_outer_header_creation(
+                    ogs_assert(OGS_OK ==
+                        ogs_pfcp_ip_to_outer_header_creation(
                             &sess->gnb_n3_ip,
                             &dl_far->outer_header_creation,
-                            &dl_far->outer_header_creation_len);
+                            &dl_far->outer_header_creation_len));
                     dl_far->outer_header_creation.teid = sess->gnb_n3_teid;
                 }
                 dl_far->handover.prepared = false;
             }
 
             if (far_update) {
-                smf_5gc_pfcp_send_session_modification_request(
+                ogs_assert(OGS_OK ==
+                    smf_5gc_pfcp_send_session_modification_request(
                         sess, stream,
                         OGS_PFCP_MODIFY_DL_ONLY|OGS_PFCP_MODIFY_ACTIVATE|
                         OGS_PFCP_MODIFY_N2_HANDOVER|OGS_PFCP_MODIFY_END_MARKER,
-                        0);
+                        0));
             } else {
                 char *strerror = ogs_msprintf(
                         "[%s:%d] No FAR Update", smf_ue->supi, sess->psi);
@@ -513,11 +528,12 @@ bool smf_nsmf_handle_update_sm_context(
             }
 
             if (smf_sess_have_indirect_data_forwarding(sess) == true) {
-                smf_5gc_pfcp_send_session_modification_request(
+                ogs_assert(OGS_OK ==
+                    smf_5gc_pfcp_send_session_modification_request(
                         sess, stream,
                         OGS_PFCP_MODIFY_INDIRECT|OGS_PFCP_MODIFY_REMOVE|
                         OGS_PFCP_MODIFY_HANDOVER_CANCEL,
-                        0);
+                        0));
             } else {
                 smf_sbi_send_sm_context_updated_data_ho_state(
                         sess, stream, OpenAPI_ho_state_CANCELLED);
@@ -535,9 +551,26 @@ bool smf_nsmf_handle_update_sm_context(
 
             return false;
         }
-    } else if (SmContextUpdateData->release) {
-        smf_5gc_pfcp_send_session_deletion_request(sess, stream,
-                OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT);
+    } else if (SmContextUpdateData->is_release == true &&
+                SmContextUpdateData->release == true) {
+        if (sess->policy_association_id) {
+            smf_npcf_smpolicycontrol_param_t param;
+
+            memset(&param, 0, sizeof(param));
+
+            param.ue_location = true;
+            param.ue_timezone = true;
+
+            ogs_assert(true ==
+                smf_sbi_discover_and_send(OpenAPI_nf_type_PCF, sess, stream,
+                    OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param,
+                    smf_npcf_smpolicycontrol_build_delete));
+        } else {
+            ogs_error("No PolicyAssociationId");
+            smf_sbi_send_sm_context_update_error(
+                    stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                    "No PolicyAssociationId", NULL, NULL, NULL);
+        }
     } else {
         ogs_error("[%s:%d] No UpdateData", smf_ue->supi, sess->psi);
         smf_sbi_send_sm_context_update_error(stream,
@@ -552,11 +585,15 @@ bool smf_nsmf_handle_update_sm_context(
 bool smf_nsmf_handle_release_sm_context(
     smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *message)
 {
+    smf_npcf_smpolicycontrol_param_t param;
+
     OpenAPI_sm_context_release_data_t *SmContextReleaseData = NULL;
 
     ogs_assert(stream);
     ogs_assert(message);
     ogs_assert(sess);
+
+    memset(&param, 0, sizeof(param));
 
     SmContextReleaseData = message->SmContextReleaseData;
     if (SmContextReleaseData) {
@@ -582,11 +619,33 @@ bool smf_nsmf_handle_release_sm_context(
                     ogs_plmn_id_hexdump(&sess->nr_cgi.plmn_id),
                     (long long)sess->nr_cgi.cell_id);
             }
+
+            param.ue_location = true;
+            param.ue_timezone = true;
         }
+
+        if (SmContextReleaseData->ng_ap_cause) {
+            param.ran_nas_release.ngap_cause.group =
+                SmContextReleaseData->ng_ap_cause->group;
+            param.ran_nas_release.ngap_cause.value =
+                SmContextReleaseData->ng_ap_cause->value;
+        }
+        param.ran_nas_release.gmm_cause =
+            SmContextReleaseData->_5g_mm_cause_value;
     }
 
-    smf_5gc_pfcp_send_session_deletion_request(sess, stream,
-            OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT);
+    if (sess->policy_association_id) {
+        ogs_assert(true ==
+            smf_sbi_discover_and_send(OpenAPI_nf_type_PCF, sess, stream,
+                OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT, &param,
+                smf_npcf_smpolicycontrol_build_delete));
+    } else {
+        ogs_error("No PolicyAssociationId");
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(
+                stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                NULL, "No PolicyAssociationId", NULL));
+    }
 
     return true;
 }

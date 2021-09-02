@@ -81,7 +81,8 @@ static void sess_timeout(ogs_gtp_xact_t *xact, void *data)
                     sgwc_ue->imsi_bcd);
             break;
         }
-        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
+        ogs_assert(OGS_OK ==
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
@@ -112,9 +113,10 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
             ogs_warn("[%s] Bearer has already been removed", sgwc_ue->imsi_bcd);
             break;
         }
-        sgwc_pfcp_send_bearer_modification_request(
+        ogs_assert(OGS_OK ==
+            sgwc_pfcp_send_bearer_modification_request(
                 bearer, NULL, NULL,
-                OGS_PFCP_MODIFY_UL_ONLY|OGS_PFCP_MODIFY_REMOVE);
+                OGS_PFCP_MODIFY_UL_ONLY|OGS_PFCP_MODIFY_REMOVE));
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
@@ -209,7 +211,7 @@ void sgwc_sxa_handle_session_establishment_response(
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
-                ogs_pfcp_setup_pdr_gtpu_node(pdr);
+                ogs_assert(OGS_ERROR != ogs_pfcp_setup_pdr_gtpu_node(pdr));
 
             if (far->dst_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
                 ogs_pfcp_far_teid_hash_set(far);
@@ -224,9 +226,10 @@ void sgwc_sxa_handle_session_establishment_response(
                     if (tunnel->local_addr6)
                         ogs_freeaddrinfo(tunnel->local_addr6);
 
-                    ogs_pfcp_f_teid_to_sockaddr(
+                    ogs_assert(OGS_OK ==
+                        ogs_pfcp_f_teid_to_sockaddr(
                             &pdr->f_teid, pdr->f_teid_len,
-                            &tunnel->local_addr, &tunnel->local_addr6);
+                            &tunnel->local_addr, &tunnel->local_addr6));
                     tunnel->local_teid = pdr->f_teid.teid;
                 }
             }
@@ -428,7 +431,7 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_assert(far);
 
             if (pdr->src_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
-                ogs_pfcp_setup_pdr_gtpu_node(pdr);
+                ogs_assert(OGS_ERROR != ogs_pfcp_setup_pdr_gtpu_node(pdr));
 
             if (far->dst_if == OGS_PFCP_INTERFACE_CP_FUNCTION)
                 ogs_pfcp_far_teid_hash_set(far);
@@ -443,9 +446,10 @@ void sgwc_sxa_handle_session_modification_response(
                     if (tunnel->local_addr6)
                         ogs_freeaddrinfo(tunnel->local_addr6);
 
-                    ogs_pfcp_f_teid_to_sockaddr(
+                    ogs_assert(OGS_OK ==
+                        ogs_pfcp_f_teid_to_sockaddr(
                             &pdr->f_teid, pdr->f_teid_len,
-                            &tunnel->local_addr, &tunnel->local_addr6);
+                            &tunnel->local_addr, &tunnel->local_addr6));
                     tunnel->local_teid = pdr->f_teid.teid;
                 }
             }
@@ -628,7 +632,7 @@ void sgwc_sxa_handle_session_modification_response(
             rv = ogs_gtp_sockaddr_to_f_teid(
                     ul_tunnel->local_addr, ul_tunnel->local_addr6,
                     &sgw_s1u_teid, &len);
-            ogs_expect(rv == OGS_OK);
+            ogs_assert(rv == OGS_OK);
             gtp_req->bearer_contexts.s1_u_enodeb_f_teid.presence = 1;
             gtp_req->bearer_contexts.s1_u_enodeb_f_teid.data = &sgw_s1u_teid;
             gtp_req->bearer_contexts.s1_u_enodeb_f_teid.len = len;
@@ -675,7 +679,7 @@ void sgwc_sxa_handle_session_modification_response(
             rv = ogs_gtp_sockaddr_to_f_teid(
                     dl_tunnel->local_addr, dl_tunnel->local_addr6,
                     &sgw_s5u_teid, &len);
-            ogs_expect(rv == OGS_OK);
+            ogs_assert(rv == OGS_OK);
             gtp_rsp->bearer_contexts.s5_s8_u_sgw_f_teid.presence = 1;
             gtp_rsp->bearer_contexts.s5_s8_u_sgw_f_teid.data = &sgw_s5u_teid;
             gtp_rsp->bearer_contexts.s5_s8_u_sgw_f_teid.len = len;
@@ -764,7 +768,7 @@ void sgwc_sxa_handle_session_modification_response(
                             rv = ogs_gtp_sockaddr_to_f_teid(
                                 tunnel->local_addr, tunnel->local_addr6,
                                 &rsp_dl_teid[i], &len);
-                            ogs_expect(rv == OGS_OK);
+                            ogs_assert(rv == OGS_OK);
                             gtp_rsp->bearer_contexts[i].
                                 s4_u_sgsn_f_teid.presence = 1;
                             gtp_rsp->bearer_contexts[i].
@@ -785,7 +789,7 @@ void sgwc_sxa_handle_session_modification_response(
                             rv = ogs_gtp_sockaddr_to_f_teid(
                                 tunnel->local_addr, tunnel->local_addr6,
                                 &rsp_ul_teid[i], &len);
-                            ogs_expect(rv == OGS_OK);
+                            ogs_assert(rv == OGS_OK);
                             gtp_rsp->bearer_contexts[i].
                                 s2b_u_epdg_f_teid_5.presence = 1;
                             gtp_rsp->bearer_contexts[i].
@@ -851,7 +855,7 @@ void sgwc_sxa_handle_session_modification_response(
             rv = ogs_gtp_sockaddr_to_f_teid(
                     ogs_gtp_self()->gtpc_addr, ogs_gtp_self()->gtpc_addr6,
                     &sgw_s11_teid, &len);
-            ogs_expect(rv == OGS_OK);
+            ogs_assert(rv == OGS_OK);
             gtp_rsp->sender_f_teid_for_control_plane.presence = 1;
             gtp_rsp->sender_f_teid_for_control_plane.data = &sgw_s11_teid;
             gtp_rsp->sender_f_teid_for_control_plane.len = len;
@@ -864,7 +868,7 @@ void sgwc_sxa_handle_session_modification_response(
             rv = ogs_gtp_sockaddr_to_f_teid(
                 ul_tunnel->local_addr, ul_tunnel->local_addr6,
                 &sgw_s1u_teid, &len);
-            ogs_expect(rv == OGS_OK);
+            ogs_assert(rv == OGS_OK);
             gtp_rsp->bearer_contexts_created.s1_u_enodeb_f_teid.presence = 1;
             gtp_rsp->bearer_contexts_created.s1_u_enodeb_f_teid.data =
                 &sgw_s1u_teid;
@@ -886,21 +890,48 @@ void sgwc_sxa_handle_session_modification_response(
             ogs_gtp_modify_bearer_request_t *gtp_req = NULL;
             ogs_gtp_modify_bearer_response_t *gtp_rsp = NULL;
 
+            ogs_gtp_indication_t *indication = NULL;
+
             ogs_assert(recv_message);
             gtp_req = &recv_message->modify_bearer_request;
             ogs_assert(gtp_req);
 
-            gtp_rsp = &send_message.modify_bearer_response;
-            ogs_assert(gtp_rsp);
+            if (gtp_req->indication_flags.presence &&
+                gtp_req->indication_flags.data &&
+                gtp_req->indication_flags.len) {
+                indication = gtp_req->indication_flags.data;
+            }
 
-            memset(&send_message, 0, sizeof(ogs_gtp_message_t));
+            if (indication && indication->hi) {
+                recv_message->h.type = OGS_GTP_MODIFY_BEARER_REQUEST_TYPE;
+                recv_message->h.teid = sess->pgw_s5c_teid;
 
-            memset(&cause, 0, sizeof(cause));
-            cause.value = OGS_GTP_CAUSE_REQUEST_ACCEPTED;
+                pkbuf = ogs_gtp_build_msg(recv_message);
+                ogs_expect_or_return(pkbuf);
 
-            gtp_rsp->cause.presence = 1;
-            gtp_rsp->cause.data = &cause;
-            gtp_rsp->cause.len = sizeof(cause);
+                ogs_assert(sess->gnode);
+                s5c_xact = ogs_gtp_xact_local_create(
+                        sess->gnode, &recv_message->h, pkbuf,
+                        sess_timeout, sess);
+                ogs_expect_or_return(s5c_xact);
+
+                ogs_gtp_xact_associate(s11_xact, s5c_xact);
+
+                rv = ogs_gtp_xact_commit(s5c_xact);
+                ogs_expect(rv == OGS_OK);
+
+            } else {
+                gtp_rsp = &send_message.modify_bearer_response;
+                ogs_assert(gtp_rsp);
+
+                memset(&send_message, 0, sizeof(ogs_gtp_message_t));
+
+                memset(&cause, 0, sizeof(cause));
+                cause.value = OGS_GTP_CAUSE_REQUEST_ACCEPTED;
+
+                gtp_rsp->cause.presence = 1;
+                gtp_rsp->cause.data = &cause;
+                gtp_rsp->cause.len = sizeof(cause);
 
         /* Copy Bearer-Contexts-Modified from Modify-Bearer-Request
          *
@@ -915,31 +946,35 @@ void sgwc_sxa_handle_session_modification_response(
          * both an IPv4 address and an IPv6 address
          * (see also subclause 8.22 "F-TEID").
          */
-            gtp_rsp->bearer_contexts_modified.presence = 1;
-            gtp_rsp->bearer_contexts_modified.eps_bearer_id.presence = 1;
-            gtp_rsp->bearer_contexts_modified.eps_bearer_id.u8 =
-                gtp_req->bearer_contexts_to_be_modified.eps_bearer_id.u8;
-            gtp_rsp->bearer_contexts_modified.s1_u_enodeb_f_teid.presence = 1;
-            gtp_rsp->bearer_contexts_modified.s1_u_enodeb_f_teid.data =
-                gtp_req->bearer_contexts_to_be_modified.s1_u_enodeb_f_teid.data;
-            gtp_rsp->bearer_contexts_modified.s1_u_enodeb_f_teid.len =
-                gtp_req->bearer_contexts_to_be_modified.s1_u_enodeb_f_teid.len;
+                gtp_rsp->bearer_contexts_modified.presence = 1;
+                gtp_rsp->bearer_contexts_modified.eps_bearer_id.presence = 1;
+                gtp_rsp->bearer_contexts_modified.eps_bearer_id.u8 =
+                    gtp_req->bearer_contexts_to_be_modified.eps_bearer_id.u8;
+                gtp_rsp->bearer_contexts_modified.
+                        s1_u_enodeb_f_teid.presence = 1;
+                gtp_rsp->bearer_contexts_modified.s1_u_enodeb_f_teid.data =
+                    gtp_req->bearer_contexts_to_be_modified.
+                        s1_u_enodeb_f_teid.data;
+                gtp_rsp->bearer_contexts_modified.s1_u_enodeb_f_teid.len =
+                    gtp_req->bearer_contexts_to_be_modified.
+                        s1_u_enodeb_f_teid.len;
 
-            gtp_rsp->bearer_contexts_modified.cause.presence = 1;
-            gtp_rsp->bearer_contexts_modified.cause.len = sizeof(cause);
-            gtp_rsp->bearer_contexts_modified.cause.data = &cause;
+                gtp_rsp->bearer_contexts_modified.cause.presence = 1;
+                gtp_rsp->bearer_contexts_modified.cause.len = sizeof(cause);
+                gtp_rsp->bearer_contexts_modified.cause.data = &cause;
 
-            send_message.h.type = OGS_GTP_MODIFY_BEARER_RESPONSE_TYPE;
-            send_message.h.teid = sgwc_ue->mme_s11_teid;
+                send_message.h.type = OGS_GTP_MODIFY_BEARER_RESPONSE_TYPE;
+                send_message.h.teid = sgwc_ue->mme_s11_teid;
 
-            pkbuf = ogs_gtp_build_msg(&send_message);
-            ogs_expect_or_return(pkbuf);
+                pkbuf = ogs_gtp_build_msg(&send_message);
+                ogs_expect_or_return(pkbuf);
 
-            rv = ogs_gtp_xact_update_tx(s11_xact, &send_message.h, pkbuf);
-            ogs_expect_or_return(rv == OGS_OK);
+                rv = ogs_gtp_xact_update_tx(s11_xact, &send_message.h, pkbuf);
+                ogs_expect_or_return(rv == OGS_OK);
 
-            rv = ogs_gtp_xact_commit(s11_xact);
-            ogs_expect(rv == OGS_OK);
+                rv = ogs_gtp_xact_commit(s11_xact);
+                ogs_expect(rv == OGS_OK);
+            }
 
         } else {
             ogs_fatal("Invalid modify_flags[0x%llx]", (long long)flags);
@@ -962,8 +997,9 @@ void sgwc_sxa_handle_session_modification_response(
                 bearer = pfcp_xact->assoc_xact;
                 ogs_assert(bearer);
 
-                sgwc_gtp_send_downlink_data_notification(
-                    OGS_GTP_CAUSE_ERROR_INDICATION_RECEIVED, bearer);
+                ogs_assert(OGS_OK ==
+                    sgwc_gtp_send_downlink_data_notification(
+                        OGS_GTP_CAUSE_ERROR_INDICATION_RECEIVED, bearer));
 
             } else {
                 ogs_gtp_release_access_bearers_response_t *gtp_rsp = NULL;
@@ -1012,18 +1048,18 @@ void sgwc_sxa_handle_session_deletion_response(
 {
     int rv;
     uint8_t cause_value = 0;
+    uint32_t teid = 0;
 
     sgwc_ue_t *sgwc_ue = NULL;
 
-    ogs_gtp_xact_t *s11_xact = NULL;
+    ogs_gtp_xact_t *gtp_xact = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
 
     ogs_debug("Session Deletion Response");
 
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
-
-    ogs_pfcp_xact_commit(pfcp_xact);
+    ogs_assert(gtp_message);
 
     cause_value = OGS_GTP_CAUSE_REQUEST_ACCEPTED;
 
@@ -1042,14 +1078,44 @@ void sgwc_sxa_handle_session_deletion_response(
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    s11_xact = pfcp_xact->assoc_xact;
+    gtp_xact = pfcp_xact->assoc_xact;
+
+    ogs_pfcp_xact_commit(pfcp_xact);
+
+    switch (gtp_message->h.type) {
+    case OGS_GTP_DELETE_SESSION_RESPONSE_TYPE:
+        /*
+         * 1. MME sends Delete Session Request to SGW/SMF.
+         * 2. SMF sends Delete Session Response to SGW/MME.
+         */
+        if (sess) sgwc_ue = sess->sgwc_ue;
+        teid = sgwc_ue ? sgwc_ue->mme_s11_teid : 0;
+        break;
+    case OGS_GTP_DELETE_BEARER_RESPONSE_TYPE:
+        /*
+         * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to SGW/MME.
+         * 2. MME sends Delete Bearer Response to SGW/SMF.
+         *
+         * OR
+         *
+         * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to ePDG.
+         * 2. ePDG sends Delete Bearer Response(DEFAULT BEARER) to SMF.
+         *
+         * Note that the following messages are not processed here.
+         * - Bearer Resource Command
+         * - Delete Bearer Request/Response with DEDICATED BEARER.
+         */
+        teid = sess ? sess->pgw_s5c_teid : 0;
+        break;
+    default:
+        ogs_fatal("Unknown GTP message type [%d]", gtp_message->h.type);
+        ogs_assert_if_reached();
+    }
 
     if (cause_value != OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
-        if (sess) sgwc_ue = sess->sgwc_ue;
-        if (s11_xact) {
+        if (gtp_xact) {
             ogs_gtp_send_error_message(
-                    s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
-                    OGS_GTP_DELETE_SESSION_RESPONSE_TYPE, cause_value);
+                    gtp_xact, teid, gtp_message->h.type, cause_value);
         }
         return;
     }
@@ -1058,17 +1124,23 @@ void sgwc_sxa_handle_session_deletion_response(
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
 
-    if (s11_xact) {
-        gtp_message->h.type = OGS_GTP_DELETE_SESSION_RESPONSE_TYPE;
-        gtp_message->h.teid = sgwc_ue->mme_s11_teid;
+    if (gtp_xact) {
+        /*
+         * If gtp_message->h.type == OGS_GTP_DELETE_SESSION_RESPONSE_TYPE
+         * Then gtp_xact is S11-XACT
+         *
+         * If gtp_message->h.type == OGS_GTP_DELETE_BEARER_RESPONSE_TYPE
+         * Then gtp_xact is S5C-XACT
+         */
+        gtp_message->h.teid = teid;
 
         pkbuf = ogs_gtp_build_msg(gtp_message);
         ogs_expect_or_return(pkbuf);
 
-        rv = ogs_gtp_xact_update_tx(s11_xact, &gtp_message->h, pkbuf);
+        rv = ogs_gtp_xact_update_tx(gtp_xact, &gtp_message->h, pkbuf);
         ogs_expect_or_return(rv == OGS_OK);
 
-        rv = ogs_gtp_xact_commit(s11_xact);
+        rv = ogs_gtp_xact_commit(gtp_xact);
         ogs_expect(rv == OGS_OK);
     }
 
@@ -1123,8 +1195,9 @@ void sgwc_sxa_handle_session_report_request(
         return;
     }
 
-    sgwc_pfcp_send_session_report_response(
-            pfcp_xact, sess, OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
+    ogs_assert(OGS_OK ==
+        sgwc_pfcp_send_session_report_response(
+            pfcp_xact, sess, OGS_PFCP_CAUSE_REQUEST_ACCEPTED));
 
     report_type.value = pfcp_req->report_type.u8;
 
@@ -1145,8 +1218,9 @@ void sgwc_sxa_handle_session_report_request(
             ogs_list_for_each(&bearer->tunnel_list, tunnel) {
                 ogs_assert(tunnel->pdr);
                 if (tunnel->pdr->id == pdr_id) {
-                    sgwc_gtp_send_downlink_data_notification(
-                        OGS_GTP_CAUSE_INVALID_VALUE, bearer);
+                    ogs_assert(OGS_OK ==
+                        sgwc_gtp_send_downlink_data_notification(
+                            OGS_GTP_CAUSE_UNDEFINED_VALUE, bearer));
                     return;
                 }
             }
@@ -1164,13 +1238,14 @@ void sgwc_sxa_handle_session_report_request(
 
             sess->state.release_access_bearers = false;
 
-            sgwc_pfcp_send_sess_modification_request(sess,
-            /* We only use the `assoc_xact` parameter temporarily here
-             * to pass the `bearer` context. */
+            ogs_assert(OGS_OK ==
+                sgwc_pfcp_send_sess_modification_request(sess,
+                /* We only use the `assoc_xact` parameter temporarily here
+                 * to pass the `bearer` context. */
                     (ogs_gtp_xact_t *)bearer,
                     NULL,
                     OGS_PFCP_MODIFY_DL_ONLY|OGS_PFCP_MODIFY_DEACTIVATE|
-                    OGS_PFCP_MODIFY_ERROR_INDICATION);
+                    OGS_PFCP_MODIFY_ERROR_INDICATION));
         }
 
     } else {

@@ -10,7 +10,7 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_create(
     char *sor_mac_iausf,
     char *countersor,
     char *provisioning_time
-    )
+)
 {
     OpenAPI_sor_info_t *sor_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_sor_info_t));
     if (!sor_info_local_var) {
@@ -49,16 +49,16 @@ cJSON *OpenAPI_sor_info_convertToJSON(OpenAPI_sor_info_t *sor_info)
 
     item = cJSON_CreateObject();
     if (sor_info->steering_container) {
-        cJSON *steering_container_local_JSON = OpenAPI_steering_container_convertToJSON(sor_info->steering_container);
-        if (steering_container_local_JSON == NULL) {
-            ogs_error("OpenAPI_sor_info_convertToJSON() failed [steering_container]");
-            goto end;
-        }
-        cJSON_AddItemToObject(item, "steeringContainer", steering_container_local_JSON);
-        if (item->child == NULL) {
-            ogs_error("OpenAPI_sor_info_convertToJSON() failed [steering_container]");
-            goto end;
-        }
+    cJSON *steering_container_local_JSON = OpenAPI_steering_container_convertToJSON(sor_info->steering_container);
+    if (steering_container_local_JSON == NULL) {
+        ogs_error("OpenAPI_sor_info_convertToJSON() failed [steering_container]");
+        goto end;
+    }
+    cJSON_AddItemToObject(item, "steeringContainer", steering_container_local_JSON);
+    if (item->child == NULL) {
+        ogs_error("OpenAPI_sor_info_convertToJSON() failed [steering_container]");
+        goto end;
+    }
     }
 
     if (cJSON_AddBoolToObject(item, "ackInd", sor_info->ack_ind) == NULL) {
@@ -67,23 +67,19 @@ cJSON *OpenAPI_sor_info_convertToJSON(OpenAPI_sor_info_t *sor_info)
     }
 
     if (sor_info->sor_mac_iausf) {
-        if (cJSON_AddStringToObject(item, "sorMacIausf", sor_info->sor_mac_iausf) == NULL) {
-            ogs_error("OpenAPI_sor_info_convertToJSON() failed [sor_mac_iausf]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "sorMacIausf", sor_info->sor_mac_iausf) == NULL) {
+        ogs_error("OpenAPI_sor_info_convertToJSON() failed [sor_mac_iausf]");
+        goto end;
+    }
     }
 
     if (sor_info->countersor) {
-        if (cJSON_AddStringToObject(item, "countersor", sor_info->countersor) == NULL) {
-            ogs_error("OpenAPI_sor_info_convertToJSON() failed [countersor]");
-            goto end;
-        }
-    }
-
-    if (!sor_info->provisioning_time) {
-        ogs_error("OpenAPI_sor_info_convertToJSON() failed [provisioning_time]");
+    if (cJSON_AddStringToObject(item, "countersor", sor_info->countersor) == NULL) {
+        ogs_error("OpenAPI_sor_info_convertToJSON() failed [countersor]");
         goto end;
     }
+    }
+
     if (cJSON_AddStringToObject(item, "provisioningTime", sor_info->provisioning_time) == NULL) {
         ogs_error("OpenAPI_sor_info_convertToJSON() failed [provisioning_time]");
         goto end;
@@ -100,7 +96,7 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_parseFromJSON(cJSON *sor_infoJSON)
 
     OpenAPI_steering_container_t *steering_container_local_nonprim = NULL;
     if (steering_container) {
-        steering_container_local_nonprim = OpenAPI_steering_container_parseFromJSON(steering_container);
+    steering_container_local_nonprim = OpenAPI_steering_container_parseFromJSON(steering_container);
     }
 
     cJSON *ack_ind = cJSON_GetObjectItemCaseSensitive(sor_infoJSON, "ackInd");
@@ -108,7 +104,6 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_parseFromJSON(cJSON *sor_infoJSON)
         ogs_error("OpenAPI_sor_info_parseFromJSON() failed [ack_ind]");
         goto end;
     }
-
 
     if (!cJSON_IsBool(ack_ind)) {
         ogs_error("OpenAPI_sor_info_parseFromJSON() failed [ack_ind]");
@@ -118,19 +113,19 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_parseFromJSON(cJSON *sor_infoJSON)
     cJSON *sor_mac_iausf = cJSON_GetObjectItemCaseSensitive(sor_infoJSON, "sorMacIausf");
 
     if (sor_mac_iausf) {
-        if (!cJSON_IsString(sor_mac_iausf)) {
-            ogs_error("OpenAPI_sor_info_parseFromJSON() failed [sor_mac_iausf]");
-            goto end;
-        }
+    if (!cJSON_IsString(sor_mac_iausf)) {
+        ogs_error("OpenAPI_sor_info_parseFromJSON() failed [sor_mac_iausf]");
+        goto end;
+    }
     }
 
     cJSON *countersor = cJSON_GetObjectItemCaseSensitive(sor_infoJSON, "countersor");
 
     if (countersor) {
-        if (!cJSON_IsString(countersor)) {
-            ogs_error("OpenAPI_sor_info_parseFromJSON() failed [countersor]");
-            goto end;
-        }
+    if (!cJSON_IsString(countersor)) {
+        ogs_error("OpenAPI_sor_info_parseFromJSON() failed [countersor]");
+        goto end;
+    }
     }
 
     cJSON *provisioning_time = cJSON_GetObjectItemCaseSensitive(sor_infoJSON, "provisioningTime");
@@ -139,7 +134,6 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_parseFromJSON(cJSON *sor_infoJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(provisioning_time)) {
         ogs_error("OpenAPI_sor_info_parseFromJSON() failed [provisioning_time]");
         goto end;
@@ -147,11 +141,12 @@ OpenAPI_sor_info_t *OpenAPI_sor_info_parseFromJSON(cJSON *sor_infoJSON)
 
     sor_info_local_var = OpenAPI_sor_info_create (
         steering_container ? steering_container_local_nonprim : NULL,
+        
         ack_ind->valueint,
-        sor_mac_iausf ? ogs_strdup(sor_mac_iausf->valuestring) : NULL,
-        countersor ? ogs_strdup(countersor->valuestring) : NULL,
-        ogs_strdup(provisioning_time->valuestring)
-        );
+        sor_mac_iausf ? ogs_strdup_or_assert(sor_mac_iausf->valuestring) : NULL,
+        countersor ? ogs_strdup_or_assert(countersor->valuestring) : NULL,
+        ogs_strdup_or_assert(provisioning_time->valuestring)
+    );
 
     return sor_info_local_var;
 end:

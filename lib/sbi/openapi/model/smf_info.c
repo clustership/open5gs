@@ -10,9 +10,11 @@ OpenAPI_smf_info_t *OpenAPI_smf_info_create(
     OpenAPI_list_t *tai_range_list,
     char *pgw_fqdn,
     OpenAPI_list_t *access_type,
+    bool is_priority,
     int priority,
+    bool is_vsmf_support_ind,
     int vsmf_support_ind
-    )
+)
 {
     OpenAPI_smf_info_t *smf_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_smf_info_t));
     if (!smf_info_local_var) {
@@ -23,7 +25,9 @@ OpenAPI_smf_info_t *OpenAPI_smf_info_create(
     smf_info_local_var->tai_range_list = tai_range_list;
     smf_info_local_var->pgw_fqdn = pgw_fqdn;
     smf_info_local_var->access_type = access_type;
+    smf_info_local_var->is_priority = is_priority;
     smf_info_local_var->priority = priority;
+    smf_info_local_var->is_vsmf_support_ind = is_vsmf_support_ind;
     smf_info_local_var->vsmf_support_ind = vsmf_support_ind;
 
     return smf_info_local_var;
@@ -62,10 +66,6 @@ cJSON *OpenAPI_smf_info_convertToJSON(OpenAPI_smf_info_t *smf_info)
     }
 
     item = cJSON_CreateObject();
-    if (!smf_info->s_nssai_smf_info_list) {
-        ogs_error("OpenAPI_smf_info_convertToJSON() failed [s_nssai_smf_info_list]");
-        goto end;
-    }
     cJSON *s_nssai_smf_info_listList = cJSON_AddArrayToObject(item, "sNssaiSmfInfoList");
     if (s_nssai_smf_info_listList == NULL) {
         ogs_error("OpenAPI_smf_info_convertToJSON() failed [s_nssai_smf_info_list]");
@@ -85,79 +85,79 @@ cJSON *OpenAPI_smf_info_convertToJSON(OpenAPI_smf_info_t *smf_info)
     }
 
     if (smf_info->tai_list) {
-        cJSON *tai_listList = cJSON_AddArrayToObject(item, "taiList");
-        if (tai_listList == NULL) {
-            ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_list]");
-            goto end;
-        }
+    cJSON *tai_listList = cJSON_AddArrayToObject(item, "taiList");
+    if (tai_listList == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_list]");
+        goto end;
+    }
 
-        OpenAPI_lnode_t *tai_list_node;
-        if (smf_info->tai_list) {
-            OpenAPI_list_for_each(smf_info->tai_list, tai_list_node) {
-                cJSON *itemLocal = OpenAPI_tai_convertToJSON(tai_list_node->data);
-                if (itemLocal == NULL) {
-                    ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_list]");
-                    goto end;
-                }
-                cJSON_AddItemToArray(tai_listList, itemLocal);
+    OpenAPI_lnode_t *tai_list_node;
+    if (smf_info->tai_list) {
+        OpenAPI_list_for_each(smf_info->tai_list, tai_list_node) {
+            cJSON *itemLocal = OpenAPI_tai_convertToJSON(tai_list_node->data);
+            if (itemLocal == NULL) {
+                ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_list]");
+                goto end;
             }
+            cJSON_AddItemToArray(tai_listList, itemLocal);
         }
+    }
     }
 
     if (smf_info->tai_range_list) {
-        cJSON *tai_range_listList = cJSON_AddArrayToObject(item, "taiRangeList");
-        if (tai_range_listList == NULL) {
-            ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_range_list]");
-            goto end;
-        }
+    cJSON *tai_range_listList = cJSON_AddArrayToObject(item, "taiRangeList");
+    if (tai_range_listList == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_range_list]");
+        goto end;
+    }
 
-        OpenAPI_lnode_t *tai_range_list_node;
-        if (smf_info->tai_range_list) {
-            OpenAPI_list_for_each(smf_info->tai_range_list, tai_range_list_node) {
-                cJSON *itemLocal = OpenAPI_tai_range_convertToJSON(tai_range_list_node->data);
-                if (itemLocal == NULL) {
-                    ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_range_list]");
-                    goto end;
-                }
-                cJSON_AddItemToArray(tai_range_listList, itemLocal);
+    OpenAPI_lnode_t *tai_range_list_node;
+    if (smf_info->tai_range_list) {
+        OpenAPI_list_for_each(smf_info->tai_range_list, tai_range_list_node) {
+            cJSON *itemLocal = OpenAPI_tai_range_convertToJSON(tai_range_list_node->data);
+            if (itemLocal == NULL) {
+                ogs_error("OpenAPI_smf_info_convertToJSON() failed [tai_range_list]");
+                goto end;
             }
+            cJSON_AddItemToArray(tai_range_listList, itemLocal);
         }
+    }
     }
 
     if (smf_info->pgw_fqdn) {
-        if (cJSON_AddStringToObject(item, "pgwFqdn", smf_info->pgw_fqdn) == NULL) {
-            ogs_error("OpenAPI_smf_info_convertToJSON() failed [pgw_fqdn]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "pgwFqdn", smf_info->pgw_fqdn) == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [pgw_fqdn]");
+        goto end;
+    }
     }
 
     if (smf_info->access_type) {
-        cJSON *access_type = cJSON_AddArrayToObject(item, "accessType");
-        if (access_type == NULL) {
+    cJSON *access_type = cJSON_AddArrayToObject(item, "accessType");
+    if (access_type == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [access_type]");
+        goto end;
+    }
+    OpenAPI_lnode_t *access_type_node;
+    OpenAPI_list_for_each(smf_info->access_type, access_type_node) {
+        if (cJSON_AddStringToObject(access_type, "", OpenAPI_access_type_ToString((intptr_t)access_type_node->data)) == NULL) {
             ogs_error("OpenAPI_smf_info_convertToJSON() failed [access_type]");
             goto end;
         }
-        OpenAPI_lnode_t *access_type_node;
-        OpenAPI_list_for_each(smf_info->access_type, access_type_node) {
-            if (cJSON_AddStringToObject(access_type, "", OpenAPI_access_type_ToString((OpenAPI_access_type_e)access_type_node->data)) == NULL) {
-                ogs_error("OpenAPI_smf_info_convertToJSON() failed [access_type]");
-                goto end;
-            }
-        }
+    }
     }
 
-    if (smf_info->priority) {
-        if (cJSON_AddNumberToObject(item, "priority", smf_info->priority) == NULL) {
-            ogs_error("OpenAPI_smf_info_convertToJSON() failed [priority]");
-            goto end;
-        }
+    if (smf_info->is_priority) {
+    if (cJSON_AddNumberToObject(item, "priority", smf_info->priority) == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [priority]");
+        goto end;
+    }
     }
 
-    if (smf_info->vsmf_support_ind) {
-        if (cJSON_AddBoolToObject(item, "vsmfSupportInd", smf_info->vsmf_support_ind) == NULL) {
-            ogs_error("OpenAPI_smf_info_convertToJSON() failed [vsmf_support_ind]");
-            goto end;
-        }
+    if (smf_info->is_vsmf_support_ind) {
+    if (cJSON_AddBoolToObject(item, "vsmfSupportInd", smf_info->vsmf_support_ind) == NULL) {
+        ogs_error("OpenAPI_smf_info_convertToJSON() failed [vsmf_support_ind]");
+        goto end;
+    }
     }
 
 end:
@@ -174,9 +174,8 @@ OpenAPI_smf_info_t *OpenAPI_smf_info_parseFromJSON(cJSON *smf_infoJSON)
     }
 
     OpenAPI_list_t *s_nssai_smf_info_listList;
-
     cJSON *s_nssai_smf_info_list_local_nonprimitive;
-    if (!cJSON_IsArray(s_nssai_smf_info_list)) {
+    if (!cJSON_IsArray(s_nssai_smf_info_list)){
         ogs_error("OpenAPI_smf_info_parseFromJSON() failed [s_nssai_smf_info_list]");
         goto end;
     }
@@ -197,106 +196,108 @@ OpenAPI_smf_info_t *OpenAPI_smf_info_parseFromJSON(cJSON *smf_infoJSON)
 
     OpenAPI_list_t *tai_listList;
     if (tai_list) {
-        cJSON *tai_list_local_nonprimitive;
-        if (!cJSON_IsArray(tai_list)) {
+    cJSON *tai_list_local_nonprimitive;
+    if (!cJSON_IsArray(tai_list)){
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_list]");
+        goto end;
+    }
+
+    tai_listList = OpenAPI_list_create();
+
+    cJSON_ArrayForEach(tai_list_local_nonprimitive, tai_list ) {
+        if (!cJSON_IsObject(tai_list_local_nonprimitive)) {
             ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_list]");
             goto end;
         }
+        OpenAPI_tai_t *tai_listItem = OpenAPI_tai_parseFromJSON(tai_list_local_nonprimitive);
 
-        tai_listList = OpenAPI_list_create();
-
-        cJSON_ArrayForEach(tai_list_local_nonprimitive, tai_list ) {
-            if (!cJSON_IsObject(tai_list_local_nonprimitive)) {
-                ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_list]");
-                goto end;
-            }
-            OpenAPI_tai_t *tai_listItem = OpenAPI_tai_parseFromJSON(tai_list_local_nonprimitive);
-
-            OpenAPI_list_add(tai_listList, tai_listItem);
-        }
+        OpenAPI_list_add(tai_listList, tai_listItem);
+    }
     }
 
     cJSON *tai_range_list = cJSON_GetObjectItemCaseSensitive(smf_infoJSON, "taiRangeList");
 
     OpenAPI_list_t *tai_range_listList;
     if (tai_range_list) {
-        cJSON *tai_range_list_local_nonprimitive;
-        if (!cJSON_IsArray(tai_range_list)) {
+    cJSON *tai_range_list_local_nonprimitive;
+    if (!cJSON_IsArray(tai_range_list)){
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_range_list]");
+        goto end;
+    }
+
+    tai_range_listList = OpenAPI_list_create();
+
+    cJSON_ArrayForEach(tai_range_list_local_nonprimitive, tai_range_list ) {
+        if (!cJSON_IsObject(tai_range_list_local_nonprimitive)) {
             ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_range_list]");
             goto end;
         }
+        OpenAPI_tai_range_t *tai_range_listItem = OpenAPI_tai_range_parseFromJSON(tai_range_list_local_nonprimitive);
 
-        tai_range_listList = OpenAPI_list_create();
-
-        cJSON_ArrayForEach(tai_range_list_local_nonprimitive, tai_range_list ) {
-            if (!cJSON_IsObject(tai_range_list_local_nonprimitive)) {
-                ogs_error("OpenAPI_smf_info_parseFromJSON() failed [tai_range_list]");
-                goto end;
-            }
-            OpenAPI_tai_range_t *tai_range_listItem = OpenAPI_tai_range_parseFromJSON(tai_range_list_local_nonprimitive);
-
-            OpenAPI_list_add(tai_range_listList, tai_range_listItem);
-        }
+        OpenAPI_list_add(tai_range_listList, tai_range_listItem);
+    }
     }
 
     cJSON *pgw_fqdn = cJSON_GetObjectItemCaseSensitive(smf_infoJSON, "pgwFqdn");
 
     if (pgw_fqdn) {
-        if (!cJSON_IsString(pgw_fqdn)) {
-            ogs_error("OpenAPI_smf_info_parseFromJSON() failed [pgw_fqdn]");
-            goto end;
-        }
+    if (!cJSON_IsString(pgw_fqdn)) {
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [pgw_fqdn]");
+        goto end;
+    }
     }
 
     cJSON *access_type = cJSON_GetObjectItemCaseSensitive(smf_infoJSON, "accessType");
 
     OpenAPI_list_t *access_typeList;
     if (access_type) {
-        cJSON *access_type_local_nonprimitive;
-        if (!cJSON_IsArray(access_type)) {
+    cJSON *access_type_local_nonprimitive;
+    if (!cJSON_IsArray(access_type)) {
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [access_type]");
+        goto end;
+    }
+
+    access_typeList = OpenAPI_list_create();
+
+    cJSON_ArrayForEach(access_type_local_nonprimitive, access_type ) {
+        if (!cJSON_IsString(access_type_local_nonprimitive)){
             ogs_error("OpenAPI_smf_info_parseFromJSON() failed [access_type]");
             goto end;
         }
 
-        access_typeList = OpenAPI_list_create();
-
-        cJSON_ArrayForEach(access_type_local_nonprimitive, access_type ) {
-            if (!cJSON_IsString(access_type_local_nonprimitive)) {
-                ogs_error("OpenAPI_smf_info_parseFromJSON() failed [access_type]");
-                goto end;
-            }
-
-            OpenAPI_list_add(access_typeList, (void *)OpenAPI_access_type_FromString(access_type_local_nonprimitive->valuestring));
-        }
+        OpenAPI_list_add(access_typeList, (void *)OpenAPI_access_type_FromString(access_type_local_nonprimitive->valuestring));
+    }
     }
 
     cJSON *priority = cJSON_GetObjectItemCaseSensitive(smf_infoJSON, "priority");
 
     if (priority) {
-        if (!cJSON_IsNumber(priority)) {
-            ogs_error("OpenAPI_smf_info_parseFromJSON() failed [priority]");
-            goto end;
-        }
+    if (!cJSON_IsNumber(priority)) {
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [priority]");
+        goto end;
+    }
     }
 
     cJSON *vsmf_support_ind = cJSON_GetObjectItemCaseSensitive(smf_infoJSON, "vsmfSupportInd");
 
     if (vsmf_support_ind) {
-        if (!cJSON_IsBool(vsmf_support_ind)) {
-            ogs_error("OpenAPI_smf_info_parseFromJSON() failed [vsmf_support_ind]");
-            goto end;
-        }
+    if (!cJSON_IsBool(vsmf_support_ind)) {
+        ogs_error("OpenAPI_smf_info_parseFromJSON() failed [vsmf_support_ind]");
+        goto end;
+    }
     }
 
     smf_info_local_var = OpenAPI_smf_info_create (
         s_nssai_smf_info_listList,
         tai_list ? tai_listList : NULL,
         tai_range_list ? tai_range_listList : NULL,
-        pgw_fqdn ? ogs_strdup(pgw_fqdn->valuestring) : NULL,
+        pgw_fqdn ? ogs_strdup_or_assert(pgw_fqdn->valuestring) : NULL,
         access_type ? access_typeList : NULL,
+        priority ? true : false,
         priority ? priority->valuedouble : 0,
+        vsmf_support_ind ? true : false,
         vsmf_support_ind ? vsmf_support_ind->valueint : 0
-        );
+    );
 
     return smf_info_local_var;
 end:

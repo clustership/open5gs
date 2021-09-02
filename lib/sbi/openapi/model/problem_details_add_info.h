@@ -1,7 +1,7 @@
 /*
  * problem_details_add_info.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_problem_details_add_info_H_
@@ -19,12 +19,14 @@ extern "C" {
 
 typedef struct OpenAPI_problem_details_add_info_s OpenAPI_problem_details_add_info_t;
 typedef struct OpenAPI_problem_details_add_info_s {
+    bool is_remote_error;
     int remote_error;
 } OpenAPI_problem_details_add_info_t;
 
 OpenAPI_problem_details_add_info_t *OpenAPI_problem_details_add_info_create(
+    bool is_remote_error,
     int remote_error
-    );
+);
 void OpenAPI_problem_details_add_info_free(OpenAPI_problem_details_add_info_t *problem_details_add_info);
 OpenAPI_problem_details_add_info_t *OpenAPI_problem_details_add_info_parseFromJSON(cJSON *problem_details_add_infoJSON);
 cJSON *OpenAPI_problem_details_add_info_convertToJSON(OpenAPI_problem_details_add_info_t *problem_details_add_info);

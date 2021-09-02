@@ -6,7 +6,7 @@
 
 OpenAPI_lcs_mo_data_t *OpenAPI_lcs_mo_data_create(
     OpenAPI_list_t *allowed_service_classes
-    )
+)
 {
     OpenAPI_lcs_mo_data_t *lcs_mo_data_local_var = OpenAPI_malloc(sizeof(OpenAPI_lcs_mo_data_t));
     if (!lcs_mo_data_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_lcs_mo_data_convertToJSON(OpenAPI_lcs_mo_data_t *lcs_mo_data)
     }
 
     item = cJSON_CreateObject();
-    if (!lcs_mo_data->allowed_service_classes) {
-        ogs_error("OpenAPI_lcs_mo_data_convertToJSON() failed [allowed_service_classes]");
-        goto end;
-    }
     cJSON *allowed_service_classes = cJSON_AddArrayToObject(item, "allowedServiceClasses");
     if (allowed_service_classes == NULL) {
         ogs_error("OpenAPI_lcs_mo_data_convertToJSON() failed [allowed_service_classes]");
@@ -48,7 +44,7 @@ cJSON *OpenAPI_lcs_mo_data_convertToJSON(OpenAPI_lcs_mo_data_t *lcs_mo_data)
     }
     OpenAPI_lnode_t *allowed_service_classes_node;
     OpenAPI_list_for_each(lcs_mo_data->allowed_service_classes, allowed_service_classes_node) {
-        if (cJSON_AddStringToObject(allowed_service_classes, "", OpenAPI_lcs_mo_service_class_ToString((OpenAPI_lcs_mo_service_class_e)allowed_service_classes_node->data)) == NULL) {
+        if (cJSON_AddStringToObject(allowed_service_classes, "", OpenAPI_lcs_mo_service_class_ToString((intptr_t)allowed_service_classes_node->data)) == NULL) {
             ogs_error("OpenAPI_lcs_mo_data_convertToJSON() failed [allowed_service_classes]");
             goto end;
         }
@@ -68,7 +64,6 @@ OpenAPI_lcs_mo_data_t *OpenAPI_lcs_mo_data_parseFromJSON(cJSON *lcs_mo_dataJSON)
     }
 
     OpenAPI_list_t *allowed_service_classesList;
-
     cJSON *allowed_service_classes_local_nonprimitive;
     if (!cJSON_IsArray(allowed_service_classes)) {
         ogs_error("OpenAPI_lcs_mo_data_parseFromJSON() failed [allowed_service_classes]");
@@ -78,7 +73,7 @@ OpenAPI_lcs_mo_data_t *OpenAPI_lcs_mo_data_parseFromJSON(cJSON *lcs_mo_dataJSON)
     allowed_service_classesList = OpenAPI_list_create();
 
     cJSON_ArrayForEach(allowed_service_classes_local_nonprimitive, allowed_service_classes ) {
-        if (!cJSON_IsString(allowed_service_classes_local_nonprimitive)) {
+        if (!cJSON_IsString(allowed_service_classes_local_nonprimitive)){
             ogs_error("OpenAPI_lcs_mo_data_parseFromJSON() failed [allowed_service_classes]");
             goto end;
         }
@@ -88,7 +83,7 @@ OpenAPI_lcs_mo_data_t *OpenAPI_lcs_mo_data_parseFromJSON(cJSON *lcs_mo_dataJSON)
 
     lcs_mo_data_local_var = OpenAPI_lcs_mo_data_create (
         allowed_service_classesList
-        );
+    );
 
     return lcs_mo_data_local_var;
 end:

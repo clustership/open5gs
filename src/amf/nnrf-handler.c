@@ -40,12 +40,8 @@ void amf_nnrf_handle_nf_register(
     }
 
     /* TIME : Update heartbeat from NRF */
-    if (NFProfile->nf_profile_changes_ind == true) {
-        if (NFProfile->heart_beat_timer)
-            nf_instance->time.heartbeat_interval = NFProfile->heart_beat_timer;
-    } else {
+    if (NFProfile->is_heart_beat_timer == true)
         nf_instance->time.heartbeat_interval = NFProfile->heart_beat_timer;
-    }
 }
 
 void amf_nnrf_handle_nf_status_subscribe(
@@ -113,15 +109,17 @@ bool amf_nnrf_handle_nf_status_notify(
     NotificationData = recvmsg->NotificationData;
     if (!NotificationData) {
         ogs_error("No NotificationData");
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "No NotificationData", NULL);
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                recvmsg, "No NotificationData", NULL));
         return false;
     }
 
     if (!NotificationData->nf_instance_uri) {
         ogs_error("No nfInstanceUri");
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "No nfInstanceUri", NULL);
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                recvmsg, "No nfInstanceUri", NULL));
         return false;
     }
 
@@ -131,15 +129,17 @@ bool amf_nnrf_handle_nf_status_notify(
     rv = ogs_sbi_parse_header(&message, &header);
     if (rv != OGS_OK) {
         ogs_error("Cannot parse nfInstanceUri [%s]", header.uri);
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "Cannot parse nfInstanceUri", header.uri);
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                recvmsg, "Cannot parse nfInstanceUri", header.uri));
         return false;
     }
 
     if (!message.h.resource.component[1]) {
         ogs_error("No nfInstanceId [%s]", header.uri);
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "Cannot parse nfInstanceUri", header.uri);
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                recvmsg, "Cannot parse nfInstanceUri", header.uri));
         ogs_sbi_header_free(&header);
         return false;
     }
@@ -147,9 +147,10 @@ bool amf_nnrf_handle_nf_status_notify(
     if (NF_INSTANCE_IS_SELF(message.h.resource.component[1])) {
         ogs_warn("[%s] The notification is not allowed",
                 message.h.resource.component[1]);
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_FORBIDDEN,
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_FORBIDDEN,
                 recvmsg, "The notification is not allowed",
-                message.h.resource.component[1]);
+                message.h.resource.component[1]));
         ogs_sbi_header_free(&header);
         return false;
     }
@@ -162,8 +163,10 @@ bool amf_nnrf_handle_nf_status_notify(
         NFProfile = NotificationData->nf_profile;
         if (!NFProfile) {
             ogs_error("No NFProfile");
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    recvmsg, "No NFProfile", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    recvmsg, "No NFProfile", NULL));
             ogs_sbi_header_free(&header);
             return false;
         }
@@ -200,9 +203,10 @@ bool amf_nnrf_handle_nf_status_notify(
         handled = ogs_sbi_client_associate(nf_instance);
         if (!handled) {
             ogs_error("[%s] Cannot associate NF EndPoint", nf_instance->id);
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    recvmsg, "Cannot find NF EndPoint", nf_instance->id);
+                    recvmsg, "Cannot find NF EndPoint", nf_instance->id));
             AMF_NF_INSTANCE_CLEAR("NRF-notify", nf_instance);
             ogs_sbi_header_free(&header);
             return false;
@@ -216,9 +220,10 @@ bool amf_nnrf_handle_nf_status_notify(
         } else {
             ogs_warn("[%s] (NRF-notify) Not found",
                     message.h.resource.component[1]);
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_NOT_FOUND,
-                    recvmsg, "Not found", message.h.resource.component[1]);
+                    recvmsg, "Not found", message.h.resource.component[1]));
             ogs_sbi_header_free(&header);
             return false;
         }
@@ -227,16 +232,17 @@ bool amf_nnrf_handle_nf_status_notify(
                             NotificationData->event);
         ogs_error("Not supported event [%d:%s]",
                 NotificationData->event, eventstr ? eventstr : "Unknown");
-        ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
                 recvmsg, "Not supported event",
-                eventstr ? eventstr : "Unknown");
+                eventstr ? eventstr : "Unknown"));
         ogs_sbi_header_free(&header);
         return false;
     }
 
     response = ogs_sbi_build_response(recvmsg, OGS_SBI_HTTP_STATUS_NO_CONTENT);
     ogs_assert(response);
-    ogs_sbi_server_send_response(stream, response);
+    ogs_assert(true == ogs_sbi_server_send_response(stream, response));
 
     ogs_sbi_header_free(&header);
     return true;
@@ -276,8 +282,9 @@ void amf_nnrf_handle_nf_discover(
             ogs_assert(amf_ue);
             ogs_error("[%s] (NF discover) No [%s]", amf_ue->suci,
                     OpenAPI_nf_type_ToString(xact->target_nf_type));
-            nas_5gs_send_gmm_reject_from_sbi(amf_ue,
-                    OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+            ogs_assert(OGS_OK ==
+                nas_5gs_send_gmm_reject_from_sbi(amf_ue,
+                    OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT));
             break;
         case OGS_SBI_OBJ_SESS_TYPE:
             sess = (amf_sess_t *)sbi_object;
@@ -285,12 +292,15 @@ void amf_nnrf_handle_nf_discover(
             ogs_error("[%d:%d] (NF discover) No [%s]", sess->psi, sess->pti,
                     OpenAPI_nf_type_ToString(xact->target_nf_type));
             if (sess->payload_container_type) {
-                nas_5gs_send_back_5gsm_message_from_sbi(sess,
-                        OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT);
+                ogs_assert(OGS_OK ==
+                    nas_5gs_send_back_gsm_message(sess,
+                        OGS_5GMM_CAUSE_PAYLOAD_WAS_NOT_FORWARDED,
+                        AMF_NAS_BACKOFF_TIME));
             } else {
-                ngap_send_error_indication2(amf_ue,
+                ogs_assert(OGS_OK ==
+                    ngap_send_error_indication2(amf_ue,
                         NGAP_Cause_PR_transport,
-                        NGAP_CauseTransport_transport_resource_unavailable);
+                        NGAP_CauseTransport_transport_resource_unavailable));
             }
             break;
         default:
@@ -300,7 +310,7 @@ void amf_nnrf_handle_nf_discover(
             ogs_assert_if_reached();
         }
     } else {
-        amf_sbi_send(nf_instance, xact);
+        ogs_assert(true == amf_sbi_send(nf_instance, xact));
     }
 }
 
@@ -376,7 +386,8 @@ void amf_nnrf_handle_nf_discover_search_result(
             }
 
             /* TIME : Update validity from NRF */
-            if (SearchResult->validity_period) {
+            if (SearchResult->is_validity_period &&
+                SearchResult->validity_period) {
                 nf_instance->time.validity_duration =
                         SearchResult->validity_period;
 

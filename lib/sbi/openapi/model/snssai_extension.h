@@ -21,13 +21,15 @@ extern "C" {
 typedef struct OpenAPI_snssai_extension_s OpenAPI_snssai_extension_t;
 typedef struct OpenAPI_snssai_extension_s {
     OpenAPI_list_t *sd_ranges;
+    bool is_wildcard_sd;
     int wildcard_sd;
 } OpenAPI_snssai_extension_t;
 
 OpenAPI_snssai_extension_t *OpenAPI_snssai_extension_create(
     OpenAPI_list_t *sd_ranges,
+    bool is_wildcard_sd,
     int wildcard_sd
-    );
+);
 void OpenAPI_snssai_extension_free(OpenAPI_snssai_extension_t *snssai_extension);
 OpenAPI_snssai_extension_t *OpenAPI_snssai_extension_parseFromJSON(cJSON *snssai_extensionJSON);
 cJSON *OpenAPI_snssai_extension_convertToJSON(OpenAPI_snssai_extension_t *snssai_extension);

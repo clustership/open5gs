@@ -66,10 +66,15 @@ void amf_context_init(void)
     ogs_list_init(&self.amf_ue_list);
 
     self.gnb_addr_hash = ogs_hash_make();
+    ogs_assert(self.gnb_addr_hash);
     self.gnb_id_hash = ogs_hash_make();
+    ogs_assert(self.gnb_id_hash);
     self.guti_ue_hash = ogs_hash_make();
+    ogs_assert(self.guti_ue_hash);
     self.suci_hash = ogs_hash_make();
+    ogs_assert(self.suci_hash);
     self.supi_hash = ogs_hash_make();
+    ogs_assert(self.supi_hash);
 
     context_initialized = 1;
 }
@@ -1025,7 +1030,6 @@ ran_ue_t *ran_ue_find_by_ran_ue_ngap_id(
 
 ran_ue_t *ran_ue_find(uint32_t index)
 {
-    ogs_assert(index);
     return ogs_pool_find(&ran_ue_pool, index);
 }
 
@@ -1045,6 +1049,28 @@ void amf_ue_new_guti(amf_ue_t *amf_ue)
         ogs_warn("GUTI has already been allocated");
         return;
     }
+
+    /*
+     * TS24.501
+     * 5.3.3 Temporary identities
+     *
+     * The AMF shall assign a new 5G-GUTI for a particular UE:
+     *
+     * a) during a successful initial registration procedure;
+     * b) during a successful registration procedure
+     *    for mobility registration update; and
+     * c) after a successful service request procedure invoked
+     *    as a response to a paging request from the network and
+     *    before the release of the N1 NAS signalling connection
+     *    as specified in subclause 5.4.4.1.
+     *
+     * The AMF should assign a new 5G-GUTI for a particular UE
+     * during a successful registration procedure
+     * for periodic registration update.
+     *
+     * The AMF may assign a new 5G-GUTI at any time for a particular UE
+     * by performing the generic UE configuration update procedure.
+     */
 
     memset(&amf_ue->next.guti, 0, sizeof(ogs_nas_5gs_guti_t));
 
@@ -1070,6 +1096,28 @@ void amf_ue_confirm_guti(amf_ue_t *amf_ue)
                 &amf_ue->current.guti, sizeof(ogs_nas_5gs_guti_t), NULL);
         ogs_assert(amf_m_tmsi_free(amf_ue->current.m_tmsi) == OGS_OK);
     }
+
+    /*
+     * TS24.501
+     * 5.3.3 Temporary identities
+     *
+     * The AMF shall assign a new 5G-GUTI for a particular UE:
+     *
+     * a) during a successful initial registration procedure;
+     * b) during a successful registration procedure
+     *    for mobility registration update; and
+     * c) after a successful service request procedure invoked
+     *    as a response to a paging request from the network and
+     *    before the release of the N1 NAS signalling connection
+     *    as specified in subclause 5.4.4.1.
+     *
+     * The AMF should assign a new 5G-GUTI for a particular UE
+     * during a successful registration procedure
+     * for periodic registration update.
+     *
+     * The AMF may assign a new 5G-GUTI at any time for a particular UE
+     * by performing the generic UE configuration update procedure.
+     */
 
     /* Copying from Current to Next Guti */
     amf_ue->current.m_tmsi = amf_ue->next.m_tmsi;
@@ -1106,9 +1154,10 @@ amf_ue_t *amf_ue_add(ran_ue_t *ran_ue)
 
     ogs_list_init(&amf_ue->sess_list);
 
-    /* TODO : Hard-coded */
+    /* Initialization */
     amf_ue->guami = &amf_self()->served_guami[0];
     amf_ue->nas.access_type = OGS_ACCESS_TYPE_3GPP;
+    amf_ue->nas.amf.ksi = OGS_NAS_KSI_NO_KEY_IS_AVAILABLE;
     amf_ue->abba_len = 2;
 
     /* Add All Timers */
@@ -1290,6 +1339,7 @@ amf_ue_t *amf_ue_find_by_message(ogs_nas_5gs_message_t *message)
     ogs_nas_5gs_service_request_t *service_request = NULL;
     ogs_nas_5gs_mobile_identity_t *mobile_identity = NULL;
     ogs_nas_5gs_mobile_identity_header_t *mobile_identity_header = NULL;
+    ogs_nas_5gs_mobile_identity_suci_t *mobile_identity_suci = NULL;
     ogs_nas_5gs_mobile_identity_guti_t *mobile_identity_guti = NULL;
     ogs_nas_5gs_mobile_identity_s_tmsi_t *mobile_identity_s_tmsi = NULL;
     ogs_nas_5gs_guti_t nas_guti;
@@ -1316,6 +1366,15 @@ amf_ue_t *amf_ue_find_by_message(ogs_nas_5gs_message_t *message)
 
         switch (mobile_identity_header->type) {
         case OGS_NAS_5GS_MOBILE_IDENTITY_SUCI:
+            mobile_identity_suci =
+                (ogs_nas_5gs_mobile_identity_suci_t *)mobile_identity->buffer;
+            if (mobile_identity_suci->protection_scheme_id !=
+                    OGS_NAS_5GS_NULL_SCHEME) {
+                ogs_error("Not implemented ProtectionSchemeID(%d) in SUCI",
+                    mobile_identity_suci->protection_scheme_id);
+                return NULL;
+            }
+
             suci = ogs_nas_5gs_suci_from_mobile_identity(mobile_identity);
             ogs_assert(suci);
 
@@ -1755,6 +1814,19 @@ bool amf_pdu_res_setup_req_transfer_needed(amf_ue_t *amf_ue)
     return false;
 }
 
+bool amf_handover_request_transfer_needed(amf_ue_t *amf_ue)
+{
+    amf_sess_t *sess = NULL;
+
+    ogs_assert(amf_ue);
+
+    ogs_list_for_each(&amf_ue->sess_list, sess)
+        if (sess->transfer.handover_request)
+            return true;
+
+    return false;
+}
+
 int amf_find_served_tai(ogs_5gs_tai_t *nr_tai)
 {
     int i = 0, j = 0, k = 0;
@@ -2169,7 +2241,8 @@ void amf_update_allowed_nssai(amf_ue_t *amf_ue)
         for (i = 0; i < amf_ue->num_of_slice; i++) {
             ogs_slice_data_t *slice = &amf_ue->slice[i];
             ogs_nas_s_nssai_ie_t *allowed =
-                &amf_ue->allowed_nssai.s_nssai[i];
+                &amf_ue->allowed_nssai.
+                    s_nssai[amf_ue->allowed_nssai.num_of_s_nssai];
 
             if (slice->default_indicator == true) {
                 allowed->sst = slice->s_nssai.sst;

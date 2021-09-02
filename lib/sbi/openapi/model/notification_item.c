@@ -7,7 +7,7 @@
 OpenAPI_notification_item_t *OpenAPI_notification_item_create(
     char *resource_id,
     OpenAPI_list_t *notif_items
-    )
+)
 {
     OpenAPI_notification_item_t *notification_item_local_var = OpenAPI_malloc(sizeof(OpenAPI_notification_item_t));
     if (!notification_item_local_var) {
@@ -43,19 +43,11 @@ cJSON *OpenAPI_notification_item_convertToJSON(OpenAPI_notification_item_t *noti
     }
 
     item = cJSON_CreateObject();
-    if (!notification_item->resource_id) {
-        ogs_error("OpenAPI_notification_item_convertToJSON() failed [resource_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "resourceId", notification_item->resource_id) == NULL) {
         ogs_error("OpenAPI_notification_item_convertToJSON() failed [resource_id]");
         goto end;
     }
 
-    if (!notification_item->notif_items) {
-        ogs_error("OpenAPI_notification_item_convertToJSON() failed [notif_items]");
-        goto end;
-    }
     cJSON *notif_itemsList = cJSON_AddArrayToObject(item, "notifItems");
     if (notif_itemsList == NULL) {
         ogs_error("OpenAPI_notification_item_convertToJSON() failed [notif_items]");
@@ -87,7 +79,6 @@ OpenAPI_notification_item_t *OpenAPI_notification_item_parseFromJSON(cJSON *noti
         goto end;
     }
 
-
     if (!cJSON_IsString(resource_id)) {
         ogs_error("OpenAPI_notification_item_parseFromJSON() failed [resource_id]");
         goto end;
@@ -100,9 +91,8 @@ OpenAPI_notification_item_t *OpenAPI_notification_item_parseFromJSON(cJSON *noti
     }
 
     OpenAPI_list_t *notif_itemsList;
-
     cJSON *notif_items_local_nonprimitive;
-    if (!cJSON_IsArray(notif_items)) {
+    if (!cJSON_IsArray(notif_items)){
         ogs_error("OpenAPI_notification_item_parseFromJSON() failed [notif_items]");
         goto end;
     }
@@ -120,9 +110,9 @@ OpenAPI_notification_item_t *OpenAPI_notification_item_parseFromJSON(cJSON *noti
     }
 
     notification_item_local_var = OpenAPI_notification_item_create (
-        ogs_strdup(resource_id->valuestring),
+        ogs_strdup_or_assert(resource_id->valuestring),
         notif_itemsList
-        );
+    );
 
     return notification_item_local_var;
 end:

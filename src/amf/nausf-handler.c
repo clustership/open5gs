@@ -95,6 +95,7 @@ int amf_nausf_auth_handle_authenticate(
         ogs_free(amf_ue->confirmation_url_for_5g_aka);
     amf_ue->confirmation_url_for_5g_aka =
         ogs_strdup(LinksValueSchemeValue->href);
+    ogs_assert(amf_ue->confirmation_url_for_5g_aka);
 
     ogs_ascii_to_hex(AV5G_AKA->rand, strlen(AV5G_AKA->rand),
         amf_ue->rand, sizeof(amf_ue->rand));
@@ -103,12 +104,15 @@ int amf_nausf_auth_handle_authenticate(
     ogs_ascii_to_hex(AV5G_AKA->autn, strlen(AV5G_AKA->autn),
         amf_ue->autn, sizeof(amf_ue->autn));
 
-    if (amf_ue->nas.ksi < (OGS_NAS_KSI_NO_KEY_IS_AVAILABLE - 1))
-        amf_ue->nas.ksi++;
+    if (amf_ue->nas.amf.ksi < (OGS_NAS_KSI_NO_KEY_IS_AVAILABLE - 1))
+        amf_ue->nas.amf.ksi++;
     else
-        amf_ue->nas.ksi = 0;
+        amf_ue->nas.amf.ksi = 0;
 
-    nas_5gs_send_authentication_request(amf_ue);
+    amf_ue->nas.ue.ksi = amf_ue->nas.amf.ksi;
+
+    ogs_assert(OGS_OK ==
+        nas_5gs_send_authentication_request(amf_ue));
 
     return OGS_OK;
 }

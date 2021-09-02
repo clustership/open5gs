@@ -7,7 +7,7 @@
 OpenAPI_allowed_nssai_t *OpenAPI_allowed_nssai_create(
     OpenAPI_list_t *allowed_snssai_list,
     OpenAPI_access_type_e access_type
-    )
+)
 {
     OpenAPI_allowed_nssai_t *allowed_nssai_local_var = OpenAPI_malloc(sizeof(OpenAPI_allowed_nssai_t));
     if (!allowed_nssai_local_var) {
@@ -42,10 +42,6 @@ cJSON *OpenAPI_allowed_nssai_convertToJSON(OpenAPI_allowed_nssai_t *allowed_nssa
     }
 
     item = cJSON_CreateObject();
-    if (!allowed_nssai->allowed_snssai_list) {
-        ogs_error("OpenAPI_allowed_nssai_convertToJSON() failed [allowed_snssai_list]");
-        goto end;
-    }
     cJSON *allowed_snssai_listList = cJSON_AddArrayToObject(item, "allowedSnssaiList");
     if (allowed_snssai_listList == NULL) {
         ogs_error("OpenAPI_allowed_nssai_convertToJSON() failed [allowed_snssai_list]");
@@ -64,10 +60,6 @@ cJSON *OpenAPI_allowed_nssai_convertToJSON(OpenAPI_allowed_nssai_t *allowed_nssa
         }
     }
 
-    if (!allowed_nssai->access_type) {
-        ogs_error("OpenAPI_allowed_nssai_convertToJSON() failed [access_type]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "accessType", OpenAPI_access_type_ToString(allowed_nssai->access_type)) == NULL) {
         ogs_error("OpenAPI_allowed_nssai_convertToJSON() failed [access_type]");
         goto end;
@@ -87,9 +79,8 @@ OpenAPI_allowed_nssai_t *OpenAPI_allowed_nssai_parseFromJSON(cJSON *allowed_nssa
     }
 
     OpenAPI_list_t *allowed_snssai_listList;
-
     cJSON *allowed_snssai_list_local_nonprimitive;
-    if (!cJSON_IsArray(allowed_snssai_list)) {
+    if (!cJSON_IsArray(allowed_snssai_list)){
         ogs_error("OpenAPI_allowed_nssai_parseFromJSON() failed [allowed_snssai_list]");
         goto end;
     }
@@ -113,7 +104,6 @@ OpenAPI_allowed_nssai_t *OpenAPI_allowed_nssai_parseFromJSON(cJSON *allowed_nssa
     }
 
     OpenAPI_access_type_e access_typeVariable;
-
     if (!cJSON_IsString(access_type)) {
         ogs_error("OpenAPI_allowed_nssai_parseFromJSON() failed [access_type]");
         goto end;
@@ -123,7 +113,7 @@ OpenAPI_allowed_nssai_t *OpenAPI_allowed_nssai_parseFromJSON(cJSON *allowed_nssa
     allowed_nssai_local_var = OpenAPI_allowed_nssai_create (
         allowed_snssai_listList,
         access_typeVariable
-        );
+    );
 
     return allowed_nssai_local_var;
 end:

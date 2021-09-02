@@ -7,7 +7,7 @@
 OpenAPI_n1_n2_msg_txfr_failure_notification_t *OpenAPI_n1_n2_msg_txfr_failure_notification_create(
     OpenAPI_n1_n2_message_transfer_cause_e cause,
     char *n1n2_msg_data_uri
-    )
+)
 {
     OpenAPI_n1_n2_msg_txfr_failure_notification_t *n1_n2_msg_txfr_failure_notification_local_var = OpenAPI_malloc(sizeof(OpenAPI_n1_n2_msg_txfr_failure_notification_t));
     if (!n1_n2_msg_txfr_failure_notification_local_var) {
@@ -39,19 +39,11 @@ cJSON *OpenAPI_n1_n2_msg_txfr_failure_notification_convertToJSON(OpenAPI_n1_n2_m
     }
 
     item = cJSON_CreateObject();
-    if (!n1_n2_msg_txfr_failure_notification->cause) {
-        ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_convertToJSON() failed [cause]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "cause", OpenAPI_n1_n2_message_transfer_cause_ToString(n1_n2_msg_txfr_failure_notification->cause)) == NULL) {
         ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_convertToJSON() failed [cause]");
         goto end;
     }
 
-    if (!n1_n2_msg_txfr_failure_notification->n1n2_msg_data_uri) {
-        ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_convertToJSON() failed [n1n2_msg_data_uri]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "n1n2MsgDataUri", n1_n2_msg_txfr_failure_notification->n1n2_msg_data_uri) == NULL) {
         ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_convertToJSON() failed [n1n2_msg_data_uri]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_n1_n2_msg_txfr_failure_notification_t *OpenAPI_n1_n2_msg_txfr_failure_no
     }
 
     OpenAPI_n1_n2_message_transfer_cause_e causeVariable;
-
     if (!cJSON_IsString(cause)) {
         ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_parseFromJSON() failed [cause]");
         goto end;
@@ -84,7 +75,6 @@ OpenAPI_n1_n2_msg_txfr_failure_notification_t *OpenAPI_n1_n2_msg_txfr_failure_no
         goto end;
     }
 
-
     if (!cJSON_IsString(n1n2_msg_data_uri)) {
         ogs_error("OpenAPI_n1_n2_msg_txfr_failure_notification_parseFromJSON() failed [n1n2_msg_data_uri]");
         goto end;
@@ -92,8 +82,8 @@ OpenAPI_n1_n2_msg_txfr_failure_notification_t *OpenAPI_n1_n2_msg_txfr_failure_no
 
     n1_n2_msg_txfr_failure_notification_local_var = OpenAPI_n1_n2_msg_txfr_failure_notification_create (
         causeVariable,
-        ogs_strdup(n1n2_msg_data_uri->valuestring)
-        );
+        ogs_strdup_or_assert(n1n2_msg_data_uri->valuestring)
+    );
 
     return n1_n2_msg_txfr_failure_notification_local_var;
 end:

@@ -109,6 +109,10 @@ extern "C" {
 
 #elif defined(__FreeBSD__)
 #include <sys/endian.h>
+
+#elif defined(__linux__)
+#include <endian.h>
+
 #endif
 
 #ifndef WORDS_BIGENDIAN
@@ -181,7 +185,7 @@ static ogs_inline ogs_uint24_t ogs_htobe24(ogs_uint24_t x)
 #endif
 
 #define ogs_container_of(ptr, type, member) \
-    (type *)((u_char *)ptr - offsetof(type, member))
+    (type *)((unsigned char *)ptr - offsetof(type, member))
 
 #ifndef SWITCH_CASE_INIT
 #define SWITCH_CASE_INIT
@@ -201,6 +205,10 @@ static ogs_inline ogs_uint24_t ogs_htobe24(ogs_uint24_t x)
 #define OGS_ARG_MAX                     256
 #define OGS_MAX_FILEPATH_LEN            256
 #define OGS_MAX_IFNAME_LEN              32
+
+#define OGS_FILE_LINE __FILE__ ":" OGS_STRINGIFY(__LINE__)
+
+#define ogs_uint64_to_uint32(x) ((x >= 0xffffffffUL) ? 0xffffffffU : x)
 
 #ifdef __cplusplus
 }

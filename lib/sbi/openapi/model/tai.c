@@ -8,7 +8,7 @@ OpenAPI_tai_t *OpenAPI_tai_create(
     OpenAPI_plmn_id_t *plmn_id,
     char *tac,
     char *nid
-    )
+)
 {
     OpenAPI_tai_t *tai_local_var = OpenAPI_malloc(sizeof(OpenAPI_tai_t));
     if (!tai_local_var) {
@@ -43,10 +43,6 @@ cJSON *OpenAPI_tai_convertToJSON(OpenAPI_tai_t *tai)
     }
 
     item = cJSON_CreateObject();
-    if (!tai->plmn_id) {
-        ogs_error("OpenAPI_tai_convertToJSON() failed [plmn_id]");
-        goto end;
-    }
     cJSON *plmn_id_local_JSON = OpenAPI_plmn_id_convertToJSON(tai->plmn_id);
     if (plmn_id_local_JSON == NULL) {
         ogs_error("OpenAPI_tai_convertToJSON() failed [plmn_id]");
@@ -58,20 +54,16 @@ cJSON *OpenAPI_tai_convertToJSON(OpenAPI_tai_t *tai)
         goto end;
     }
 
-    if (!tai->tac) {
-        ogs_error("OpenAPI_tai_convertToJSON() failed [tac]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "tac", tai->tac) == NULL) {
         ogs_error("OpenAPI_tai_convertToJSON() failed [tac]");
         goto end;
     }
 
     if (tai->nid) {
-        if (cJSON_AddStringToObject(item, "nid", tai->nid) == NULL) {
-            ogs_error("OpenAPI_tai_convertToJSON() failed [nid]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "nid", tai->nid) == NULL) {
+        ogs_error("OpenAPI_tai_convertToJSON() failed [nid]");
+        goto end;
+    }
     }
 
 end:
@@ -88,7 +80,6 @@ OpenAPI_tai_t *OpenAPI_tai_parseFromJSON(cJSON *taiJSON)
     }
 
     OpenAPI_plmn_id_t *plmn_id_local_nonprim = NULL;
-
     plmn_id_local_nonprim = OpenAPI_plmn_id_parseFromJSON(plmn_id);
 
     cJSON *tac = cJSON_GetObjectItemCaseSensitive(taiJSON, "tac");
@@ -96,7 +87,6 @@ OpenAPI_tai_t *OpenAPI_tai_parseFromJSON(cJSON *taiJSON)
         ogs_error("OpenAPI_tai_parseFromJSON() failed [tac]");
         goto end;
     }
-
 
     if (!cJSON_IsString(tac)) {
         ogs_error("OpenAPI_tai_parseFromJSON() failed [tac]");
@@ -106,17 +96,17 @@ OpenAPI_tai_t *OpenAPI_tai_parseFromJSON(cJSON *taiJSON)
     cJSON *nid = cJSON_GetObjectItemCaseSensitive(taiJSON, "nid");
 
     if (nid) {
-        if (!cJSON_IsString(nid)) {
-            ogs_error("OpenAPI_tai_parseFromJSON() failed [nid]");
-            goto end;
-        }
+    if (!cJSON_IsString(nid)) {
+        ogs_error("OpenAPI_tai_parseFromJSON() failed [nid]");
+        goto end;
+    }
     }
 
     tai_local_var = OpenAPI_tai_create (
         plmn_id_local_nonprim,
-        ogs_strdup(tac->valuestring),
-        nid ? ogs_strdup(nid->valuestring) : NULL
-        );
+        ogs_strdup_or_assert(tac->valuestring),
+        nid ? ogs_strdup_or_assert(nid->valuestring) : NULL
+    );
 
     return tai_local_var;
 end:

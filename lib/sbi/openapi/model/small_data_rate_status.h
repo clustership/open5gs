@@ -1,7 +1,7 @@
 /*
  * small_data_rate_status.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_small_data_rate_status_H_
@@ -19,20 +19,28 @@ extern "C" {
 
 typedef struct OpenAPI_small_data_rate_status_s OpenAPI_small_data_rate_status_t;
 typedef struct OpenAPI_small_data_rate_status_s {
+    bool is_remain_packets_ul;
     int remain_packets_ul;
+    bool is_remain_packets_dl;
     int remain_packets_dl;
     char *validity_time;
+    bool is_remain_ex_reports_ul;
     int remain_ex_reports_ul;
+    bool is_remain_ex_reports_dl;
     int remain_ex_reports_dl;
 } OpenAPI_small_data_rate_status_t;
 
 OpenAPI_small_data_rate_status_t *OpenAPI_small_data_rate_status_create(
+    bool is_remain_packets_ul,
     int remain_packets_ul,
+    bool is_remain_packets_dl,
     int remain_packets_dl,
     char *validity_time,
+    bool is_remain_ex_reports_ul,
     int remain_ex_reports_ul,
+    bool is_remain_ex_reports_dl,
     int remain_ex_reports_dl
-    );
+);
 void OpenAPI_small_data_rate_status_free(OpenAPI_small_data_rate_status_t *small_data_rate_status);
 OpenAPI_small_data_rate_status_t *OpenAPI_small_data_rate_status_parseFromJSON(cJSON *small_data_rate_statusJSON);
 cJSON *OpenAPI_small_data_rate_status_convertToJSON(OpenAPI_small_data_rate_status_t *small_data_rate_status);

@@ -436,7 +436,8 @@ done:
                         while (bson_iter_next(&child7_iter)) {
                             ogs_flow_t *flow = NULL;
 
-                            ogs_assert(flow_index < OGS_MAX_NUM_OF_FLOW);
+                            ogs_assert(
+                                flow_index < OGS_MAX_NUM_OF_FLOW_IN_PCC_RULE);
                             flow = &pcc_rule->flow[flow_index];
 
                             bson_iter_recurse(&child7_iter, &child8_iter);
@@ -452,6 +453,7 @@ done:
                                     utf8 = bson_iter_utf8(
                                             &child8_iter, &length);
                                     flow->description = ogs_malloc(length+1);
+                                    ogs_assert(flow->description);
                                     ogs_cpystrn((char*)flow->description,
                                         utf8, length+1);
                                 }
@@ -479,7 +481,6 @@ done:
                 ogs_assert(pcc_rule->id);
 
                 pcc_rule->precedence = pcc_rule_index+1;
-                pcc_rule->flow_status = OGS_FLOW_STATUS_ENABLED;
                 pcc_rule_index++;
             }
             session_data->num_of_pcc_rule = pcc_rule_index;

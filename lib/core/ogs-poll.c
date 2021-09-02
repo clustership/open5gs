@@ -35,7 +35,7 @@ bool ogs_pollset_actions_initialized = false;
 ogs_pollset_t *ogs_pollset_create(unsigned int capacity)
 {
     ogs_pollset_t *pollset = ogs_calloc(1, sizeof *pollset);
-    ogs_assert(pollset);
+    ogs_expect_or_return_val(pollset, NULL);
 
     pollset->capacity = capacity;
 
@@ -122,12 +122,6 @@ void ogs_pollset_remove(ogs_poll_t *poll)
     }
 
     ogs_pool_free(&pollset->pool, poll);
-}
-
-ogs_poll_t *ogs_pollset_cycle(ogs_pollset_t *pollset, ogs_poll_t *poll)
-{
-    ogs_assert(pollset);
-    return ogs_pool_cycle(&pollset->pool, poll);
 }
 
 void *ogs_pollset_self_handler_data(void)

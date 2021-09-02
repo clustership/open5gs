@@ -10,7 +10,7 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_create(
     char *end_time_stamp,
     long downlink_volume,
     long uplink_volume
-    )
+)
 {
     OpenAPI_qos_flow_usage_report_t *qos_flow_usage_report_local_var = OpenAPI_malloc(sizeof(OpenAPI_qos_flow_usage_report_t));
     if (!qos_flow_usage_report_local_var) {
@@ -46,46 +46,26 @@ cJSON *OpenAPI_qos_flow_usage_report_convertToJSON(OpenAPI_qos_flow_usage_report
     }
 
     item = cJSON_CreateObject();
-    if (!qos_flow_usage_report->qfi) {
-        ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [qfi]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "qfi", qos_flow_usage_report->qfi) == NULL) {
         ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [qfi]");
         goto end;
     }
 
-    if (!qos_flow_usage_report->start_time_stamp) {
-        ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [start_time_stamp]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "startTimeStamp", qos_flow_usage_report->start_time_stamp) == NULL) {
         ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [start_time_stamp]");
         goto end;
     }
 
-    if (!qos_flow_usage_report->end_time_stamp) {
-        ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [end_time_stamp]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "endTimeStamp", qos_flow_usage_report->end_time_stamp) == NULL) {
         ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [end_time_stamp]");
         goto end;
     }
 
-    if (!qos_flow_usage_report->downlink_volume) {
-        ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [downlink_volume]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "downlinkVolume", qos_flow_usage_report->downlink_volume) == NULL) {
         ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [downlink_volume]");
         goto end;
     }
 
-    if (!qos_flow_usage_report->uplink_volume) {
-        ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [uplink_volume]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "uplinkVolume", qos_flow_usage_report->uplink_volume) == NULL) {
         ogs_error("OpenAPI_qos_flow_usage_report_convertToJSON() failed [uplink_volume]");
         goto end;
@@ -104,7 +84,6 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_parseFromJSON(cJS
         goto end;
     }
 
-
     if (!cJSON_IsNumber(qfi)) {
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [qfi]");
         goto end;
@@ -115,7 +94,6 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_parseFromJSON(cJS
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [start_time_stamp]");
         goto end;
     }
-
 
     if (!cJSON_IsString(start_time_stamp)) {
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [start_time_stamp]");
@@ -128,7 +106,6 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_parseFromJSON(cJS
         goto end;
     }
 
-
     if (!cJSON_IsString(end_time_stamp)) {
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [end_time_stamp]");
         goto end;
@@ -139,7 +116,6 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_parseFromJSON(cJS
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [downlink_volume]");
         goto end;
     }
-
 
     if (!cJSON_IsNumber(downlink_volume)) {
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [downlink_volume]");
@@ -152,19 +128,21 @@ OpenAPI_qos_flow_usage_report_t *OpenAPI_qos_flow_usage_report_parseFromJSON(cJS
         goto end;
     }
 
-
     if (!cJSON_IsNumber(uplink_volume)) {
         ogs_error("OpenAPI_qos_flow_usage_report_parseFromJSON() failed [uplink_volume]");
         goto end;
     }
 
     qos_flow_usage_report_local_var = OpenAPI_qos_flow_usage_report_create (
+        
         qfi->valuedouble,
-        ogs_strdup(start_time_stamp->valuestring),
-        ogs_strdup(end_time_stamp->valuestring),
+        ogs_strdup_or_assert(start_time_stamp->valuestring),
+        ogs_strdup_or_assert(end_time_stamp->valuestring),
+        
         downlink_volume->valuedouble,
+        
         uplink_volume->valuedouble
-        );
+    );
 
     return qos_flow_usage_report_local_var;
 end:

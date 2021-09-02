@@ -1,7 +1,7 @@
 /*
  * sm_policy_context_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_sm_policy_context_data_H_
@@ -29,6 +29,7 @@
 #include "subscribed_default_qos.h"
 #include "trace_data.h"
 #include "user_location.h"
+#include "vplmn_qos.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +41,8 @@ typedef struct OpenAPI_sm_policy_context_data_s {
     struct OpenAPI_acc_net_charging_address_s *charg_entity_addr;
     char *gpsi;
     char *supi;
+    bool is_invalid_supi;
+    int invalid_supi;
     OpenAPI_list_t *inter_grp_ids;
     int pdu_session_id;
     OpenAPI_pdu_session_type_e pdu_session_type;
@@ -60,10 +63,16 @@ typedef struct OpenAPI_sm_policy_context_data_s {
     struct OpenAPI_ambr_s *subs_sess_ambr;
     char *auth_prof_index;
     struct OpenAPI_subscribed_default_qos_s *subs_def_qos;
+    struct OpenAPI_vplmn_qos_s *vplmn_qos;
+    bool is_num_of_pack_filter;
     int num_of_pack_filter;
+    bool is_online;
     int online;
+    bool is_offline;
     int offline;
+    bool is__3gpp_ps_data_off_status;
     int _3gpp_ps_data_off_status;
+    bool is_ref_qos_indication;
     int ref_qos_indication;
     struct OpenAPI_trace_data_s *trace_req;
     struct OpenAPI_snssai_s *slice_info;
@@ -74,6 +83,8 @@ typedef struct OpenAPI_sm_policy_context_data_s {
     char *recovery_time;
     OpenAPI_ma_pdu_indication_e ma_pdu_ind;
     struct OpenAPI_atsss_capability_s *atsss_capab;
+    OpenAPI_list_t *ipv4_frame_route_list;
+    OpenAPI_list_t *ipv6_frame_route_list;
 } OpenAPI_sm_policy_context_data_t;
 
 OpenAPI_sm_policy_context_data_t *OpenAPI_sm_policy_context_data_create(
@@ -81,6 +92,8 @@ OpenAPI_sm_policy_context_data_t *OpenAPI_sm_policy_context_data_create(
     OpenAPI_acc_net_charging_address_t *charg_entity_addr,
     char *gpsi,
     char *supi,
+    bool is_invalid_supi,
+    int invalid_supi,
     OpenAPI_list_t *inter_grp_ids,
     int pdu_session_id,
     OpenAPI_pdu_session_type_e pdu_session_type,
@@ -101,10 +114,16 @@ OpenAPI_sm_policy_context_data_t *OpenAPI_sm_policy_context_data_create(
     OpenAPI_ambr_t *subs_sess_ambr,
     char *auth_prof_index,
     OpenAPI_subscribed_default_qos_t *subs_def_qos,
+    OpenAPI_vplmn_qos_t *vplmn_qos,
+    bool is_num_of_pack_filter,
     int num_of_pack_filter,
+    bool is_online,
     int online,
+    bool is_offline,
     int offline,
+    bool is__3gpp_ps_data_off_status,
     int _3gpp_ps_data_off_status,
+    bool is_ref_qos_indication,
     int ref_qos_indication,
     OpenAPI_trace_data_t *trace_req,
     OpenAPI_snssai_t *slice_info,
@@ -114,8 +133,10 @@ OpenAPI_sm_policy_context_data_t *OpenAPI_sm_policy_context_data_create(
     char *smf_id,
     char *recovery_time,
     OpenAPI_ma_pdu_indication_e ma_pdu_ind,
-    OpenAPI_atsss_capability_t *atsss_capab
-    );
+    OpenAPI_atsss_capability_t *atsss_capab,
+    OpenAPI_list_t *ipv4_frame_route_list,
+    OpenAPI_list_t *ipv6_frame_route_list
+);
 void OpenAPI_sm_policy_context_data_free(OpenAPI_sm_policy_context_data_t *sm_policy_context_data);
 OpenAPI_sm_policy_context_data_t *OpenAPI_sm_policy_context_data_parseFromJSON(cJSON *sm_policy_context_dataJSON);
 cJSON *OpenAPI_sm_policy_context_data_convertToJSON(OpenAPI_sm_policy_context_data_t *sm_policy_context_data);

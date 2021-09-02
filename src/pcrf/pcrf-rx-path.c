@@ -51,12 +51,12 @@ static __inline__ struct sess_state *new_state(os0_t sid)
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_alloc(&sess_state_pool, &new);
-    ogs_assert(new);
+    ogs_expect_or_return_val(new, NULL);
     memset(new, 0, sizeof(*new));
     ogs_thread_mutex_unlock(&sess_state_mutex);
 
     new->rx_sid = (os0_t)ogs_strdup((char *)sid);
-    ogs_assert(new->rx_sid);
+    ogs_expect_or_return_val(new->rx_sid, NULL);
 
     return new;
 }
@@ -93,7 +93,7 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
     int rv;
     int ret;
     int len;
-    char *from_str, *to_str, *rx_flow;
+    char *from_str, *to_str, *rx_flow, *to_port, *to_ip, *from_ip, *from_port;
 
 	struct msg *ans, *qry;
     struct avp *avpch1, *avpch2, *avpch3;
@@ -103,6 +103,9 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
     size_t sidlen;
 
     ogs_diam_rx_message_t rx_message;
+    ogs_media_component_t *media_component = NULL;
+    ogs_media_sub_component_t *sub = NULL;
+    ogs_flow_t *flow = NULL;
 
     char buf[OGS_ADDRSTRLEN];
     os0_t gx_sid = NULL;
@@ -146,7 +149,7 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
     /* Set the Auth-Request-Type AVP */
     ret = fd_msg_avp_new(ogs_diam_auth_request_type, 0, &avp);
     ogs_assert(ret == 0);
-    val.i32 = 1;
+    val.i32 = OGS_DIAM_AUTH_REQUEST_TYPE_AUTHENTICATE_ONLY;
     ret = fd_msg_avp_setvalue(avp, &val);
     ogs_assert(ret == 0);
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
@@ -218,9 +221,8 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
             break;
         /* Gwt Media-Component-Description */
         case OGS_DIAM_RX_AVP_CODE_MEDIA_COMPONENT_DESCRIPTION:
-        {
-            ogs_diam_rx_media_component_t *media_component = &rx_message.
-                    media_component[rx_message.num_of_media_component];
+            media_component = &rx_message.ims_data.
+                    media_component[rx_message.ims_data.num_of_media_component];
 
             ret = fd_msg_browse(avpch1, MSG_BRW_FIRST_CHILD, &avpch2, NULL);
             ogs_assert(ret == 0);
@@ -257,10 +259,11 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
                     media_component->min_requested_bandwidth_ul =
                         hdr->avp_value->i32;
                     break;
+                case OGS_DIAM_RX_AVP_CODE_FLOW_STATUS:
+                    media_component->flow_status = hdr->avp_value->i32;
+                    break;
                 case OGS_DIAM_RX_AVP_CODE_MEDIA_SUB_COMPONENT:
-                {
-                    ogs_diam_rx_media_sub_component_t *sub = &media_component->
-                        sub[media_component->num_of_sub];
+                    sub = &media_component->sub[media_component->num_of_sub];
 
                     ret = fd_msg_browse(avpch2, MSG_BRW_FIRST_CHILD,
                             &avpch3, NULL);
@@ -278,14 +281,14 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
                                 hdr->avp_value->i32;
                             break;
                         case OGS_DIAM_RX_AVP_CODE_FLOW_DESCRIPTION:
-                        {
-                            ogs_flow_t *flow = &sub->flow
-                                [sub->num_of_flow];
+                            ogs_assert(sub->num_of_flow <
+                                    OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT);
+                            flow = &sub->flow[sub->num_of_flow];
 
                             /* IE (IPV4-local-addr field ) is not supported on
                              * the LTE pre release-11 UEs. In order for the call
                              * to work the local address in packet filter must
-                             * be replaced by any.
+                             * be replaced by 'any local port'.
                              */
                             if (ogs_app()->
                                 parameter.no_ipv4v6_local_addr_in_packet_filter
@@ -296,6 +299,10 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
 
                                 from_str = NULL;
                                 to_str = NULL;
+                                to_ip = NULL;
+                                to_port = NULL;
+                                from_ip = NULL;
+                                from_port = NULL;
                                 from_str = strstr(rx_flow, "from");
                                 ogs_assert(from_str);
                                 to_str = strstr(rx_flow, "to");
@@ -304,40 +311,90 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
                                 if (!strncmp(rx_flow,
                                         "permit out", strlen("permit out"))) {
 
-                                    flow->description = ogs_malloc(len
-                                        - strlen(to_str) + strlen("to any")+1);
+                                    to_ip = strstr(to_str, " ");
+                                    if (to_ip != NULL) {
+                                        // Exclude the starting whitespace
+                                        to_ip += 1;
+
+                                        to_port = strstr(to_ip, " ");
+                                        // Test for no port
+                                        if (to_port != NULL) {
+                                            flow->description = ogs_malloc(len
+                                                - strlen(to_str) +
+                                                strlen("to any")
+                                                + strlen(to_port) + 1);
+                                            ogs_assert(flow->description);
+                                        } else {
+                                            flow->description = ogs_malloc(len
+                                                - strlen(to_str) +
+                                                strlen("to any") + 1);
+                                            ogs_assert(flow->description);
+                                        }
+                                    }
 
                                     strncat(flow->description,
                                         rx_flow,
                                         len - strlen(to_str));
                                     strcat(flow->description, "to any");
+                                    if (to_port != NULL) {
+                                        strncat(flow->description,
+                                            to_port, strlen(to_port));
+                                    }
                                 } else if (!strncmp(rx_flow,
                                             "permit in", strlen("permit in"))) {
 
-                                    flow->description = ogs_malloc(
-                                        len - strlen(from_str) + strlen(to_str)
-                                        + strlen("from any ")+1);
+                                    from_ip = strstr(from_str, " ");
+                                    if (from_ip != NULL) {
+                                        /* Exclude the starting whitespace */
+                                        from_ip += 1;
+
+                                        from_port = strstr(from_ip, " ");
+                                        /* Test for no port +
+                                         * whether from_port is at "to"
+                                         * without any from port */
+                                        if (from_port != NULL &&
+                                            strncmp(from_port, " to", 3)) {
+                                            flow->description = ogs_malloc(
+                                                len - strlen(from_str) +
+                                                strlen(to_str)
+                                                + strlen("from any") + 1
+                                                + (strlen(from_port) -
+                                                    strlen(to_str)));
+                                            ogs_assert(flow->description);
+                                        } else {
+                                            flow->description = ogs_malloc(
+                                                len - strlen(from_str) +
+                                                strlen(to_str)
+                                                + strlen("from any ") + 1);
+                                            ogs_assert(flow->description);
+                                        }
+                                    }
 
                                     strncat(flow->description,
                                         rx_flow,
                                         len - strlen(from_str));
-                                    strcat(flow->description, "from any ");
+                                    if (from_port != NULL &&
+                                        strncmp(from_port, " to", 3)) {
+                                        strcat(flow->description, "from any");
+                                        strncat(flow->description,
+                                            from_port,
+                                            strlen(from_port) - strlen(to_str));
+                                    } else {
+                                        strcat(flow->description, "from any ");
+                                    }
                                     strncat(flow->description,
                                         to_str,
                                         strlen(to_str));
                                 }
                             } else {
-                                flow->description = ogs_malloc(
-                                    hdr->avp_value->os.len+1);
-                                ogs_cpystrn(
-                                    flow->description,
+                                flow->description = ogs_strndup(
                                     (char*)hdr->avp_value->os.data,
-                                    hdr->avp_value->os.len+1);
+                                    hdr->avp_value->os.len);
+                                ogs_assert(flow->description);
                             }
 
                             sub->num_of_flow++;
                             break;
-                        }
                         default:
                             ogs_error("Not supported(%d)",
                                     hdr->avp_code);
@@ -348,7 +405,6 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
 
                     media_component->num_of_sub++;
                     break;
-                }
                 default:
                     ogs_warn("Not supported(%d)", hdr->avp_code);
                     break;
@@ -357,9 +413,8 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
                 fd_msg_browse(avpch2, MSG_BRW_NEXT, &avpch2, NULL);
             }
 
-            rx_message.num_of_media_component++;
+            rx_message.ims_data.num_of_media_component++;
             break;
-        }
         default:
             ogs_warn("Not supported(%d)", hdr->avp_code);
             break;
@@ -392,9 +447,9 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
     ogs_assert(ret == 0);
 
     /* Set RAT-Type */
-    ret = fd_msg_avp_new(ogs_diam_rx_rat_type, 0, &avp);
+    ret = fd_msg_avp_new(ogs_diam_rat_type, 0, &avp);
     ogs_assert(ret == 0);
-    val.i32 = OGS_DIAM_RX_RAT_TYPE_EUTRAN;
+    val.i32 = OGS_DIAM_RAT_TYPE_EUTRAN;
     ret = fd_msg_avp_setvalue(avp, &val);
     ogs_assert(ret == 0);
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
@@ -420,7 +475,7 @@ static int pcrf_rx_aar_cb( struct msg **msg, struct avp *avp,
 	ogs_diam_logger_self()->stats.nb_echoed++;
 	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
-    ogs_diam_rx_message_free(&rx_message);
+    ogs_ims_data_free(&rx_message.ims_data);
     
     return 0;
 
@@ -446,7 +501,7 @@ out:
     ogs_assert(ret == 0);
 
     state_cleanup(sess_data, NULL, NULL);
-    ogs_diam_rx_message_free(&rx_message);
+    ogs_ims_data_free(&rx_message.ims_data);
 
     return 0;
 }
@@ -687,7 +742,7 @@ static int pcrf_rx_str_cb( struct msg **msg, struct avp *avp,
     /* Set the Auth-Request-Type AVP */
     ret = fd_msg_avp_new(ogs_diam_auth_request_type, 0, &avp);
     ogs_assert(ret == 0);
-    val.i32 = 1;
+    val.i32 = OGS_DIAM_AUTH_REQUEST_TYPE_AUTHENTICATE_ONLY;
     ret = fd_msg_avp_setvalue(avp, &val);
     ogs_assert(ret == 0);
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
@@ -741,7 +796,7 @@ static int pcrf_rx_str_cb( struct msg **msg, struct avp *avp,
 	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
     state_cleanup(sess_data, NULL, NULL);
-    ogs_diam_rx_message_free(&rx_message);
+    ogs_ims_data_free(&rx_message.ims_data);
     
     return 0;
 
@@ -769,7 +824,7 @@ out:
     ogs_debug("[PCRF] Session-Termination-Answer");
 
     state_cleanup(sess_data, NULL, NULL);
-    ogs_diam_rx_message_free(&rx_message);
+    ogs_ims_data_free(&rx_message.ims_data);
 
     return 0;
 }

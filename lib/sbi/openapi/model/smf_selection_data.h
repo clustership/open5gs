@@ -1,7 +1,7 @@
 /*
  * smf_selection_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_smf_selection_data_H_
@@ -21,6 +21,7 @@ extern "C" {
 
 typedef struct OpenAPI_smf_selection_data_s OpenAPI_smf_selection_data_t;
 typedef struct OpenAPI_smf_selection_data_s {
+    bool is_unsupp_dnn;
     int unsupp_dnn;
     OpenAPI_list_t* candidates;
     struct OpenAPI_snssai_s *snssai;
@@ -29,12 +30,13 @@ typedef struct OpenAPI_smf_selection_data_s {
 } OpenAPI_smf_selection_data_t;
 
 OpenAPI_smf_selection_data_t *OpenAPI_smf_selection_data_create(
+    bool is_unsupp_dnn,
     int unsupp_dnn,
     OpenAPI_list_t* candidates,
     OpenAPI_snssai_t *snssai,
     OpenAPI_snssai_t *mapping_snssai,
     char *dnn
-    );
+);
 void OpenAPI_smf_selection_data_free(OpenAPI_smf_selection_data_t *smf_selection_data);
 OpenAPI_smf_selection_data_t *OpenAPI_smf_selection_data_parseFromJSON(cJSON *smf_selection_dataJSON);
 cJSON *OpenAPI_smf_selection_data_convertToJSON(OpenAPI_smf_selection_data_t *smf_selection_data);

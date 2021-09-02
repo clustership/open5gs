@@ -1,7 +1,7 @@
 /*
  * sm_context_created_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_sm_context_created_data_H_
@@ -27,6 +27,7 @@ typedef struct OpenAPI_sm_context_created_data_s OpenAPI_sm_context_created_data
 typedef struct OpenAPI_sm_context_created_data_s {
     char *h_smf_uri;
     char *smf_uri;
+    bool is_pdu_session_id;
     int pdu_session_id;
     struct OpenAPI_snssai_s *s_nssai;
     OpenAPI_up_cnx_state_e up_cnx_state;
@@ -45,6 +46,7 @@ typedef struct OpenAPI_sm_context_created_data_s {
 OpenAPI_sm_context_created_data_t *OpenAPI_sm_context_created_data_create(
     char *h_smf_uri,
     char *smf_uri,
+    bool is_pdu_session_id,
     int pdu_session_id,
     OpenAPI_snssai_t *s_nssai,
     OpenAPI_up_cnx_state_e up_cnx_state,
@@ -58,7 +60,7 @@ OpenAPI_sm_context_created_data_t *OpenAPI_sm_context_created_data_create(
     char *supported_features,
     char *selected_smf_id,
     char *selected_old_smf_id
-    );
+);
 void OpenAPI_sm_context_created_data_free(OpenAPI_sm_context_created_data_t *sm_context_created_data);
 OpenAPI_sm_context_created_data_t *OpenAPI_sm_context_created_data_parseFromJSON(cJSON *sm_context_created_dataJSON);
 cJSON *OpenAPI_sm_context_created_data_convertToJSON(OpenAPI_sm_context_created_data_t *sm_context_created_data);

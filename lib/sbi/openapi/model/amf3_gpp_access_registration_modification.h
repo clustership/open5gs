@@ -1,7 +1,7 @@
 /*
  * amf3_gpp_access_registration_modification.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_amf3_gpp_access_registration_modification_H_
@@ -24,25 +24,27 @@ extern "C" {
 typedef struct OpenAPI_amf3_gpp_access_registration_modification_s OpenAPI_amf3_gpp_access_registration_modification_t;
 typedef struct OpenAPI_amf3_gpp_access_registration_modification_s {
     struct OpenAPI_guami_s *guami;
+    bool is_purge_flag;
     int purge_flag;
     char *pei;
-    struct OpenAPI_ims_vo_ps_s *ims_vo_ps;
+    OpenAPI_ims_vo_ps_e ims_vo_ps;
     OpenAPI_list_t *backup_amf_info;
     struct OpenAPI_eps_interworking_info_s *eps_interworking_info;
+    bool is_ue_srvcc_capability;
     int ue_srvcc_capability;
-    int no_ee_subscription_ind;
 } OpenAPI_amf3_gpp_access_registration_modification_t;
 
 OpenAPI_amf3_gpp_access_registration_modification_t *OpenAPI_amf3_gpp_access_registration_modification_create(
     OpenAPI_guami_t *guami,
+    bool is_purge_flag,
     int purge_flag,
     char *pei,
-    OpenAPI_ims_vo_ps_t *ims_vo_ps,
+    OpenAPI_ims_vo_ps_e ims_vo_ps,
     OpenAPI_list_t *backup_amf_info,
     OpenAPI_eps_interworking_info_t *eps_interworking_info,
-    int ue_srvcc_capability,
-    int no_ee_subscription_ind
-    );
+    bool is_ue_srvcc_capability,
+    int ue_srvcc_capability
+);
 void OpenAPI_amf3_gpp_access_registration_modification_free(OpenAPI_amf3_gpp_access_registration_modification_t *amf3_gpp_access_registration_modification);
 OpenAPI_amf3_gpp_access_registration_modification_t *OpenAPI_amf3_gpp_access_registration_modification_parseFromJSON(cJSON *amf3_gpp_access_registration_modificationJSON);
 cJSON *OpenAPI_amf3_gpp_access_registration_modification_convertToJSON(OpenAPI_amf3_gpp_access_registration_modification_t *amf3_gpp_access_registration_modification);

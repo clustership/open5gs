@@ -80,26 +80,9 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        rv = smf_gtp_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish S11-GTP path");
-        }
-
-        rv = smf_pfcp_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish N4-PFCP path");
-        }
-
-        rv = smf_sbi_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish SBI path");
-        }
         break;
 
     case OGS_FSM_EXIT_SIG:
-        smf_gtp_close();
-        smf_pfcp_close();
-        smf_sbi_close();
         break;
 
     case SMF_EVT_S5C_MESSAGE:
@@ -151,6 +134,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         case OGS_GTP_DELETE_SESSION_REQUEST_TYPE:
             smf_s5c_handle_delete_session_request(
                 sess, gtp_xact, &gtp_message.delete_session_request);
+            break;
+        case OGS_GTP_MODIFY_BEARER_REQUEST_TYPE:
+            smf_s5c_handle_modify_bearer_request(
+                sess, gtp_xact, &gtp_message.modify_bearer_request);
             break;
         case OGS_GTP_CREATE_BEARER_RESPONSE_TYPE:
             smf_s5c_handle_create_bearer_response(
@@ -266,8 +253,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         if (rv != OGS_OK) {
             /* 'sbi_message' buffer is released in ogs_sbi_parse_request() */
             ogs_error("cannot parse HTTP sbi_message");
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    NULL, "cannot parse HTTP sbi_message", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    NULL, "cannot parse HTTP sbi_message", NULL));
             break;
         }
 
@@ -282,8 +271,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(api_version);
         if (strcmp(sbi_message.h.api.version, api_version) != 0) {
             ogs_error("Not supported version [%s]", sbi_message.h.api.version);
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    &sbi_message, "Not supported version", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    &sbi_message, "Not supported version", NULL));
             ogs_sbi_message_free(&sbi_message);
             break;
         }
@@ -300,19 +291,21 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
                 DEFAULT
                     ogs_error("Invalid HTTP method [%s]", sbi_message.h.method);
-                    ogs_sbi_server_send_error(stream,
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
                             OGS_SBI_HTTP_STATUS_FORBIDDEN, &sbi_message,
-                            "Invalid HTTP method", sbi_message.h.method);
+                            "Invalid HTTP method", sbi_message.h.method));
                 END
                 break;
 
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         sbi_message.h.resource.component[0]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                         "Invalid resource name",
-                        sbi_message.h.resource.component[0]);
+                        sbi_message.h.resource.component[0]));
             END
             break;
 
@@ -354,9 +347,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
                 DEFAULT
                     ogs_error("Invalid HTTP method [%s]", sbi_message.h.method);
-                    ogs_sbi_server_send_error(stream,
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
                             OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
-                            "Invalid HTTP method", sbi_message.h.method);
+                            "Invalid HTTP method", sbi_message.h.method));
                     break;
                 END
 
@@ -378,10 +372,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         sbi_message.h.resource.component[0]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
                         "Invalid resource name",
-                        sbi_message.h.resource.component[0]);
+                        sbi_message.h.resource.component[0]));
             END
             break;
 
@@ -391,27 +386,26 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 smf_namf_comm_handler_n1_n2_message_transfer_failure_notify(
                         stream, &sbi_message);
                 break;
+            CASE(OGS_SBI_RESOURCE_NAME_SM_POLICY_NOTIFY)
+                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+                break;
             DEFAULT
-                SWITCH(sbi_message.h.resource.component[1])
-                CASE(OGS_SBI_RESOURCE_NAME_SM_POLICY_NOTIFY)
-                    /* TODO */
-
-                DEFAULT
-                    ogs_error("Invalid resource name [%s]",
-                            sbi_message.h.resource.component[1]);
+                ogs_error("Invalid resource name [%s]",
+                        sbi_message.h.resource.component[0]);
+                ogs_assert(true ==
                     ogs_sbi_server_send_error(stream,
-                            OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
-                            "Invalid resource name",
-                            sbi_message.h.resource.component[1]);
-                END
+                        OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
+                        "Invalid resource name",
+                        sbi_message.h.resource.component[0]));
             END
             break;
 
         DEFAULT
             ogs_error("Invalid API name [%s]", sbi_message.h.service.name);
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_BAD_REQUEST, &sbi_message,
-                    "Invalid API name", sbi_message.h.service.name);
+                    "Invalid API name", sbi_message.h.service.name));
         END
 
         /* In lib/sbi/server.c, notify_completed() releases 'request' buffer. */
@@ -535,6 +529,12 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
             sess = (smf_sess_t *)sbi_xact->sbi_object;
             ogs_assert(sess);
+
+            e->sbi.data = sbi_xact->assoc_stream;
+            e->sbi.state = sbi_xact->state;
+
+            ogs_sbi_xact_remove(sbi_xact);
+
             sess = smf_sess_cycle(sess);
             ogs_assert(sess);
             smf_ue = sess->smf_ue;
@@ -545,10 +545,6 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
             e->sess = sess;
             e->sbi.message = &sbi_message;
-            e->sbi.data = sbi_xact->assoc_stream;
-            e->sbi.state = sbi_xact->state;
-
-            ogs_sbi_xact_remove(sbi_xact);
 
             ogs_fsm_dispatch(&sess->sm, e);
             if (OGS_FSM_CHECK(&sess->sm, smf_gsm_state_exception)) {
@@ -590,9 +586,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             subscription = e->sbi.data;
             ogs_assert(subscription);
 
-            ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
+            ogs_assert(true ==
+                ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
                     smf_self()->nf_type, subscription->req_nf_instance_id,
-                    subscription->subscr_cond.nf_type);
+                    subscription->subscr_cond.nf_type));
 
             ogs_info("Subscription validity expired [%s]", subscription->id);
             ogs_sbi_subscription_remove(subscription);
@@ -610,9 +607,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
             ogs_error("Cannot receive SBI message");
             if (stream) {
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL,
-                        "Cannot receive SBI message", NULL);
+                        "Cannot receive SBI message", NULL));
             }
             break;
 
@@ -622,7 +620,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             sess = smf_sess_cycle(sess);
             ogs_assert(sess);
 
-            smf_sbi_send_sm_context_status_notify(sess);
+            ogs_assert(true == smf_sbi_send_sm_context_status_notify(sess));
             SMF_SESS_CLEAR(sess);
             break;
 

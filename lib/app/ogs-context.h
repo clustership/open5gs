@@ -64,6 +64,7 @@ typedef struct ogs_app_context_s {
         int no_udm;
         int no_pcf;
         int no_nssf;
+        int no_bsf;
         int no_udr;
         int no_nrf;
 
@@ -75,6 +76,8 @@ typedef struct ogs_app_context_s {
 
         int use_openair;
         int no_ipv4v6_local_addr_in_packet_filter;
+
+        int no_pfcp_rr_select;
     } parameter;
 
     struct {
@@ -115,12 +118,13 @@ typedef struct ogs_app_context_s {
         uint64_t tunnel;
         uint64_t nf_service;
         uint64_t nf_subscription;
-        uint64_t sbi_message;
 
         uint64_t csmap;
 
+        uint64_t message;
         uint64_t event;
         uint64_t timer;
+
         uint64_t socket;
         uint64_t gtp_xact;
         uint64_t gtp_node;

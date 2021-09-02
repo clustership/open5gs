@@ -101,8 +101,11 @@ void hss_context_init(void)
     ogs_pool_init(&impu_pool, ogs_app()->pool.impu);
 
     self.imsi_hash = ogs_hash_make();
+    ogs_assert(self.imsi_hash);
     self.impi_hash = ogs_hash_make();
+    ogs_assert(self.impi_hash);
     self.impu_hash = ogs_hash_make();
+    ogs_assert(self.impu_hash);
 
     ogs_thread_mutex_init(&self.db_lock);
     ogs_thread_mutex_init(&self.cx_lock);
@@ -205,6 +208,9 @@ int hss_context_parse_config(void)
                             } else if (!strcmp(fd_key, "listen_on")) {
                                 self.diam_config->cnf_addr = 
                                     ogs_yaml_iter_value(&fd_iter);
+                            } else if (!strcmp(fd_key, "no_fwd")) {
+                                self.diam_config->cnf_flags.no_fwd =
+                                    ogs_yaml_iter_bool(&fd_iter);
                             } else if (!strcmp(fd_key, "load_extension")) {
                                 ogs_yaml_iter_t ext_array, ext_iter;
                                 ogs_yaml_iter_recurse(&fd_iter, &ext_array);
@@ -856,20 +862,15 @@ char *hss_cx_download_user_data(
     for (i = 0; i < ims_data->num_of_msisdn; i++) {
         char *public_identity = NULL;
 
-        public_identity = ogs_msprintf("tel:%s", ims_data->msisdn[i].bcd);
-        ogs_assert(public_identity);
-        hss_cx_associate_identity(user_name, public_identity);
-        ogs_free(public_identity);
-
-        public_identity = ogs_msprintf("sip:%s", ims_data->msisdn[i].bcd);
-        ogs_assert(public_identity);
-        hss_cx_associate_identity(user_name, public_identity);
-        ogs_free(public_identity);
-
         public_identity = ogs_msprintf(
                 "sip:%s@ims.mnc%03d.mcc%03d.3gppnetwork.org",
                 ims_data->msisdn[i].bcd,
                 ogs_plmn_id_mnc(plmn_id), ogs_plmn_id_mcc(plmn_id));
+        ogs_assert(public_identity);
+        hss_cx_associate_identity(user_name, public_identity);
+        ogs_free(public_identity);
+
+        public_identity = ogs_msprintf("tel:%s", ims_data->msisdn[i].bcd);
         ogs_assert(public_identity);
         hss_cx_associate_identity(user_name, public_identity);
         ogs_free(public_identity);

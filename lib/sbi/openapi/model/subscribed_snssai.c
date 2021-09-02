@@ -6,14 +6,16 @@
 
 OpenAPI_subscribed_snssai_t *OpenAPI_subscribed_snssai_create(
     OpenAPI_snssai_t *subscribed_snssai,
+    bool is_default_indication,
     int default_indication
-    )
+)
 {
     OpenAPI_subscribed_snssai_t *subscribed_snssai_local_var = OpenAPI_malloc(sizeof(OpenAPI_subscribed_snssai_t));
     if (!subscribed_snssai_local_var) {
         return NULL;
     }
     subscribed_snssai_local_var->subscribed_snssai = subscribed_snssai;
+    subscribed_snssai_local_var->is_default_indication = is_default_indication;
     subscribed_snssai_local_var->default_indication = default_indication;
 
     return subscribed_snssai_local_var;
@@ -39,10 +41,6 @@ cJSON *OpenAPI_subscribed_snssai_convertToJSON(OpenAPI_subscribed_snssai_t *subs
     }
 
     item = cJSON_CreateObject();
-    if (!subscribed_snssai->subscribed_snssai) {
-        ogs_error("OpenAPI_subscribed_snssai_convertToJSON() failed [subscribed_snssai]");
-        goto end;
-    }
     cJSON *subscribed_snssai_local_JSON = OpenAPI_snssai_convertToJSON(subscribed_snssai->subscribed_snssai);
     if (subscribed_snssai_local_JSON == NULL) {
         ogs_error("OpenAPI_subscribed_snssai_convertToJSON() failed [subscribed_snssai]");
@@ -54,11 +52,11 @@ cJSON *OpenAPI_subscribed_snssai_convertToJSON(OpenAPI_subscribed_snssai_t *subs
         goto end;
     }
 
-    if (subscribed_snssai->default_indication) {
-        if (cJSON_AddBoolToObject(item, "defaultIndication", subscribed_snssai->default_indication) == NULL) {
-            ogs_error("OpenAPI_subscribed_snssai_convertToJSON() failed [default_indication]");
-            goto end;
-        }
+    if (subscribed_snssai->is_default_indication) {
+    if (cJSON_AddBoolToObject(item, "defaultIndication", subscribed_snssai->default_indication) == NULL) {
+        ogs_error("OpenAPI_subscribed_snssai_convertToJSON() failed [default_indication]");
+        goto end;
+    }
     }
 
 end:
@@ -75,22 +73,22 @@ OpenAPI_subscribed_snssai_t *OpenAPI_subscribed_snssai_parseFromJSON(cJSON *subs
     }
 
     OpenAPI_snssai_t *subscribed_snssai_local_nonprim = NULL;
-
     subscribed_snssai_local_nonprim = OpenAPI_snssai_parseFromJSON(subscribed_snssai);
 
     cJSON *default_indication = cJSON_GetObjectItemCaseSensitive(subscribed_snssaiJSON, "defaultIndication");
 
     if (default_indication) {
-        if (!cJSON_IsBool(default_indication)) {
-            ogs_error("OpenAPI_subscribed_snssai_parseFromJSON() failed [default_indication]");
-            goto end;
-        }
+    if (!cJSON_IsBool(default_indication)) {
+        ogs_error("OpenAPI_subscribed_snssai_parseFromJSON() failed [default_indication]");
+        goto end;
+    }
     }
 
     subscribed_snssai_local_var = OpenAPI_subscribed_snssai_create (
         subscribed_snssai_local_nonprim,
+        default_indication ? true : false,
         default_indication ? default_indication->valueint : 0
-        );
+    );
 
     return subscribed_snssai_local_var;
 end:

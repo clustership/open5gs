@@ -153,8 +153,11 @@ void smf_gx_handle_cca_initial_request(
     dl_far->apply_action = OGS_PFCP_APPLY_ACTION_FORW;
 
     /* Set Outer Header Creation to the Default DL FAR */
-    ogs_pfcp_ip_to_outer_header_creation(&bearer->sgw_s5u_ip,
-        &dl_far->outer_header_creation, &dl_far->outer_header_creation_len);
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_ip_to_outer_header_creation(
+            &bearer->sgw_s5u_ip,
+            &dl_far->outer_header_creation,
+            &dl_far->outer_header_creation_len));
     dl_far->outer_header_creation.teid = bearer->sgw_s5u_teid;
 
     /* Setup PDR */
@@ -168,17 +171,19 @@ void smf_gx_handle_cca_initial_request(
     ogs_assert(up2cp_pdr);
 
     /* Set UE IP Address to the Default DL PDR */
-    ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
-            &dl_pdr->ue_ip_addr, &dl_pdr->ue_ip_addr_len);
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
+            &dl_pdr->ue_ip_addr, &dl_pdr->ue_ip_addr_len));
     dl_pdr->ue_ip_addr.sd = OGS_PFCP_UE_IP_DST;
 
     /* Set UE-to-CP Flow-Description and Outer-Header-Creation */
     up2cp_pdr->flow_description[up2cp_pdr->num_of_flow++] =
         (char *)"permit out 58 from ff02::2/128 to assigned";
-    ogs_pfcp_ip_to_outer_header_creation(
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_ip_to_outer_header_creation(
             &ogs_gtp_self()->gtpu_ip,
             &up2cp_far->outer_header_creation,
-            &up2cp_far->outer_header_creation_len);
+            &up2cp_far->outer_header_creation_len));
     up2cp_far->outer_header_creation.teid = sess->index;
 
     /* Set F-TEID */
@@ -197,7 +202,15 @@ void smf_gx_handle_cca_initial_request(
         up2cp_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;
         up2cp_pdr->f_teid_len = 2;
     } else {
-        ogs_gtpu_resource_t *resource = ogs_pfcp_find_gtpu_resource(
+        char buf[OGS_ADDRSTRLEN];
+        ogs_gtpu_resource_t *resource = NULL;
+        ogs_sockaddr_t *addr = sess->pfcp_node->sa_list;
+        ogs_assert(addr);
+
+        ogs_error("F-TEID allocation/release not supported with peer [%s]:%d",
+                OGS_ADDR(addr, buf), OGS_PORT(addr));
+
+        resource = ogs_pfcp_find_gtpu_resource(
                 &sess->pfcp_node->gtpu_resource_list,
                 sess->session.name, OGS_PFCP_INTERFACE_ACCESS);
         if (resource) {
@@ -211,29 +224,35 @@ void smf_gx_handle_cca_initial_request(
                 bearer->pgw_s5u_teid = bearer->index;
         } else {
             if (sess->pfcp_node->addr.ogs_sa_family == AF_INET)
-                ogs_copyaddrinfo(&bearer->pgw_s5u_addr, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &bearer->pgw_s5u_addr, &sess->pfcp_node->addr));
             else if (sess->pfcp_node->addr.ogs_sa_family == AF_INET6)
-                ogs_copyaddrinfo(
-                        &bearer->pgw_s5u_addr6, &sess->pfcp_node->addr);
+                ogs_assert(OGS_OK ==
+                    ogs_copyaddrinfo(
+                        &bearer->pgw_s5u_addr6, &sess->pfcp_node->addr));
             else
                 ogs_assert_if_reached();
 
             bearer->pgw_s5u_teid = bearer->index;
         }
 
-        ogs_assert(bearer->pgw_s5u_addr || bearer->pgw_s5u_addr6);
-        ogs_pfcp_sockaddr_to_f_teid(bearer->pgw_s5u_addr, bearer->pgw_s5u_addr6,
-                &ul_pdr->f_teid, &ul_pdr->f_teid_len);
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
+                bearer->pgw_s5u_addr, bearer->pgw_s5u_addr6,
+                &ul_pdr->f_teid, &ul_pdr->f_teid_len));
         ul_pdr->f_teid.teid = bearer->pgw_s5u_teid;
 
-        ogs_assert(ogs_gtp_self()->gtpu_addr || ogs_gtp_self()->gtpu_addr6);
-        ogs_pfcp_sockaddr_to_f_teid(
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
                 ogs_gtp_self()->gtpu_addr, ogs_gtp_self()->gtpu_addr6,
-                &cp2up_pdr->f_teid, &cp2up_pdr->f_teid_len);
+                &cp2up_pdr->f_teid, &cp2up_pdr->f_teid_len));
         cp2up_pdr->f_teid.teid = bearer->index;
 
-        ogs_pfcp_sockaddr_to_f_teid(sess->upf_n3_addr, sess->upf_n3_addr6,
-                &up2cp_pdr->f_teid, &up2cp_pdr->f_teid_len);
+        ogs_assert(OGS_OK ==
+            ogs_pfcp_sockaddr_to_f_teid(
+                bearer->pgw_s5u_addr, bearer->pgw_s5u_addr6,
+                &up2cp_pdr->f_teid, &up2cp_pdr->f_teid_len));
         up2cp_pdr->f_teid.teid = bearer->pgw_s5u_teid;
     }
 
@@ -248,7 +267,8 @@ void smf_gx_handle_cca_initial_request(
         ogs_pfcp_pdr_associate_qer(ul_pdr, qer);
     }
 
-    smf_epc_pfcp_send_session_establishment_request(sess, gtp_xact);
+    ogs_assert(OGS_OK ==
+        smf_epc_pfcp_send_session_establishment_request(sess, gtp_xact));
 }
 
 void smf_gx_handle_cca_termination_request(
@@ -263,7 +283,14 @@ void smf_gx_handle_cca_termination_request(
     ogs_debug("    SGW_S5C_TEID[0x%x] SMF_N4_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->smf_n4_teid);
 
-    smf_epc_pfcp_send_session_deletion_request(sess, gtp_xact);
+    /*
+     * << 'gtp_xact' is NOT NULL >>
+     *
+     * 1. MME sends Delete Session Request to SGW/SMF.
+     * 2. SMF sends Delete Session Response to SGW/MME.
+     */
+    ogs_assert(OGS_OK ==
+        smf_epc_pfcp_send_session_deletion_request(sess, gtp_xact));
 }
 
 void smf_gx_handle_re_auth_request(

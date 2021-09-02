@@ -6,14 +6,16 @@
 
 OpenAPI_time_period_t *OpenAPI_time_period_create(
     OpenAPI_periodicity_t *period,
+    bool is_max_num_period,
     int max_num_period
-    )
+)
 {
     OpenAPI_time_period_t *time_period_local_var = OpenAPI_malloc(sizeof(OpenAPI_time_period_t));
     if (!time_period_local_var) {
         return NULL;
     }
     time_period_local_var->period = period;
+    time_period_local_var->is_max_num_period = is_max_num_period;
     time_period_local_var->max_num_period = max_num_period;
 
     return time_period_local_var;
@@ -39,10 +41,6 @@ cJSON *OpenAPI_time_period_convertToJSON(OpenAPI_time_period_t *time_period)
     }
 
     item = cJSON_CreateObject();
-    if (!time_period->period) {
-        ogs_error("OpenAPI_time_period_convertToJSON() failed [period]");
-        goto end;
-    }
     cJSON *period_local_JSON = OpenAPI_periodicity_convertToJSON(time_period->period);
     if (period_local_JSON == NULL) {
         ogs_error("OpenAPI_time_period_convertToJSON() failed [period]");
@@ -54,11 +52,11 @@ cJSON *OpenAPI_time_period_convertToJSON(OpenAPI_time_period_t *time_period)
         goto end;
     }
 
-    if (time_period->max_num_period) {
-        if (cJSON_AddNumberToObject(item, "maxNumPeriod", time_period->max_num_period) == NULL) {
-            ogs_error("OpenAPI_time_period_convertToJSON() failed [max_num_period]");
-            goto end;
-        }
+    if (time_period->is_max_num_period) {
+    if (cJSON_AddNumberToObject(item, "maxNumPeriod", time_period->max_num_period) == NULL) {
+        ogs_error("OpenAPI_time_period_convertToJSON() failed [max_num_period]");
+        goto end;
+    }
     }
 
 end:
@@ -75,22 +73,22 @@ OpenAPI_time_period_t *OpenAPI_time_period_parseFromJSON(cJSON *time_periodJSON)
     }
 
     OpenAPI_periodicity_t *period_local_nonprim = NULL;
-
     period_local_nonprim = OpenAPI_periodicity_parseFromJSON(period);
 
     cJSON *max_num_period = cJSON_GetObjectItemCaseSensitive(time_periodJSON, "maxNumPeriod");
 
     if (max_num_period) {
-        if (!cJSON_IsNumber(max_num_period)) {
-            ogs_error("OpenAPI_time_period_parseFromJSON() failed [max_num_period]");
-            goto end;
-        }
+    if (!cJSON_IsNumber(max_num_period)) {
+        ogs_error("OpenAPI_time_period_parseFromJSON() failed [max_num_period]");
+        goto end;
+    }
     }
 
     time_period_local_var = OpenAPI_time_period_create (
         period_local_nonprim,
+        max_num_period ? true : false,
         max_num_period ? max_num_period->valuedouble : 0
-        );
+    );
 
     return time_period_local_var;
 end:

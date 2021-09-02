@@ -5,13 +5,15 @@
 #include "qos_monitoring_info.h"
 
 OpenAPI_qos_monitoring_info_t *OpenAPI_qos_monitoring_info_create(
+    bool is_qos_monitoring_ind,
     int qos_monitoring_ind
-    )
+)
 {
     OpenAPI_qos_monitoring_info_t *qos_monitoring_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_qos_monitoring_info_t));
     if (!qos_monitoring_info_local_var) {
         return NULL;
     }
+    qos_monitoring_info_local_var->is_qos_monitoring_ind = is_qos_monitoring_ind;
     qos_monitoring_info_local_var->qos_monitoring_ind = qos_monitoring_ind;
 
     return qos_monitoring_info_local_var;
@@ -36,11 +38,11 @@ cJSON *OpenAPI_qos_monitoring_info_convertToJSON(OpenAPI_qos_monitoring_info_t *
     }
 
     item = cJSON_CreateObject();
-    if (qos_monitoring_info->qos_monitoring_ind) {
-        if (cJSON_AddBoolToObject(item, "qosMonitoringInd", qos_monitoring_info->qos_monitoring_ind) == NULL) {
-            ogs_error("OpenAPI_qos_monitoring_info_convertToJSON() failed [qos_monitoring_ind]");
-            goto end;
-        }
+    if (qos_monitoring_info->is_qos_monitoring_ind) {
+    if (cJSON_AddBoolToObject(item, "qosMonitoringInd", qos_monitoring_info->qos_monitoring_ind) == NULL) {
+        ogs_error("OpenAPI_qos_monitoring_info_convertToJSON() failed [qos_monitoring_ind]");
+        goto end;
+    }
     }
 
 end:
@@ -53,15 +55,16 @@ OpenAPI_qos_monitoring_info_t *OpenAPI_qos_monitoring_info_parseFromJSON(cJSON *
     cJSON *qos_monitoring_ind = cJSON_GetObjectItemCaseSensitive(qos_monitoring_infoJSON, "qosMonitoringInd");
 
     if (qos_monitoring_ind) {
-        if (!cJSON_IsBool(qos_monitoring_ind)) {
-            ogs_error("OpenAPI_qos_monitoring_info_parseFromJSON() failed [qos_monitoring_ind]");
-            goto end;
-        }
+    if (!cJSON_IsBool(qos_monitoring_ind)) {
+        ogs_error("OpenAPI_qos_monitoring_info_parseFromJSON() failed [qos_monitoring_ind]");
+        goto end;
+    }
     }
 
     qos_monitoring_info_local_var = OpenAPI_qos_monitoring_info_create (
+        qos_monitoring_ind ? true : false,
         qos_monitoring_ind ? qos_monitoring_ind->valueint : 0
-        );
+    );
 
     return qos_monitoring_info_local_var;
 end:

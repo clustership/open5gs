@@ -173,7 +173,7 @@ typedef struct ogs_pfcp_pdr_s {
     ogs_pfcp_qer_t          *qer;
 
     int                     num_of_flow;
-    char                    *flow_description[OGS_MAX_NUM_OF_RULE];
+    char                    *flow_description[OGS_MAX_NUM_OF_FLOW_IN_PDR];
 
     ogs_list_t              rule_list;      /* Rule List */
 
@@ -289,6 +289,8 @@ typedef struct ogs_pfcp_dev_s {
 
     ogs_sockaddr_t  *link_local_addr;
     ogs_poll_t      *poll;
+    bool            is_tap;
+    uint8_t         mac_addr[6];
 } ogs_pfcp_dev_t;
 
 typedef struct ogs_pfcp_subnet_s {
@@ -351,8 +353,8 @@ void ogs_pfcp_node_remove_all(ogs_list_t *list);
 
 ogs_gtpu_resource_t *ogs_pfcp_find_gtpu_resource(ogs_list_t *list,
         char *dnn, ogs_pfcp_interface_t source_interface);
-void ogs_pfcp_setup_far_gtpu_node(ogs_pfcp_far_t *far);
-void ogs_pfcp_setup_pdr_gtpu_node(ogs_pfcp_pdr_t *pdr);
+int ogs_pfcp_setup_far_gtpu_node(ogs_pfcp_far_t *far);
+int ogs_pfcp_setup_pdr_gtpu_node(ogs_pfcp_pdr_t *pdr);
 
 void ogs_pfcp_sess_clear(ogs_pfcp_sess_t *sess);
 
@@ -419,7 +421,7 @@ void ogs_pfcp_rule_remove_all(ogs_pfcp_pdr_t *pdr);
 
 int ogs_pfcp_ue_pool_generate(void);
 ogs_pfcp_ue_ip_t *ogs_pfcp_ue_ip_alloc(
-        int family, const char *dnn, uint8_t *addr);
+        uint8_t *cause_value, int family, const char *dnn, uint8_t *addr);
 void ogs_pfcp_ue_ip_free(ogs_pfcp_ue_ip_t *ip);
 
 ogs_pfcp_dev_t *ogs_pfcp_dev_add(const char *ifname);

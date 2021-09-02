@@ -134,17 +134,19 @@ int upf_pfcp_open(void)
     /* PFCP Server */
     ogs_list_for_each(&ogs_pfcp_self()->pfcp_list, node) {
         sock = ogs_pfcp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
         
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, pfcp_recv_cb, sock);
+        ogs_assert(node->poll);
     }
     ogs_list_for_each(&ogs_pfcp_self()->pfcp_list6, node) {
         sock = ogs_pfcp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, pfcp_recv_cb, sock);
+        ogs_assert(node->poll);
     }
 
     OGS_SETUP_PFCP_SERVER;
@@ -163,7 +165,7 @@ void upf_pfcp_close(void)
     ogs_socknode_remove_all(&ogs_pfcp_self()->pfcp_list6);
 }
 
-void upf_pfcp_send_session_establishment_response(
+int upf_pfcp_send_session_establishment_response(
         ogs_pfcp_xact_t *xact, upf_sess_t *sess,
         ogs_pfcp_pdr_t *created_pdr[], int num_of_created_pdr)
 {
@@ -179,16 +181,18 @@ void upf_pfcp_send_session_establishment_response(
 
     n4buf = upf_n4_build_session_establishment_response(
             h.type, sess, created_pdr, num_of_created_pdr);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     rv = ogs_pfcp_xact_update_tx(xact, &h, n4buf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void upf_pfcp_send_session_modification_response(
+int upf_pfcp_send_session_modification_response(
         ogs_pfcp_xact_t *xact, upf_sess_t *sess,
         ogs_pfcp_pdr_t *created_pdr[], int num_of_created_pdr)
 {
@@ -205,16 +209,18 @@ void upf_pfcp_send_session_modification_response(
 
     n4buf = upf_n4_build_session_modification_response(
             h.type, sess, created_pdr, num_of_created_pdr);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     rv = ogs_pfcp_xact_update_tx(xact, &h, n4buf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void upf_pfcp_send_session_deletion_response(ogs_pfcp_xact_t *xact,
+int upf_pfcp_send_session_deletion_response(ogs_pfcp_xact_t *xact,
         upf_sess_t *sess)
 {
     int rv;
@@ -228,13 +234,15 @@ void upf_pfcp_send_session_deletion_response(ogs_pfcp_xact_t *xact,
     h.seid = sess->smf_n4_seid;
 
     n4buf = upf_n4_build_session_deletion_response(h.type, sess);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     rv = ogs_pfcp_xact_update_tx(xact, &h, n4buf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 static void sess_timeout(ogs_pfcp_xact_t *xact, void *data)
@@ -254,7 +262,7 @@ static void sess_timeout(ogs_pfcp_xact_t *xact, void *data)
     }
 }
 
-void upf_pfcp_send_session_report_request(
+int upf_pfcp_send_session_report_request(
         upf_sess_t *sess, ogs_pfcp_user_plane_report_t *report)
 {
     int rv;
@@ -270,12 +278,14 @@ void upf_pfcp_send_session_report_request(
     h.seid = sess->smf_n4_seid;
 
     n4buf = ogs_pfcp_build_session_report_request(h.type, report);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }

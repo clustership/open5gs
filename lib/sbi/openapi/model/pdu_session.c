@@ -9,7 +9,7 @@ OpenAPI_pdu_session_t *OpenAPI_pdu_session_create(
     char *smf_instance_id,
     OpenAPI_plmn_id_t *plmn_id,
     OpenAPI_snssai_t *single_nssai
-    )
+)
 {
     OpenAPI_pdu_session_t *pdu_session_local_var = OpenAPI_malloc(sizeof(OpenAPI_pdu_session_t));
     if (!pdu_session_local_var) {
@@ -46,28 +46,16 @@ cJSON *OpenAPI_pdu_session_convertToJSON(OpenAPI_pdu_session_t *pdu_session)
     }
 
     item = cJSON_CreateObject();
-    if (!pdu_session->dnn) {
-        ogs_error("OpenAPI_pdu_session_convertToJSON() failed [dnn]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "dnn", pdu_session->dnn) == NULL) {
         ogs_error("OpenAPI_pdu_session_convertToJSON() failed [dnn]");
         goto end;
     }
 
-    if (!pdu_session->smf_instance_id) {
-        ogs_error("OpenAPI_pdu_session_convertToJSON() failed [smf_instance_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "smfInstanceId", pdu_session->smf_instance_id) == NULL) {
         ogs_error("OpenAPI_pdu_session_convertToJSON() failed [smf_instance_id]");
         goto end;
     }
 
-    if (!pdu_session->plmn_id) {
-        ogs_error("OpenAPI_pdu_session_convertToJSON() failed [plmn_id]");
-        goto end;
-    }
     cJSON *plmn_id_local_JSON = OpenAPI_plmn_id_convertToJSON(pdu_session->plmn_id);
     if (plmn_id_local_JSON == NULL) {
         ogs_error("OpenAPI_pdu_session_convertToJSON() failed [plmn_id]");
@@ -80,16 +68,16 @@ cJSON *OpenAPI_pdu_session_convertToJSON(OpenAPI_pdu_session_t *pdu_session)
     }
 
     if (pdu_session->single_nssai) {
-        cJSON *single_nssai_local_JSON = OpenAPI_snssai_convertToJSON(pdu_session->single_nssai);
-        if (single_nssai_local_JSON == NULL) {
-            ogs_error("OpenAPI_pdu_session_convertToJSON() failed [single_nssai]");
-            goto end;
-        }
-        cJSON_AddItemToObject(item, "singleNssai", single_nssai_local_JSON);
-        if (item->child == NULL) {
-            ogs_error("OpenAPI_pdu_session_convertToJSON() failed [single_nssai]");
-            goto end;
-        }
+    cJSON *single_nssai_local_JSON = OpenAPI_snssai_convertToJSON(pdu_session->single_nssai);
+    if (single_nssai_local_JSON == NULL) {
+        ogs_error("OpenAPI_pdu_session_convertToJSON() failed [single_nssai]");
+        goto end;
+    }
+    cJSON_AddItemToObject(item, "singleNssai", single_nssai_local_JSON);
+    if (item->child == NULL) {
+        ogs_error("OpenAPI_pdu_session_convertToJSON() failed [single_nssai]");
+        goto end;
+    }
     }
 
 end:
@@ -105,7 +93,6 @@ OpenAPI_pdu_session_t *OpenAPI_pdu_session_parseFromJSON(cJSON *pdu_sessionJSON)
         goto end;
     }
 
-
     if (!cJSON_IsString(dnn)) {
         ogs_error("OpenAPI_pdu_session_parseFromJSON() failed [dnn]");
         goto end;
@@ -116,7 +103,6 @@ OpenAPI_pdu_session_t *OpenAPI_pdu_session_parseFromJSON(cJSON *pdu_sessionJSON)
         ogs_error("OpenAPI_pdu_session_parseFromJSON() failed [smf_instance_id]");
         goto end;
     }
-
 
     if (!cJSON_IsString(smf_instance_id)) {
         ogs_error("OpenAPI_pdu_session_parseFromJSON() failed [smf_instance_id]");
@@ -130,22 +116,21 @@ OpenAPI_pdu_session_t *OpenAPI_pdu_session_parseFromJSON(cJSON *pdu_sessionJSON)
     }
 
     OpenAPI_plmn_id_t *plmn_id_local_nonprim = NULL;
-
     plmn_id_local_nonprim = OpenAPI_plmn_id_parseFromJSON(plmn_id);
 
     cJSON *single_nssai = cJSON_GetObjectItemCaseSensitive(pdu_sessionJSON, "singleNssai");
 
     OpenAPI_snssai_t *single_nssai_local_nonprim = NULL;
     if (single_nssai) {
-        single_nssai_local_nonprim = OpenAPI_snssai_parseFromJSON(single_nssai);
+    single_nssai_local_nonprim = OpenAPI_snssai_parseFromJSON(single_nssai);
     }
 
     pdu_session_local_var = OpenAPI_pdu_session_create (
-        ogs_strdup(dnn->valuestring),
-        ogs_strdup(smf_instance_id->valuestring),
+        ogs_strdup_or_assert(dnn->valuestring),
+        ogs_strdup_or_assert(smf_instance_id->valuestring),
         plmn_id_local_nonprim,
         single_nssai ? single_nssai_local_nonprim : NULL
-        );
+    );
 
     return pdu_session_local_var;
 end:

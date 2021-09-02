@@ -60,7 +60,8 @@ static void test1_func(abts_case *tc, void *data)
 
     test_ue->nr_cgi.cell_id = 0x40001;
 
-    test_ue->nas.registration.type = 0;
+    test_ue->nas.registration.tsc = 0;
+    test_ue->nas.registration.ksi = 0;
     test_ue->nas.registration.follow_on_request = 1;
     test_ue->nas.registration.value = OGS_NAS_5GS_REGISTRATION_TYPE_INITIAL;
 
@@ -92,9 +93,6 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, test_db_insert_ue(test_ue, doc));
 
     /* Send Registration request */
-    test_ue->registration_request_param.gmm_capability = 1;
-    test_ue->registration_request_param.requested_nssai = 0;
-
     gmmbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, gmmbuf);
     sendbuf = testngap_build_initial_ue_message(test_ue, gmmbuf, false, true);
@@ -261,13 +259,10 @@ static void test1_func(abts_case *tc, void *data)
     nasbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, nasbuf);
 
+    memset(&test_ue->registration_request_param, 0,
+            sizeof(test_ue->registration_request_param));
     test_ue->registration_request_param.integrity_protected = 1;
     test_ue->registration_request_param.guti = 1;
-    test_ue->registration_request_param.gmm_capability = 0;
-    test_ue->registration_request_param.requested_nssai = 0;
-    test_ue->registration_request_param.last_visited_registered_tai = 0;
-    test_ue->registration_request_param.ue_usage_setting = 0;
-    test_ue->registration_request_param.update_type = 0;
     gmmbuf = testgmm_build_registration_request(test_ue, nasbuf);
     ABTS_PTR_NOTNULL(tc, gmmbuf);
 
@@ -370,7 +365,8 @@ static void test2_func(abts_case *tc, void *data)
 
     test_ue->nr_cgi.cell_id = 0x40001;
 
-    test_ue->nas.registration.type = 0;
+    test_ue->nas.registration.tsc = 0;
+    test_ue->nas.registration.ksi = 0;
     test_ue->nas.registration.follow_on_request = 1;
     test_ue->nas.registration.value = OGS_NAS_5GS_REGISTRATION_TYPE_INITIAL;
 
@@ -402,32 +398,6 @@ static void test2_func(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, test_db_insert_ue(test_ue, doc));
 
     /* Send Registration request */
-    test_ue->registration_request_param.gmm_capability = 1;
-
-    test_ue->registration_request_param.requested_nssai = 1;
-
-    test_ue->requested_nssai.s_nssai[1].sd.v = 0x000070;
-
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        sst = 2;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        sd.v = OGS_S_NSSAI_NO_SD_VALUE;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        mapped_hplmn_sst = 0;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        mapped_hplmn_sd.v = OGS_S_NSSAI_NO_SD_VALUE;
-    test_ue->requested_nssai.num_of_s_nssai++;
-
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        sst = 3;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        sd.v = 0x000080;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        mapped_hplmn_sst = 0;
-    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
-        mapped_hplmn_sd.v = OGS_S_NSSAI_NO_SD_VALUE;
-    test_ue->requested_nssai.num_of_s_nssai++;
-
     gmmbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, gmmbuf);
     sendbuf = testngap_build_initial_ue_message(test_ue, gmmbuf, false, true);
@@ -454,6 +424,31 @@ static void test2_func(abts_case *tc, void *data)
     testngap_recv(test_ue, recvbuf);
 
     /* Send Security mode complete */
+    test_ue->registration_request_param.gmm_capability = 1;
+    test_ue->registration_request_param.requested_nssai = 1;
+
+    test_ue->requested_nssai.s_nssai[1].sd.v = 0x000070;
+
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        sst = 2;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        sd.v = OGS_S_NSSAI_NO_SD_VALUE;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        mapped_hplmn_sst = 0;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        mapped_hplmn_sd.v = OGS_S_NSSAI_NO_SD_VALUE;
+    test_ue->requested_nssai.num_of_s_nssai++;
+
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        sst = 3;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        sd.v = 0x000080;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        mapped_hplmn_sst = 0;
+    test_ue->requested_nssai.s_nssai[test_ue->requested_nssai.num_of_s_nssai].
+        mapped_hplmn_sd.v = OGS_S_NSSAI_NO_SD_VALUE;
+    test_ue->requested_nssai.num_of_s_nssai++;
+
     nasbuf = testgmm_build_registration_request(test_ue, NULL);
     ABTS_PTR_NOTNULL(tc, nasbuf);
     gmmbuf = testgmm_build_security_mode_complete(test_ue, nasbuf);

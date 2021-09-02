@@ -8,7 +8,7 @@ OpenAPI_confirmation_data_response_t *OpenAPI_confirmation_data_response_create(
     OpenAPI_auth_result_e auth_result,
     char *supi,
     char *kseaf
-    )
+)
 {
     OpenAPI_confirmation_data_response_t *confirmation_data_response_local_var = OpenAPI_malloc(sizeof(OpenAPI_confirmation_data_response_t));
     if (!confirmation_data_response_local_var) {
@@ -42,27 +42,23 @@ cJSON *OpenAPI_confirmation_data_response_convertToJSON(OpenAPI_confirmation_dat
     }
 
     item = cJSON_CreateObject();
-    if (!confirmation_data_response->auth_result) {
-        ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [auth_result]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "authResult", OpenAPI_auth_result_ToString(confirmation_data_response->auth_result)) == NULL) {
         ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [auth_result]");
         goto end;
     }
 
     if (confirmation_data_response->supi) {
-        if (cJSON_AddStringToObject(item, "supi", confirmation_data_response->supi) == NULL) {
-            ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [supi]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "supi", confirmation_data_response->supi) == NULL) {
+        ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [supi]");
+        goto end;
+    }
     }
 
     if (confirmation_data_response->kseaf) {
-        if (cJSON_AddStringToObject(item, "kseaf", confirmation_data_response->kseaf) == NULL) {
-            ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [kseaf]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "kseaf", confirmation_data_response->kseaf) == NULL) {
+        ogs_error("OpenAPI_confirmation_data_response_convertToJSON() failed [kseaf]");
+        goto end;
+    }
     }
 
 end:
@@ -79,7 +75,6 @@ OpenAPI_confirmation_data_response_t *OpenAPI_confirmation_data_response_parseFr
     }
 
     OpenAPI_auth_result_e auth_resultVariable;
-
     if (!cJSON_IsString(auth_result)) {
         ogs_error("OpenAPI_confirmation_data_response_parseFromJSON() failed [auth_result]");
         goto end;
@@ -89,26 +84,26 @@ OpenAPI_confirmation_data_response_t *OpenAPI_confirmation_data_response_parseFr
     cJSON *supi = cJSON_GetObjectItemCaseSensitive(confirmation_data_responseJSON, "supi");
 
     if (supi) {
-        if (!cJSON_IsString(supi)) {
-            ogs_error("OpenAPI_confirmation_data_response_parseFromJSON() failed [supi]");
-            goto end;
-        }
+    if (!cJSON_IsString(supi)) {
+        ogs_error("OpenAPI_confirmation_data_response_parseFromJSON() failed [supi]");
+        goto end;
+    }
     }
 
     cJSON *kseaf = cJSON_GetObjectItemCaseSensitive(confirmation_data_responseJSON, "kseaf");
 
     if (kseaf) {
-        if (!cJSON_IsString(kseaf)) {
-            ogs_error("OpenAPI_confirmation_data_response_parseFromJSON() failed [kseaf]");
-            goto end;
-        }
+    if (!cJSON_IsString(kseaf)) {
+        ogs_error("OpenAPI_confirmation_data_response_parseFromJSON() failed [kseaf]");
+        goto end;
+    }
     }
 
     confirmation_data_response_local_var = OpenAPI_confirmation_data_response_create (
         auth_resultVariable,
-        supi ? ogs_strdup(supi->valuestring) : NULL,
-        kseaf ? ogs_strdup(kseaf->valuestring) : NULL
-        );
+        supi ? ogs_strdup_or_assert(supi->valuestring) : NULL,
+        kseaf ? ogs_strdup_or_assert(kseaf->valuestring) : NULL
+    );
 
     return confirmation_data_response_local_var;
 end:

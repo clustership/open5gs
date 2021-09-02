@@ -67,7 +67,7 @@ static void test1_func(abts_case *tc, void *data)
     test_ue->k_string = "465b5ce8b199b49faa5f0a2ee238a6bc";
     test_ue->opc_string = "e8ed289deba952e4283b54e88e6183ca";
 
-    sess = test_sess_add_by_apn(test_ue, "internet");
+    sess = test_sess_add_by_apn(test_ue, "internet", OGS_GTP_RAT_TYPE_EUTRAN);
     ogs_assert(sess);
 
     /* eNB connects to MME */
@@ -100,6 +100,8 @@ static void test1_func(abts_case *tc, void *data)
             0, sizeof(sess->pdn_connectivity_param));
     sess->pdn_connectivity_param.eit = 1;
     sess->pdn_connectivity_param.pco = 1;
+    sess->pdn_connectivity_param.request_type =
+        OGS_NAS_EPS_REQUEST_TYPE_INITIAL;
     esmbuf = testesm_build_pdn_connectivity_request(sess);
     ABTS_PTR_NOTNULL(tc, esmbuf);
 
@@ -156,7 +158,7 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request +
+    /* Receive InitialContextSetupRequest +
      * Attach Accept +
      * Activate Default Bearer Context Request */
     recvbuf = testenb_s1ap_read(s1ap);
@@ -169,7 +171,7 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -194,19 +196,19 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Request */
+    /* Send UEContextReleaseRequest */
     sendbuf = test_s1ap_build_ue_context_release_request(test_ue,
             S1AP_Cause_PR_radioNetwork, S1AP_CauseRadioNetwork_user_inactivity);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -221,7 +223,7 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request */
+    /* Receive InitialContextSetupRequest */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
@@ -232,7 +234,7 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -260,14 +262,14 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive OLD UE Context Release Command */
+    /* Receive OLD UEContextReleaseCommand */
     enb_ue_s1ap_id = test_ue->enb_ue_s1ap_id;
 
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send OLD UE Context Release Complete */
+    /* Send OLD UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -280,7 +282,7 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -309,14 +311,14 @@ static void test1_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive OLD UE Context Release Command */
+    /* Receive OLD UEContextReleaseCommand */
     enb_ue_s1ap_id = test_ue->enb_ue_s1ap_id;
 
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send OLD UE Context Release Complete */
+    /* Send OLD UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -329,12 +331,12 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -402,7 +404,7 @@ static void test2_func(abts_case *tc, void *data)
     test_ue->k_string = "465b5ce8b199b49faa5f0a2ee238a6bc";
     test_ue->opc_string = "e8ed289deba952e4283b54e88e6183ca";
 
-    sess = test_sess_add_by_apn(test_ue, "internet");
+    sess = test_sess_add_by_apn(test_ue, "internet", OGS_GTP_RAT_TYPE_EUTRAN);
     ogs_assert(sess);
 
     /* eNB connects to MME */
@@ -435,6 +437,8 @@ static void test2_func(abts_case *tc, void *data)
             0, sizeof(sess->pdn_connectivity_param));
     sess->pdn_connectivity_param.eit = 1;
     sess->pdn_connectivity_param.pco = 1;
+    sess->pdn_connectivity_param.request_type =
+        OGS_NAS_EPS_REQUEST_TYPE_INITIAL;
     esmbuf = testesm_build_pdn_connectivity_request(sess);
     ABTS_PTR_NOTNULL(tc, esmbuf);
 
@@ -491,7 +495,7 @@ static void test2_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request +
+    /* Receive InitialContextSetupRequest +
      * Attach Accept +
      * Activate Default Bearer Context Request */
     recvbuf = testenb_s1ap_read(s1ap);
@@ -504,7 +508,7 @@ static void test2_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -554,14 +558,14 @@ static void test2_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive OLD UE Context Release Command */
+    /* Receive OLD UEContextReleaseCommand */
     enb_ue_s1ap_id = test_ue->enb_ue_s1ap_id;
 
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send OLD UE Context Release Complete */
+    /* Send OLD UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -574,12 +578,12 @@ static void test2_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -594,7 +598,7 @@ static void test2_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request */
+    /* Receive InitialContextSetupRequest */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
@@ -605,25 +609,25 @@ static void test2_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send UE Context Release Request */
+    /* Send UEContextReleaseRequest */
     sendbuf = test_s1ap_build_ue_context_release_request(test_ue,
             S1AP_Cause_PR_radioNetwork, S1AP_CauseRadioNetwork_user_inactivity);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -691,7 +695,7 @@ static void test3_func(abts_case *tc, void *data)
     test_ue->k_string = "465b5ce8b199b49faa5f0a2ee238a6bc";
     test_ue->opc_string = "e8ed289deba952e4283b54e88e6183ca";
 
-    sess = test_sess_add_by_apn(test_ue, "internet");
+    sess = test_sess_add_by_apn(test_ue, "internet", OGS_GTP_RAT_TYPE_EUTRAN);
     ogs_assert(sess);
 
     /* eNB connects to MME */
@@ -724,6 +728,8 @@ static void test3_func(abts_case *tc, void *data)
             0, sizeof(sess->pdn_connectivity_param));
     sess->pdn_connectivity_param.eit = 1;
     sess->pdn_connectivity_param.pco = 1;
+    sess->pdn_connectivity_param.request_type =
+        OGS_NAS_EPS_REQUEST_TYPE_INITIAL;
     esmbuf = testesm_build_pdn_connectivity_request(sess);
     ABTS_PTR_NOTNULL(tc, esmbuf);
 
@@ -780,7 +786,7 @@ static void test3_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request +
+    /* Receive InitialContextSetupRequest +
      * Attach Accept +
      * Activate Default Bearer Context Request */
     recvbuf = testenb_s1ap_read(s1ap);
@@ -793,7 +799,7 @@ static void test3_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -818,19 +824,19 @@ static void test3_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Request */
+    /* Send UEContextReleaseRequest */
     sendbuf = test_s1ap_build_ue_context_release_request(test_ue,
             S1AP_Cause_PR_radioNetwork, S1AP_CauseRadioNetwork_user_inactivity);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -854,12 +860,12 @@ static void test3_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request */
+    /* Receive InitialContextSetupRequest */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -883,12 +889,12 @@ static void test3_func(abts_case *tc, void *data)
     rv = test_gtpu_send_error_indication(gtpu, bearer);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -908,30 +914,30 @@ static void test3_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request */
+    /* Receive InitialContextSetupRequest */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send UE Context Release Request */
+    /* Send UEContextReleaseRequest */
     sendbuf = test_s1ap_build_ue_context_release_request(test_ue,
             S1AP_Cause_PR_radioNetwork, S1AP_CauseRadioNetwork_user_inactivity);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -955,12 +961,12 @@ static void test3_func(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive Initial Context Setup Request */
+    /* Receive InitialContextSetupRequest */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send Initial Context Setup Response */
+    /* Send InitialContextSetupResponse */
     sendbuf = test_s1ap_build_initial_context_setup_response(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -975,19 +981,19 @@ static void test3_func(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     ogs_pkbuf_free(recvbuf);
 
-    /* Send UE Context Release Request */
+    /* Send UEContextReleaseRequest */
     sendbuf = test_s1ap_build_ue_context_release_request(test_ue,
             S1AP_Cause_PR_radioNetwork, S1AP_CauseRadioNetwork_user_inactivity);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive UE Context Release Command */
+    /* Receive UEContextReleaseCommand */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     tests1ap_recv(test_ue, recvbuf);
 
-    /* Send UE Context Release Complete */
+    /* Send UEContextReleaseComplete */
     sendbuf = test_s1ap_build_ue_context_release_complete(test_ue);
     ABTS_PTR_NOTNULL(tc, sendbuf);
     rv = testenb_s1ap_send(s1ap, sendbuf);

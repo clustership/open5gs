@@ -5,13 +5,15 @@
 #include "transfer_mt_data_add_info.h"
 
 OpenAPI_transfer_mt_data_add_info_t *OpenAPI_transfer_mt_data_add_info_create(
+    bool is_max_waiting_time,
     int max_waiting_time
-    )
+)
 {
     OpenAPI_transfer_mt_data_add_info_t *transfer_mt_data_add_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_transfer_mt_data_add_info_t));
     if (!transfer_mt_data_add_info_local_var) {
         return NULL;
     }
+    transfer_mt_data_add_info_local_var->is_max_waiting_time = is_max_waiting_time;
     transfer_mt_data_add_info_local_var->max_waiting_time = max_waiting_time;
 
     return transfer_mt_data_add_info_local_var;
@@ -36,11 +38,11 @@ cJSON *OpenAPI_transfer_mt_data_add_info_convertToJSON(OpenAPI_transfer_mt_data_
     }
 
     item = cJSON_CreateObject();
-    if (transfer_mt_data_add_info->max_waiting_time) {
-        if (cJSON_AddNumberToObject(item, "maxWaitingTime", transfer_mt_data_add_info->max_waiting_time) == NULL) {
-            ogs_error("OpenAPI_transfer_mt_data_add_info_convertToJSON() failed [max_waiting_time]");
-            goto end;
-        }
+    if (transfer_mt_data_add_info->is_max_waiting_time) {
+    if (cJSON_AddNumberToObject(item, "maxWaitingTime", transfer_mt_data_add_info->max_waiting_time) == NULL) {
+        ogs_error("OpenAPI_transfer_mt_data_add_info_convertToJSON() failed [max_waiting_time]");
+        goto end;
+    }
     }
 
 end:
@@ -53,15 +55,16 @@ OpenAPI_transfer_mt_data_add_info_t *OpenAPI_transfer_mt_data_add_info_parseFrom
     cJSON *max_waiting_time = cJSON_GetObjectItemCaseSensitive(transfer_mt_data_add_infoJSON, "maxWaitingTime");
 
     if (max_waiting_time) {
-        if (!cJSON_IsNumber(max_waiting_time)) {
-            ogs_error("OpenAPI_transfer_mt_data_add_info_parseFromJSON() failed [max_waiting_time]");
-            goto end;
-        }
+    if (!cJSON_IsNumber(max_waiting_time)) {
+        ogs_error("OpenAPI_transfer_mt_data_add_info_parseFromJSON() failed [max_waiting_time]");
+        goto end;
+    }
     }
 
     transfer_mt_data_add_info_local_var = OpenAPI_transfer_mt_data_add_info_create (
+        max_waiting_time ? true : false,
         max_waiting_time ? max_waiting_time->valuedouble : 0
-        );
+    );
 
     return transfer_mt_data_add_info_local_var;
 end:

@@ -1,7 +1,7 @@
 /*
  * amf_event_subscription.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_amf_event_subscription_H_
@@ -14,6 +14,7 @@
 #include "../include/binary.h"
 #include "amf_event.h"
 #include "amf_event_mode.h"
+#include "nf_type.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,8 +32,10 @@ typedef struct OpenAPI_amf_event_subscription_s {
     char *group_id;
     char *gpsi;
     char *pei;
+    bool is_any_ue;
     int any_ue;
     struct OpenAPI_amf_event_mode_s *options;
+    OpenAPI_nf_type_e source_nf_type;
 } OpenAPI_amf_event_subscription_t;
 
 OpenAPI_amf_event_subscription_t *OpenAPI_amf_event_subscription_create(
@@ -46,9 +49,11 @@ OpenAPI_amf_event_subscription_t *OpenAPI_amf_event_subscription_create(
     char *group_id,
     char *gpsi,
     char *pei,
+    bool is_any_ue,
     int any_ue,
-    OpenAPI_amf_event_mode_t *options
-    );
+    OpenAPI_amf_event_mode_t *options,
+    OpenAPI_nf_type_e source_nf_type
+);
 void OpenAPI_amf_event_subscription_free(OpenAPI_amf_event_subscription_t *amf_event_subscription);
 OpenAPI_amf_event_subscription_t *OpenAPI_amf_event_subscription_parseFromJSON(cJSON *amf_event_subscriptionJSON);
 cJSON *OpenAPI_amf_event_subscription_convertToJSON(OpenAPI_amf_event_subscription_t *amf_event_subscription);

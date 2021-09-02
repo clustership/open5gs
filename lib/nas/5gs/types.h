@@ -80,10 +80,28 @@ int ogs_nas_parse_s_nssai(
  * O TLV 3-15 */
 typedef struct ogs_nas_5gmm_capability_s {
     uint8_t length;
-ED4(uint8_t spare:5;,
+ED8(uint8_t service_gap_control:1;,
+    uint8_t iphc_cp_ciot_5gs_optimization:1;,
+    uint8_t n3_data_trasfer:1;,
+    uint8_t cp_ciot_5gs_optimization:1;,
+    uint8_t restrict_on_use_of_enhanced_coverage_support:1;,
     uint8_t lte_positioning_protocol_capability:1;,
     uint8_t ho_attach:1;,
     uint8_t s1_mode:1;)
+ED8(uint8_t radio_capability_signalling_optimization_capability:1;,
+    uint8_t nssaa:1;,
+    uint8_t lcs_5g_notification_mechanisms_capability:1;,
+    uint8_t v2x_communication_over_nr_pc5_capability:1;,
+    uint8_t v2x_communication_over_e_utra_pc5_capability:1;,
+    uint8_t v2x_capability:1;,
+    uint8_t up_ciot_5gs_optimization:1;,
+    uint8_t srvcc_5g_capability:1;)
+ED5(uint8_t spare4:4;,
+    uint8_t ethernet_header_compression_cp_ciot_5gs_optimization:1;,
+    uint8_t multiple_user_plane_resource_support:1;,
+    uint8_t wusa_information_reception_capability:1;,
+    uint8_t closed_access_group_capability:1;)
+    uint8_t spare[10];
 } __attribute__ ((packed)) ogs_nas_5gmm_capability_t;
 
 /* 9.11.3.2 5GMM cause
@@ -229,7 +247,8 @@ ED3(uint8_t spare:4;,
 typedef struct ogs_nas_5gs_registration_type_s {
     union {
         struct {
-        ED3(uint8_t type:4;,
+        ED4(uint8_t tsc:1;,
+            uint8_t ksi:3;,
             uint8_t follow_on_request:1;,
             uint8_t value:3;)
         };
@@ -284,7 +303,7 @@ typedef struct ogs_nas_5gs_tracking_area_identity_list_s {
     uint8_t buffer[OGS_NAS_5GS_MAX_TAI_LIST_LEN];
 } __attribute__ ((packed)) ogs_nas_5gs_tracking_area_identity_list_t;
 
-void ogs_nas_5gs_tai_list_build(
+int ogs_nas_5gs_tai_list_build(
         ogs_nas_5gs_tracking_area_identity_list_t *target,
         ogs_5gs_tai0_list_t *source0, ogs_5gs_tai2_list_t *source2);
 
@@ -779,7 +798,7 @@ typedef struct ogs_nas_qos_flow_descriptions_s {
     void *buffer;
 } ogs_nas_qos_flow_descriptions_t;
 
-void ogs_nas_build_qos_flow_descriptions(
+int ogs_nas_build_qos_flow_descriptions(
     ogs_nas_qos_flow_descriptions_t *flow_descriptions,
     ogs_nas_qos_flow_description_t *flow_description,
     int num_of_flow_description);
@@ -818,7 +837,7 @@ typedef struct ogs_nas_qos_rule_s {
             uint8_t flags;
         };
         ogs_pf_content_t content;
-    } pf[OGS_MAX_NUM_OF_PACKET_FILTER];
+    } pf[OGS_MAX_NUM_OF_FLOW_IN_NAS];
 
     uint8_t precedence;
     union {
@@ -837,7 +856,7 @@ typedef struct ogs_nas_qos_rules_s {
     void *buffer;
 } __attribute__ ((packed)) ogs_nas_qos_rules_t;
 
-void ogs_nas_build_qos_rules(ogs_nas_qos_rules_t *rules,
+int ogs_nas_build_qos_rules(ogs_nas_qos_rules_t *rules,
         ogs_nas_qos_rule_t *rule, int num_of_rule);
 
 /* 9.11.4.15 SM PDU DN request container

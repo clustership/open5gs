@@ -7,7 +7,7 @@
 OpenAPI_ng_ran_target_id_t *OpenAPI_ng_ran_target_id_create(
     OpenAPI_global_ran_node_id_t *ran_node_id,
     OpenAPI_tai_t *tai
-    )
+)
 {
     OpenAPI_ng_ran_target_id_t *ng_ran_target_id_local_var = OpenAPI_malloc(sizeof(OpenAPI_ng_ran_target_id_t));
     if (!ng_ran_target_id_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_ng_ran_target_id_convertToJSON(OpenAPI_ng_ran_target_id_t *ng_ran
     }
 
     item = cJSON_CreateObject();
-    if (!ng_ran_target_id->ran_node_id) {
-        ogs_error("OpenAPI_ng_ran_target_id_convertToJSON() failed [ran_node_id]");
-        goto end;
-    }
     cJSON *ran_node_id_local_JSON = OpenAPI_global_ran_node_id_convertToJSON(ng_ran_target_id->ran_node_id);
     if (ran_node_id_local_JSON == NULL) {
         ogs_error("OpenAPI_ng_ran_target_id_convertToJSON() failed [ran_node_id]");
@@ -55,10 +51,6 @@ cJSON *OpenAPI_ng_ran_target_id_convertToJSON(OpenAPI_ng_ran_target_id_t *ng_ran
         goto end;
     }
 
-    if (!ng_ran_target_id->tai) {
-        ogs_error("OpenAPI_ng_ran_target_id_convertToJSON() failed [tai]");
-        goto end;
-    }
     cJSON *tai_local_JSON = OpenAPI_tai_convertToJSON(ng_ran_target_id->tai);
     if (tai_local_JSON == NULL) {
         ogs_error("OpenAPI_ng_ran_target_id_convertToJSON() failed [tai]");
@@ -84,7 +76,6 @@ OpenAPI_ng_ran_target_id_t *OpenAPI_ng_ran_target_id_parseFromJSON(cJSON *ng_ran
     }
 
     OpenAPI_global_ran_node_id_t *ran_node_id_local_nonprim = NULL;
-
     ran_node_id_local_nonprim = OpenAPI_global_ran_node_id_parseFromJSON(ran_node_id);
 
     cJSON *tai = cJSON_GetObjectItemCaseSensitive(ng_ran_target_idJSON, "tai");
@@ -94,13 +85,12 @@ OpenAPI_ng_ran_target_id_t *OpenAPI_ng_ran_target_id_parseFromJSON(cJSON *ng_ran
     }
 
     OpenAPI_tai_t *tai_local_nonprim = NULL;
-
     tai_local_nonprim = OpenAPI_tai_parseFromJSON(tai);
 
     ng_ran_target_id_local_var = OpenAPI_ng_ran_target_id_create (
         ran_node_id_local_nonprim,
         tai_local_nonprim
-        );
+    );
 
     return ng_ran_target_id_local_var;
 end:

@@ -7,7 +7,7 @@
 OpenAPI_ptw_parameters_t *OpenAPI_ptw_parameters_create(
     OpenAPI_operation_mode_e operation_mode,
     char *ptw_value
-    )
+)
 {
     OpenAPI_ptw_parameters_t *ptw_parameters_local_var = OpenAPI_malloc(sizeof(OpenAPI_ptw_parameters_t));
     if (!ptw_parameters_local_var) {
@@ -39,19 +39,11 @@ cJSON *OpenAPI_ptw_parameters_convertToJSON(OpenAPI_ptw_parameters_t *ptw_parame
     }
 
     item = cJSON_CreateObject();
-    if (!ptw_parameters->operation_mode) {
-        ogs_error("OpenAPI_ptw_parameters_convertToJSON() failed [operation_mode]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "operationMode", OpenAPI_operation_mode_ToString(ptw_parameters->operation_mode)) == NULL) {
         ogs_error("OpenAPI_ptw_parameters_convertToJSON() failed [operation_mode]");
         goto end;
     }
 
-    if (!ptw_parameters->ptw_value) {
-        ogs_error("OpenAPI_ptw_parameters_convertToJSON() failed [ptw_value]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "ptwValue", ptw_parameters->ptw_value) == NULL) {
         ogs_error("OpenAPI_ptw_parameters_convertToJSON() failed [ptw_value]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_ptw_parameters_t *OpenAPI_ptw_parameters_parseFromJSON(cJSON *ptw_parame
     }
 
     OpenAPI_operation_mode_e operation_modeVariable;
-
     if (!cJSON_IsString(operation_mode)) {
         ogs_error("OpenAPI_ptw_parameters_parseFromJSON() failed [operation_mode]");
         goto end;
@@ -84,7 +75,6 @@ OpenAPI_ptw_parameters_t *OpenAPI_ptw_parameters_parseFromJSON(cJSON *ptw_parame
         goto end;
     }
 
-
     if (!cJSON_IsString(ptw_value)) {
         ogs_error("OpenAPI_ptw_parameters_parseFromJSON() failed [ptw_value]");
         goto end;
@@ -92,8 +82,8 @@ OpenAPI_ptw_parameters_t *OpenAPI_ptw_parameters_parseFromJSON(cJSON *ptw_parame
 
     ptw_parameters_local_var = OpenAPI_ptw_parameters_create (
         operation_modeVariable,
-        ogs_strdup(ptw_value->valuestring)
-        );
+        ogs_strdup_or_assert(ptw_value->valuestring)
+    );
 
     return ptw_parameters_local_var;
 end:

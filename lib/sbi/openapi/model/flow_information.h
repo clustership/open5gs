@@ -1,7 +1,7 @@
 /*
  * flow_information.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_flow_information_H_
@@ -24,6 +24,7 @@ typedef struct OpenAPI_flow_information_s {
     char *flow_description;
     struct OpenAPI_eth_flow_description_s *eth_flow_description;
     char *pack_filt_id;
+    bool is_packet_filter_usage;
     int packet_filter_usage;
     char *tos_traffic_class;
     char *spi;
@@ -35,12 +36,13 @@ OpenAPI_flow_information_t *OpenAPI_flow_information_create(
     char *flow_description,
     OpenAPI_eth_flow_description_t *eth_flow_description,
     char *pack_filt_id,
+    bool is_packet_filter_usage,
     int packet_filter_usage,
     char *tos_traffic_class,
     char *spi,
     char *flow_label,
     OpenAPI_flow_direction_e flow_direction
-    );
+);
 void OpenAPI_flow_information_free(OpenAPI_flow_information_t *flow_information);
 OpenAPI_flow_information_t *OpenAPI_flow_information_parseFromJSON(cJSON *flow_informationJSON);
 cJSON *OpenAPI_flow_information_convertToJSON(OpenAPI_flow_information_t *flow_information);

@@ -49,6 +49,8 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
     ogs_sbi_object_t *sbi_object = NULL;
     ogs_sbi_xact_t *sbi_xact = NULL;
 
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+
     pcf_ue_t *pcf_ue = NULL;
     pcf_sess_t *sess = NULL;
 
@@ -58,15 +60,9 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        rv = pcf_sbi_open();
-        if (rv != OGS_OK) {
-            ogs_fatal("Can't establish SBI path");
-        }
-
         break;
 
     case OGS_FSM_EXIT_SIG:
-        pcf_sbi_close();
         break;
 
     case PCF_EVT_SBI_SERVER:
@@ -79,15 +75,19 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
         if (rv != OGS_OK) {
             /* 'message' buffer is released in ogs_sbi_parse_request() */
             ogs_error("cannot parse HTTP message");
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    NULL, "cannot parse HTTP message", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    NULL, "cannot parse HTTP message", NULL));
             break;
         }
 
         if (strcmp(message.h.api.version, OGS_SBI_API_V1) != 0) {
             ogs_error("Not supported version [%s]", message.h.api.version);
-            ogs_sbi_server_send_error(stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                    &message, "Not supported version", NULL);
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(
+                    stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                    &message, "Not supported version", NULL));
             ogs_sbi_message_free(&message);
             break;
         }
@@ -103,21 +103,22 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
                     break;
 
                 DEFAULT
-                    ogs_error("Invalid HTTP method [%s]",
-                            message.h.method);
-                    ogs_sbi_server_send_error(stream,
+                    ogs_error("Invalid HTTP method [%s]", message.h.method);
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
                             OGS_SBI_HTTP_STATUS_FORBIDDEN, &message,
-                            "Invalid HTTP method", message.h.method);
+                            "Invalid HTTP method", message.h.method));
                 END
                 break;
 
             DEFAULT
                 ogs_error("Invalid resource name [%s]",
                         message.h.resource.component[0]);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                         OGS_SBI_HTTP_STATUS_BAD_REQUEST, &message,
                         "Unknown resource name",
-                        message.h.resource.component[0]);
+                        message.h.resource.component[0]));
             END
             break;
 
@@ -141,9 +142,10 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
             if (!pcf_ue) {
                 ogs_error("Not found [%s]", message.h.method);
-                ogs_sbi_server_send_error(stream,
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_NOT_FOUND,
-                    &message, "Not found", message.h.method);
+                    &message, "Not found", message.h.method));
                 break;
             }
 
@@ -159,23 +161,30 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
             break;
 
         CASE(OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)
-            SWITCH(message.h.method)
-            CASE(OGS_SBI_HTTP_METHOD_POST)
-                if (message.SmPolicyContextData &&
-                    message.SmPolicyContextData->supi) {
-                    pcf_ue = pcf_ue_find_by_supi(
-                                message.SmPolicyContextData->supi);
-                    if (pcf_ue) {
-                        if (message.SmPolicyContextData->pdu_session_id) {
-                            sess = pcf_sess_find_by_psi(pcf_ue, 
-                                message.SmPolicyContextData->pdu_session_id);
-                            if (!sess) {
-                                sess = pcf_sess_add(pcf_ue,
-                                message.SmPolicyContextData->pdu_session_id);
-                                ogs_assert(sess);
+            SWITCH(message.h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_SM_POLICIES)
+                if (!message.h.resource.component[1]) {
+                    if (message.SmPolicyContextData &&
+                        message.SmPolicyContextData->supi) {
+                        pcf_ue = pcf_ue_find_by_supi(
+                                    message.SmPolicyContextData->supi);
+                        if (pcf_ue) {
+                            if (message.SmPolicyContextData->pdu_session_id) {
+                                sess = pcf_sess_find_by_psi(pcf_ue, message.
+                                        SmPolicyContextData->pdu_session_id);
+                                if (!sess) {
+                                    sess = pcf_sess_add(pcf_ue, message.
+                                        SmPolicyContextData->pdu_session_id);
+                                    ogs_assert(sess);
+                                    ogs_debug("[%s:%d] PCF session added",
+                                                pcf_ue->supi, sess->psi);
+                                }
                             }
                         }
                     }
+                } else {
+                    sess = pcf_sess_find_by_sm_policy_id(
+                            message.h.resource.component[1]);
                 }
                 break;
 
@@ -183,10 +192,59 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
             END
 
             if (!sess) {
-                ogs_error("Not found [%s]", message.h.method);
-                ogs_sbi_server_send_error(stream,
-                    OGS_SBI_HTTP_STATUS_NOT_FOUND,
-                    &message, "Not found", message.h.method);
+                ogs_error("Not found [%s]", message.h.uri);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
+                        OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                        &message, "Not found", message.h.uri));
+                break;
+            }
+
+            ogs_assert(OGS_FSM_STATE(&sess->sm));
+
+            e->sess = sess;
+            e->sbi.message = &message;
+            ogs_fsm_dispatch(&sess->sm, e);
+            if (OGS_FSM_CHECK(&sess->sm, pcf_sm_state_exception)) {
+                ogs_error("[%s:%d] State machine exception",
+                        pcf_ue->supi, sess->psi);
+                pcf_sess_remove(sess);
+            }
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION)
+            SWITCH(message.h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_APP_SESSIONS)
+                if (!message.h.resource.component[1]) {
+                    if (message.AppSessionContext &&
+                        message.AppSessionContext->asc_req_data &&
+                        (message.AppSessionContext->asc_req_data->ue_ipv4 ||
+                         message.AppSessionContext->asc_req_data->ue_ipv6)) {
+
+                        if (!sess &&
+                            message.AppSessionContext->asc_req_data->ue_ipv4)
+                            sess = pcf_sess_find_by_ipv4addr(message.
+                                    AppSessionContext->asc_req_data->ue_ipv4);
+                        if (!sess &&
+                            message.AppSessionContext->asc_req_data->ue_ipv6)
+                            sess = pcf_sess_find_by_ipv6addr(message.
+                                    AppSessionContext->asc_req_data->ue_ipv6);
+                    }
+                } else {
+                    sess = pcf_sess_find_by_app_session_id(
+                            message.h.resource.component[1]);
+                }
+                break;
+
+            DEFAULT
+            END
+
+            if (!sess) {
+                ogs_error("Not found [%s]", message.h.uri);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
+                        OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                        &message, "Not found", message.h.uri));
                 break;
             }
 
@@ -204,9 +262,10 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
         DEFAULT
             ogs_error("Invalid API name [%s]", message.h.service.name);
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_BAD_REQUEST, &message,
-                    "Invalid API name", message.h.service.name);
+                    "Invalid API name", message.h.service.name));
         END
 
         /* In lib/sbi/server.c, notify_completed() releases 'request' buffer. */
@@ -324,14 +383,16 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
                     pcf_ue = (pcf_ue_t *)sbi_xact->sbi_object;
                     ogs_assert(pcf_ue);
+
+                    e->sbi.data = sbi_xact->assoc_stream;
+
+                    ogs_sbi_xact_remove(sbi_xact);
+
                     pcf_ue = pcf_ue_cycle(pcf_ue);
                     ogs_assert(pcf_ue);
 
                     e->pcf_ue = pcf_ue;
                     e->sbi.message = &message;
-                    e->sbi.data = sbi_xact->assoc_stream;
-
-                    ogs_sbi_xact_remove(sbi_xact);
 
                     ogs_fsm_dispatch(&pcf_ue->sm, e);
                     if (OGS_FSM_CHECK(&pcf_ue->sm, pcf_am_state_exception)) {
@@ -346,6 +407,11 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
                     sess = (pcf_sess_t *)sbi_xact->sbi_object;
                     ogs_assert(sess);
+
+                    e->sbi.data = sbi_xact->assoc_stream;
+
+                    ogs_sbi_xact_remove(sbi_xact);
+
                     sess = pcf_sess_cycle(sess);
                     ogs_assert(sess);
 
@@ -356,12 +422,9 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
                     e->sess = sess;
                     e->sbi.message = &message;
-                    e->sbi.data = sbi_xact->assoc_stream;
-
-                    ogs_sbi_xact_remove(sbi_xact);
 
                     ogs_fsm_dispatch(&sess->sm, e);
-                    if (OGS_FSM_CHECK(&sess->sm, pcf_am_state_exception)) {
+                    if (OGS_FSM_CHECK(&sess->sm, pcf_sm_state_exception)) {
                         ogs_error("[%s:%d] State machine exception",
                                     pcf_ue->supi, sess->psi);
                         pcf_sess_remove(sess);
@@ -373,6 +436,51 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
                             message.h.resource.component[3]);
                     ogs_assert_if_reached();
                 END
+                break;
+
+            DEFAULT
+                ogs_error("Invalid resource name [%s]",
+                        message.h.resource.component[0]);
+                ogs_assert_if_reached();
+            END
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NBSF_MANAGEMENT)
+
+            SWITCH(message.h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_PCF_BINDINGS)
+
+                sbi_xact = e->sbi.data;
+                ogs_assert(sbi_xact);
+
+                sess = (pcf_sess_t *)sbi_xact->sbi_object;
+                ogs_assert(sess);
+
+                e->sbi.data = sbi_xact->assoc_stream;
+
+                ogs_sbi_xact_remove(sbi_xact);
+
+                sess = pcf_sess_cycle(sess);
+                ogs_assert(sess);
+
+                pcf_ue = sess->pcf_ue;
+                ogs_assert(pcf_ue);
+                pcf_ue = pcf_ue_cycle(pcf_ue);
+                ogs_assert(pcf_ue);
+
+                e->sess = sess;
+                e->sbi.message = &message;
+
+                ogs_fsm_dispatch(&sess->sm, e);
+                if (OGS_FSM_CHECK(&sess->sm, pcf_sm_state_exception)) {
+                    ogs_error("[%s:%d] State machine exception",
+                                pcf_ue->supi, sess->psi);
+                    pcf_sess_remove(sess);
+                } else if (OGS_FSM_CHECK(&sess->sm, pcf_sm_state_deleted)) {
+                    ogs_debug("[%s:%d] PCF session removed",
+                                pcf_ue->supi, sess->psi);
+                    pcf_sess_remove(sess);
+                }
                 break;
 
             DEFAULT
@@ -413,9 +521,10 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
             subscription = e->sbi.data;
             ogs_assert(subscription);
 
-            ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
+            ogs_assert(true ==
+                ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
                     pcf_self()->nf_type, subscription->req_nf_instance_id,
-                    subscription->subscr_cond.nf_type);
+                    subscription->subscr_cond.nf_type));
 
             ogs_info("[%s] Subscription validity expired", subscription->id);
             ogs_sbi_subscription_remove(subscription);
@@ -427,6 +536,14 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
             sbi_object = sbi_xact->sbi_object;
             ogs_assert(sbi_object);
+
+            stream = sbi_xact->assoc_stream;
+            ogs_assert(stream);
+
+            target_nf_type = sbi_xact->target_nf_type;
+
+            ogs_sbi_xact_remove(sbi_xact);
+
             ogs_assert(sbi_object->type > OGS_SBI_OBJ_BASE &&
                         sbi_object->type < OGS_SBI_OBJ_TOP);
 
@@ -445,20 +562,15 @@ void pcf_state_operational(ogs_fsm_t *s, pcf_event_t *e)
 
             default:
                 ogs_fatal("Not implemented [%s:%d]",
-                    OpenAPI_nf_type_ToString(sbi_xact->target_nf_type),
-                    sbi_object->type);
+                    OpenAPI_nf_type_ToString(target_nf_type), sbi_object->type);
                 ogs_assert_if_reached();
             }
 
-            stream = sbi_xact->assoc_stream;
-            ogs_assert(stream);
-
-            ogs_sbi_xact_remove(sbi_xact);
-
             ogs_error("Cannot receive SBI message");
-            ogs_sbi_server_send_error(stream,
+            ogs_assert(true ==
+                ogs_sbi_server_send_error(stream,
                     OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL,
-                    "Cannot receive SBI message", NULL);
+                    "Cannot receive SBI message", NULL));
             break;
 
         default:

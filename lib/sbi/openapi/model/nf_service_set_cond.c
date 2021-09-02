@@ -6,7 +6,7 @@
 
 OpenAPI_nf_service_set_cond_t *OpenAPI_nf_service_set_cond_create(
     char *nf_service_set_id
-    )
+)
 {
     OpenAPI_nf_service_set_cond_t *nf_service_set_cond_local_var = OpenAPI_malloc(sizeof(OpenAPI_nf_service_set_cond_t));
     if (!nf_service_set_cond_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_nf_service_set_cond_convertToJSON(OpenAPI_nf_service_set_cond_t *
     }
 
     item = cJSON_CreateObject();
-    if (!nf_service_set_cond->nf_service_set_id) {
-        ogs_error("OpenAPI_nf_service_set_cond_convertToJSON() failed [nf_service_set_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "nfServiceSetId", nf_service_set_cond->nf_service_set_id) == NULL) {
         ogs_error("OpenAPI_nf_service_set_cond_convertToJSON() failed [nf_service_set_id]");
         goto end;
@@ -59,15 +55,14 @@ OpenAPI_nf_service_set_cond_t *OpenAPI_nf_service_set_cond_parseFromJSON(cJSON *
         goto end;
     }
 
-
     if (!cJSON_IsString(nf_service_set_id)) {
         ogs_error("OpenAPI_nf_service_set_cond_parseFromJSON() failed [nf_service_set_id]");
         goto end;
     }
 
     nf_service_set_cond_local_var = OpenAPI_nf_service_set_cond_create (
-        ogs_strdup(nf_service_set_id->valuestring)
-        );
+        ogs_strdup_or_assert(nf_service_set_id->valuestring)
+    );
 
     return nf_service_set_cond_local_var;
 end:

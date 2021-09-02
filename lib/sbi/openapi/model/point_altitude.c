@@ -8,7 +8,7 @@ OpenAPI_point_altitude_t *OpenAPI_point_altitude_create(
     OpenAPI_supported_gad_shapes_t *shape,
     OpenAPI_geographical_coordinates_t *point,
     double altitude
-    )
+)
 {
     OpenAPI_point_altitude_t *point_altitude_local_var = OpenAPI_malloc(sizeof(OpenAPI_point_altitude_t));
     if (!point_altitude_local_var) {
@@ -42,10 +42,6 @@ cJSON *OpenAPI_point_altitude_convertToJSON(OpenAPI_point_altitude_t *point_alti
     }
 
     item = cJSON_CreateObject();
-    if (!point_altitude->shape) {
-        ogs_error("OpenAPI_point_altitude_convertToJSON() failed [shape]");
-        goto end;
-    }
     cJSON *shape_local_JSON = OpenAPI_supported_gad_shapes_convertToJSON(point_altitude->shape);
     if (shape_local_JSON == NULL) {
         ogs_error("OpenAPI_point_altitude_convertToJSON() failed [shape]");
@@ -57,10 +53,6 @@ cJSON *OpenAPI_point_altitude_convertToJSON(OpenAPI_point_altitude_t *point_alti
         goto end;
     }
 
-    if (!point_altitude->point) {
-        ogs_error("OpenAPI_point_altitude_convertToJSON() failed [point]");
-        goto end;
-    }
     cJSON *point_local_JSON = OpenAPI_geographical_coordinates_convertToJSON(point_altitude->point);
     if (point_local_JSON == NULL) {
         ogs_error("OpenAPI_point_altitude_convertToJSON() failed [point]");
@@ -72,10 +64,6 @@ cJSON *OpenAPI_point_altitude_convertToJSON(OpenAPI_point_altitude_t *point_alti
         goto end;
     }
 
-    if (!point_altitude->altitude) {
-        ogs_error("OpenAPI_point_altitude_convertToJSON() failed [altitude]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "altitude", point_altitude->altitude) == NULL) {
         ogs_error("OpenAPI_point_altitude_convertToJSON() failed [altitude]");
         goto end;
@@ -95,7 +83,6 @@ OpenAPI_point_altitude_t *OpenAPI_point_altitude_parseFromJSON(cJSON *point_alti
     }
 
     OpenAPI_supported_gad_shapes_t *shape_local_nonprim = NULL;
-
     shape_local_nonprim = OpenAPI_supported_gad_shapes_parseFromJSON(shape);
 
     cJSON *point = cJSON_GetObjectItemCaseSensitive(point_altitudeJSON, "point");
@@ -105,7 +92,6 @@ OpenAPI_point_altitude_t *OpenAPI_point_altitude_parseFromJSON(cJSON *point_alti
     }
 
     OpenAPI_geographical_coordinates_t *point_local_nonprim = NULL;
-
     point_local_nonprim = OpenAPI_geographical_coordinates_parseFromJSON(point);
 
     cJSON *altitude = cJSON_GetObjectItemCaseSensitive(point_altitudeJSON, "altitude");
@@ -113,7 +99,6 @@ OpenAPI_point_altitude_t *OpenAPI_point_altitude_parseFromJSON(cJSON *point_alti
         ogs_error("OpenAPI_point_altitude_parseFromJSON() failed [altitude]");
         goto end;
     }
-
 
     if (!cJSON_IsNumber(altitude)) {
         ogs_error("OpenAPI_point_altitude_parseFromJSON() failed [altitude]");
@@ -123,8 +108,9 @@ OpenAPI_point_altitude_t *OpenAPI_point_altitude_parseFromJSON(cJSON *point_alti
     point_altitude_local_var = OpenAPI_point_altitude_create (
         shape_local_nonprim,
         point_local_nonprim,
+        
         altitude->valuedouble
-        );
+    );
 
     return point_altitude_local_var;
 end:

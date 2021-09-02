@@ -1,7 +1,7 @@
 /*
  * pdu_session_context.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_pdu_session_context_H_
@@ -28,6 +28,7 @@ typedef struct OpenAPI_pdu_session_context_s {
     char *sm_context_ref;
     struct OpenAPI_snssai_s *s_nssai;
     char *dnn;
+    char *selected_dnn;
     OpenAPI_access_type_e access_type;
     OpenAPI_access_type_e additional_access_type;
     OpenAPI_list_t *allocated_ebi_list;
@@ -45,6 +46,7 @@ typedef struct OpenAPI_pdu_session_context_s {
     OpenAPI_sbi_binding_level_e ismf_binding;
     char *ns_instance;
     char *smf_service_instance_id;
+    bool is_ma_pdu_session;
     int ma_pdu_session;
     struct OpenAPI_cn_assisted_ran_para_s *cn_assisted_ran_para;
 } OpenAPI_pdu_session_context_t;
@@ -54,6 +56,7 @@ OpenAPI_pdu_session_context_t *OpenAPI_pdu_session_context_create(
     char *sm_context_ref,
     OpenAPI_snssai_t *s_nssai,
     char *dnn,
+    char *selected_dnn,
     OpenAPI_access_type_e access_type,
     OpenAPI_access_type_e additional_access_type,
     OpenAPI_list_t *allocated_ebi_list,
@@ -71,9 +74,10 @@ OpenAPI_pdu_session_context_t *OpenAPI_pdu_session_context_create(
     OpenAPI_sbi_binding_level_e ismf_binding,
     char *ns_instance,
     char *smf_service_instance_id,
+    bool is_ma_pdu_session,
     int ma_pdu_session,
     OpenAPI_cn_assisted_ran_para_t *cn_assisted_ran_para
-    );
+);
 void OpenAPI_pdu_session_context_free(OpenAPI_pdu_session_context_t *pdu_session_context);
 OpenAPI_pdu_session_context_t *OpenAPI_pdu_session_context_parseFromJSON(cJSON *pdu_session_contextJSON);
 cJSON *OpenAPI_pdu_session_context_convertToJSON(OpenAPI_pdu_session_context_t *pdu_session_context);

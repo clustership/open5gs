@@ -172,7 +172,7 @@ ogs_pkbuf_t *ngap_build_ng_setup_failure(
     NGAP_NGSetupFailureIEs_t *ie = NULL;
     NGAP_Cause_t *Cause = NULL;
     NGAP_TimeToWait_t *TimeToWait = NULL;
-    
+
     ogs_debug("    Group[%d] Cause[%d] TimeToWait[%ld]",
             group, (int)cause, time_to_wait);
 
@@ -206,6 +206,85 @@ ogs_pkbuf_t *ngap_build_ng_setup_failure(
     ie->id = NGAP_ProtocolIE_ID_id_Cause;
     ie->criticality = NGAP_Criticality_ignore;
     ie->value.present = NGAP_NGSetupFailureIEs__value_PR_Cause;
+
+    Cause = &ie->value.choice.Cause;
+    Cause->present = group;
+    Cause->choice.radioNetwork = cause;
+
+    if (TimeToWait)
+        *TimeToWait = time_to_wait;
+
+    return ogs_ngap_encode(&pdu);
+}
+
+ogs_pkbuf_t *ngap_build_ran_configuration_update_ack(void)
+{
+    NGAP_NGAP_PDU_t pdu;
+    NGAP_SuccessfulOutcome_t *successfulOutcome = NULL;
+
+    ogs_debug("RANConfigurationUpdateAcknowledge");
+
+    memset(&pdu, 0, sizeof (NGAP_NGAP_PDU_t));
+    pdu.present = NGAP_NGAP_PDU_PR_successfulOutcome;
+    pdu.choice.successfulOutcome = CALLOC(1, sizeof(NGAP_SuccessfulOutcome_t));
+
+    successfulOutcome = pdu.choice.successfulOutcome;
+    successfulOutcome->procedureCode =
+        NGAP_ProcedureCode_id_RANConfigurationUpdate;
+    successfulOutcome->criticality = NGAP_Criticality_reject;
+    successfulOutcome->value.present =
+        NGAP_SuccessfulOutcome__value_PR_RANConfigurationUpdateAcknowledge;
+
+    return ogs_ngap_encode(&pdu);
+}
+
+ogs_pkbuf_t *ngap_build_ran_configuration_update_failure(
+        NGAP_Cause_PR group, long cause, long time_to_wait)
+{
+    NGAP_NGAP_PDU_t pdu;
+    NGAP_UnsuccessfulOutcome_t *unsuccessfulOutcome = NULL;
+    NGAP_RANConfigurationUpdateFailure_t *RANConfigurationUpdateFailure = NULL;
+
+    NGAP_RANConfigurationUpdateFailureIEs_t *ie = NULL;
+    NGAP_Cause_t *Cause = NULL;
+    NGAP_TimeToWait_t *TimeToWait = NULL;
+
+    ogs_debug("    Group[%d] Cause[%d] TimeToWait[%ld]",
+            group, (int)cause, time_to_wait);
+
+    memset(&pdu, 0, sizeof (NGAP_NGAP_PDU_t));
+    pdu.present = NGAP_NGAP_PDU_PR_unsuccessfulOutcome;
+    pdu.choice.unsuccessfulOutcome =
+        CALLOC(1, sizeof(NGAP_UnsuccessfulOutcome_t));
+
+    unsuccessfulOutcome = pdu.choice.unsuccessfulOutcome;
+    unsuccessfulOutcome->procedureCode =
+        NGAP_ProcedureCode_id_RANConfigurationUpdate;
+    unsuccessfulOutcome->criticality = NGAP_Criticality_reject;
+    unsuccessfulOutcome->value.present =
+        NGAP_UnsuccessfulOutcome__value_PR_RANConfigurationUpdateFailure;
+
+    RANConfigurationUpdateFailure =
+        &unsuccessfulOutcome->value.choice.RANConfigurationUpdateFailure;
+
+    if (time_to_wait > -1) {
+        ie = CALLOC(1, sizeof(NGAP_RANConfigurationUpdateFailureIEs_t));
+        ASN_SEQUENCE_ADD(&RANConfigurationUpdateFailure->protocolIEs, ie);
+
+        ie->id = NGAP_ProtocolIE_ID_id_TimeToWait;
+        ie->criticality = NGAP_Criticality_ignore;
+        ie->value.present =
+            NGAP_RANConfigurationUpdateFailureIEs__value_PR_TimeToWait;
+
+        TimeToWait = &ie->value.choice.TimeToWait;
+    }
+
+    ie = CALLOC(1, sizeof(NGAP_RANConfigurationUpdateFailureIEs_t));
+    ASN_SEQUENCE_ADD(&RANConfigurationUpdateFailure->protocolIEs, ie);
+
+    ie->id = NGAP_ProtocolIE_ID_id_Cause;
+    ie->criticality = NGAP_Criticality_ignore;
+    ie->value.present = NGAP_RANConfigurationUpdateFailureIEs__value_PR_Cause;
 
     Cause = &ie->value.choice.Cause;
     Cause->present = group;
@@ -292,8 +371,17 @@ ogs_pkbuf_t *ngap_build_downlink_nas_transport(
     memcpy(NAS_PDU->buf, gmmbuf->data, NAS_PDU->size);
     ogs_pkbuf_free(gmmbuf);
 
-    if (ue_ambr && (amf_ue->ue_ambr.downlink || amf_ue->ue_ambr.uplink)) {
+    /*
+     * TS 38.413
+     * 8.6.2 Downlink NAS Transport
+     * 8.6.2.1. Successful Operation
+     *
+     * The UE Aggregate Maximum Bit Rate IE should be sent to the NG-RAN node
+     * if the AMF has not sent it previously
+     */
+    if (ran_ue->ue_ambr_sent == false && ue_ambr) {
         ogs_assert(amf_ue);
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
 
         ie = CALLOC(1, sizeof(NGAP_DownlinkNASTransport_IEs_t));
         ASN_SEQUENCE_ADD(&DownlinkNASTransport->protocolIEs, ie);
@@ -310,6 +398,8 @@ ogs_pkbuf_t *ngap_build_downlink_nas_transport(
         asn_uint642INTEGER(
                 &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
                 amf_ue->ue_ambr.downlink);
+
+        ran_ue->ue_ambr_sent = true;
     }
 
     if (allowed_nssai) {
@@ -418,7 +508,19 @@ ogs_pkbuf_t *ngap_ue_build_initial_context_setup_request(
 
     RAN_UE_NGAP_ID = &ie->value.choice.RAN_UE_NGAP_ID;
 
-    if (amf_ue->ue_ambr.downlink || amf_ue->ue_ambr.uplink) {
+    /*
+     *
+     * 9.2.2. UE Context Management Messages
+     * 9.2.2.1. INITIAL CONTEXT SETUP REQUEST
+     *
+     * <TABLE>
+     * if PDUsessionResourceSetup
+     *
+     * SHOULD NOT CHECK PREVIOUSLY SENT
+     */
+    if (PDU_RES_SETUP_REQ_TRANSFER_NEEDED(amf_ue) == true) {
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
+
         ie = CALLOC(1, sizeof(NGAP_InitialContextSetupRequestIEs_t));
         ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
 
@@ -434,6 +536,8 @@ ogs_pkbuf_t *ngap_ue_build_initial_context_setup_request(
         asn_uint642INTEGER(
                 &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
                 amf_ue->ue_ambr.downlink);
+
+        ran_ue->ue_ambr_sent = true;
     }
 
     ie = CALLOC(1, sizeof(NGAP_InitialContextSetupRequestIEs_t));
@@ -724,7 +828,19 @@ ogs_pkbuf_t *ngap_sess_build_initial_context_setup_request(
 
     RAN_UE_NGAP_ID = &ie->value.choice.RAN_UE_NGAP_ID;
 
-    if (amf_ue->ue_ambr.downlink || amf_ue->ue_ambr.uplink) {
+    /*
+     *
+     * 9.2.2. UE Context Management Messages
+     * 9.2.2.1. INITIAL CONTEXT SETUP REQUEST
+     *
+     * <TABLE>
+     * if PDUsessionResourceSetup
+     *
+     * SHOULD NOT CHECK PREVIOUSLY SENT
+     */
+    if (gmmbuf || n2smbuf) {
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
+
         ie = CALLOC(1, sizeof(NGAP_InitialContextSetupRequestIEs_t));
         ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
 
@@ -741,6 +857,8 @@ ogs_pkbuf_t *ngap_sess_build_initial_context_setup_request(
         asn_uint642INTEGER(
                 &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
                 amf_ue->ue_ambr.downlink);
+
+        ran_ue->ue_ambr_sent = true;
     }
 
     ie = CALLOC(1, sizeof(NGAP_InitialContextSetupRequestIEs_t));
@@ -1028,6 +1146,7 @@ ogs_pkbuf_t *ngap_ue_build_pdu_session_resource_setup_request(
     NGAP_AMF_UE_NGAP_ID_t *AMF_UE_NGAP_ID = NULL;
     NGAP_RAN_UE_NGAP_ID_t *RAN_UE_NGAP_ID = NULL;
     NGAP_NAS_PDU_t *NAS_PDU = NULL;
+    NGAP_UEAggregateMaximumBitRate_t *UEAggregateMaximumBitRate = NULL;
 
     NGAP_PDUSessionResourceSetupListSUReq_t *PDUSessionList = NULL;
     NGAP_PDUSessionResourceSetupItemSUReq_t *PDUSessionItem = NULL;
@@ -1138,6 +1257,37 @@ ogs_pkbuf_t *ngap_ue_build_pdu_session_resource_setup_request(
     ogs_assert(PDUSessionList);
     ogs_assert(PDUSessionList->list.count);
 
+    /*
+     * TS 38.413
+     * 8.2.1. PDU Session Resource Setup
+     * 8.2.1.2. Successful Operation
+     *
+     * The UE Aggregate Maximum Bit Rate IE should be sent to the NG-RAN node
+     * if the AMF has not sent it previously.
+     */
+    if (ran_ue->ue_ambr_sent == false &&
+        PDU_RES_SETUP_REQ_TRANSFER_NEEDED(amf_ue) == true) {
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
+
+        ie = CALLOC(1, sizeof(NGAP_PDUSessionResourceSetupRequestIEs_t));
+        ASN_SEQUENCE_ADD(&PDUSessionResourceSetupRequest->protocolIEs, ie);
+
+        ie->id = NGAP_ProtocolIE_ID_id_UEAggregateMaximumBitRate;
+        ie->criticality = NGAP_Criticality_ignore;
+        ie->value.present = NGAP_PDUSessionResourceSetupRequestIEs__value_PR_UEAggregateMaximumBitRate;
+
+        UEAggregateMaximumBitRate = &ie->value.choice.UEAggregateMaximumBitRate;
+
+        asn_uint642INTEGER(
+                &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateUL,
+                amf_ue->ue_ambr.uplink);
+        asn_uint642INTEGER(
+                &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
+                amf_ue->ue_ambr.downlink);
+
+        ran_ue->ue_ambr_sent = true;
+    }
+
     return ogs_ngap_encode(&pdu);
 }
 
@@ -1161,6 +1311,8 @@ ogs_pkbuf_t *ngap_sess_build_pdu_session_resource_setup_request(
     NGAP_S_NSSAI_t *s_NSSAI = NULL;
     NGAP_SST_t *sST = NULL;
     OCTET_STRING_t *transfer = NULL;
+
+    NGAP_UEAggregateMaximumBitRate_t *UEAggregateMaximumBitRate = NULL;
 
     ogs_assert(n2smbuf);
     ogs_assert(sess);
@@ -1250,6 +1402,36 @@ ogs_pkbuf_t *ngap_sess_build_pdu_session_resource_setup_request(
     transfer->buf = CALLOC(transfer->size, sizeof(uint8_t));
     memcpy(transfer->buf, n2smbuf->data, transfer->size);
     ogs_pkbuf_free(n2smbuf);
+
+    /*
+     * TS 38.413
+     * 8.2.1. PDU Session Resource Setup
+     * 8.2.1.2. Successful Operation
+     *
+     * The UE Aggregate Maximum Bit Rate IE should be sent to the NG-RAN node
+     * if the AMF has not sent it previously.
+     */
+    if (ran_ue->ue_ambr_sent == false) {
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
+
+        ie = CALLOC(1, sizeof(NGAP_PDUSessionResourceSetupRequestIEs_t));
+        ASN_SEQUENCE_ADD(&PDUSessionResourceSetupRequest->protocolIEs, ie);
+
+        ie->id = NGAP_ProtocolIE_ID_id_UEAggregateMaximumBitRate;
+        ie->criticality = NGAP_Criticality_ignore;
+        ie->value.present = NGAP_PDUSessionResourceSetupRequestIEs__value_PR_UEAggregateMaximumBitRate;
+
+        UEAggregateMaximumBitRate = &ie->value.choice.UEAggregateMaximumBitRate;
+
+        asn_uint642INTEGER(
+                &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateUL,
+                amf_ue->ue_ambr.uplink);
+        asn_uint642INTEGER(
+                &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
+                amf_ue->ue_ambr.downlink);
+
+        ran_ue->ue_ambr_sent = true;
+    }
 
     return ogs_ngap_encode(&pdu);
 }
@@ -1832,14 +2014,17 @@ ogs_pkbuf_t *ngap_build_handover_request(ran_ue_t *target_ue)
     ogs_debug("    Group[%d] Cause[%d]",
             Cause->present, (int)Cause->choice.radioNetwork);
 
-    if (amf_ue->ue_ambr.downlink || amf_ue->ue_ambr.uplink) {
+    if (HANDOVER_REQUEST_TRANSFER_NEEDED(amf_ue) == true) {
+        ogs_assert(amf_ue->ue_ambr.downlink && amf_ue->ue_ambr.uplink);
+
         ie = CALLOC(1, sizeof(NGAP_HandoverRequestIEs_t));
         ogs_assert(ie);
         ASN_SEQUENCE_ADD(&HandoverRequest->protocolIEs, ie);
 
         ie->id = NGAP_ProtocolIE_ID_id_UEAggregateMaximumBitRate;
         ie->criticality = NGAP_Criticality_reject;
-        ie->value.present = NGAP_HandoverRequestIEs__value_PR_UEAggregateMaximumBitRate;
+        ie->value.present =
+            NGAP_HandoverRequestIEs__value_PR_UEAggregateMaximumBitRate;
 
         UEAggregateMaximumBitRate = &ie->value.choice.UEAggregateMaximumBitRate;
 
@@ -1849,6 +2034,8 @@ ogs_pkbuf_t *ngap_build_handover_request(ran_ue_t *target_ue)
         asn_uint642INTEGER(
                 &UEAggregateMaximumBitRate->uEAggregateMaximumBitRateDL,
                 amf_ue->ue_ambr.downlink);
+
+        target_ue->ue_ambr_sent = true;
     }
 
     ie = CALLOC(1, sizeof(NGAP_HandoverRequestIEs_t));

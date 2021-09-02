@@ -7,7 +7,7 @@
 OpenAPI_secondary_rat_usage_report_t *OpenAPI_secondary_rat_usage_report_create(
     OpenAPI_rat_type_e secondary_rat_type,
     OpenAPI_list_t *qos_flows_usage_data
-    )
+)
 {
     OpenAPI_secondary_rat_usage_report_t *secondary_rat_usage_report_local_var = OpenAPI_malloc(sizeof(OpenAPI_secondary_rat_usage_report_t));
     if (!secondary_rat_usage_report_local_var) {
@@ -42,19 +42,11 @@ cJSON *OpenAPI_secondary_rat_usage_report_convertToJSON(OpenAPI_secondary_rat_us
     }
 
     item = cJSON_CreateObject();
-    if (!secondary_rat_usage_report->secondary_rat_type) {
-        ogs_error("OpenAPI_secondary_rat_usage_report_convertToJSON() failed [secondary_rat_type]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "secondaryRatType", OpenAPI_rat_type_ToString(secondary_rat_usage_report->secondary_rat_type)) == NULL) {
         ogs_error("OpenAPI_secondary_rat_usage_report_convertToJSON() failed [secondary_rat_type]");
         goto end;
     }
 
-    if (!secondary_rat_usage_report->qos_flows_usage_data) {
-        ogs_error("OpenAPI_secondary_rat_usage_report_convertToJSON() failed [qos_flows_usage_data]");
-        goto end;
-    }
     cJSON *qos_flows_usage_dataList = cJSON_AddArrayToObject(item, "qosFlowsUsageData");
     if (qos_flows_usage_dataList == NULL) {
         ogs_error("OpenAPI_secondary_rat_usage_report_convertToJSON() failed [qos_flows_usage_data]");
@@ -87,7 +79,6 @@ OpenAPI_secondary_rat_usage_report_t *OpenAPI_secondary_rat_usage_report_parseFr
     }
 
     OpenAPI_rat_type_e secondary_rat_typeVariable;
-
     if (!cJSON_IsString(secondary_rat_type)) {
         ogs_error("OpenAPI_secondary_rat_usage_report_parseFromJSON() failed [secondary_rat_type]");
         goto end;
@@ -101,9 +92,8 @@ OpenAPI_secondary_rat_usage_report_t *OpenAPI_secondary_rat_usage_report_parseFr
     }
 
     OpenAPI_list_t *qos_flows_usage_dataList;
-
     cJSON *qos_flows_usage_data_local_nonprimitive;
-    if (!cJSON_IsArray(qos_flows_usage_data)) {
+    if (!cJSON_IsArray(qos_flows_usage_data)){
         ogs_error("OpenAPI_secondary_rat_usage_report_parseFromJSON() failed [qos_flows_usage_data]");
         goto end;
     }
@@ -123,7 +113,7 @@ OpenAPI_secondary_rat_usage_report_t *OpenAPI_secondary_rat_usage_report_parseFr
     secondary_rat_usage_report_local_var = OpenAPI_secondary_rat_usage_report_create (
         secondary_rat_typeVariable,
         qos_flows_usage_dataList
-        );
+    );
 
     return secondary_rat_usage_report_local_var;
 end:

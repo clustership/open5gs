@@ -8,7 +8,7 @@ OpenAPI_internal_group_id_range_t *OpenAPI_internal_group_id_range_create(
     char *start,
     char *end,
     char *pattern
-    )
+)
 {
     OpenAPI_internal_group_id_range_t *internal_group_id_range_local_var = OpenAPI_malloc(sizeof(OpenAPI_internal_group_id_range_t));
     if (!internal_group_id_range_local_var) {
@@ -44,24 +44,24 @@ cJSON *OpenAPI_internal_group_id_range_convertToJSON(OpenAPI_internal_group_id_r
 
     item = cJSON_CreateObject();
     if (internal_group_id_range->start) {
-        if (cJSON_AddStringToObject(item, "start", internal_group_id_range->start) == NULL) {
-            ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [start]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "start", internal_group_id_range->start) == NULL) {
+        ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [start]");
+        goto end;
+    }
     }
 
     if (internal_group_id_range->end) {
-        if (cJSON_AddStringToObject(item, "end", internal_group_id_range->end) == NULL) {
-            ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [end]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "end", internal_group_id_range->end) == NULL) {
+        ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [end]");
+        goto end;
+    }
     }
 
     if (internal_group_id_range->pattern) {
-        if (cJSON_AddStringToObject(item, "pattern", internal_group_id_range->pattern) == NULL) {
-            ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [pattern]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "pattern", internal_group_id_range->pattern) == NULL) {
+        ogs_error("OpenAPI_internal_group_id_range_convertToJSON() failed [pattern]");
+        goto end;
+    }
     }
 
 end:
@@ -74,35 +74,35 @@ OpenAPI_internal_group_id_range_t *OpenAPI_internal_group_id_range_parseFromJSON
     cJSON *start = cJSON_GetObjectItemCaseSensitive(internal_group_id_rangeJSON, "start");
 
     if (start) {
-        if (!cJSON_IsString(start)) {
-            ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [start]");
-            goto end;
-        }
+    if (!cJSON_IsString(start)) {
+        ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [start]");
+        goto end;
+    }
     }
 
     cJSON *end = cJSON_GetObjectItemCaseSensitive(internal_group_id_rangeJSON, "end");
 
     if (end) {
-        if (!cJSON_IsString(end)) {
-            ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [end]");
-            goto end;
-        }
+    if (!cJSON_IsString(end)) {
+        ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [end]");
+        goto end;
+    }
     }
 
     cJSON *pattern = cJSON_GetObjectItemCaseSensitive(internal_group_id_rangeJSON, "pattern");
 
     if (pattern) {
-        if (!cJSON_IsString(pattern)) {
-            ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [pattern]");
-            goto end;
-        }
+    if (!cJSON_IsString(pattern)) {
+        ogs_error("OpenAPI_internal_group_id_range_parseFromJSON() failed [pattern]");
+        goto end;
+    }
     }
 
     internal_group_id_range_local_var = OpenAPI_internal_group_id_range_create (
-        start ? ogs_strdup(start->valuestring) : NULL,
-        end ? ogs_strdup(end->valuestring) : NULL,
-        pattern ? ogs_strdup(pattern->valuestring) : NULL
-        );
+        start ? ogs_strdup_or_assert(start->valuestring) : NULL,
+        end ? ogs_strdup_or_assert(end->valuestring) : NULL,
+        pattern ? ogs_strdup_or_assert(pattern->valuestring) : NULL
+    );
 
     return internal_group_id_range_local_var;
 end:

@@ -54,6 +54,7 @@ ogs_sock_t *sgsap_client(mme_vlr_t *vlr)
         vlr->addr = &sock->remote_addr;
         vlr->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, lksctp_recv_handler, sock);
+        ogs_assert(vlr->poll);
 #endif
         ogs_info("sgsap client() [%s]:%d",
                 OGS_ADDR(vlr->addr, buf), OGS_PORT(vlr->addr));
@@ -101,7 +102,7 @@ static void recv_handler(ogs_sock_t *sock)
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN);
     size = ogs_sctp_recvmsg(
             sock, pkbuf->data, pkbuf->len, &from, &sinfo, &flags);
-    if (size < 0) {
+    if (size < 0 || size >= OGS_MAX_SDU_LEN) {
         ogs_error("ogs_sctp_recvmsg(%d) failed(%d:%s)",
                 size, errno, strerror(errno));
         ogs_pkbuf_free(pkbuf);
@@ -203,6 +204,7 @@ static void recv_handler(ogs_sock_t *sock)
         sgsap_event_push(MME_EVT_SGSAP_MESSAGE, sock, addr, pkbuf, 0, 0);
         return;
     } else {
+        ogs_fatal("Invalid flag(0x%x)", flags);
         ogs_assert_if_reached();
     }
     ogs_pkbuf_free(pkbuf);

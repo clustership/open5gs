@@ -51,6 +51,7 @@ void pcrf_context_init(void)
 
     ogs_thread_mutex_init(&self.hash_lock);
     self.ip_hash = ogs_hash_make();
+    ogs_assert(self.ip_hash);
 
     context_initialized = 1;
 }
@@ -139,6 +140,9 @@ int pcrf_context_parse_config(void)
                             } else if (!strcmp(fd_key, "listen_on")) {
                                 self.diam_config->cnf_addr = 
                                     ogs_yaml_iter_value(&fd_iter);
+                            } else if (!strcmp(fd_key, "no_fwd")) {
+                                self.diam_config->cnf_flags.no_fwd =
+                                    ogs_yaml_iter_bool(&fd_iter);
                             } else if (!strcmp(fd_key, "load_extension")) {
                                 ogs_yaml_iter_t ext_array, ext_iter;
                                 ogs_yaml_iter_recurse(&fd_iter, &ext_array);
@@ -265,7 +269,7 @@ int pcrf_context_parse_config(void)
 int pcrf_db_qos_data(
         char *imsi_bcd, char *apn, ogs_session_data_t *session_data)
 {
-    int rv;
+    int rv, i;
     char *supi = NULL;
     ogs_s_nssai_t s_nssai;
 
@@ -282,6 +286,12 @@ int pcrf_db_qos_data(
     s_nssai.sd.v = OGS_S_NSSAI_NO_SD_VALUE;
 
     rv = ogs_dbi_session_data(supi, &s_nssai, apn, session_data);
+
+    /* For EPC, we need to inialize Flow-Status in Pcc-Rule */
+    for (i = 0; i < session_data->num_of_pcc_rule; i++) {
+        ogs_pcc_rule_t *pcc_rule = &session_data->pcc_rule[i];
+        pcc_rule->flow_status = OGS_DIAM_RX_FLOW_STATUS_ENABLED;
+    }
 
     ogs_free(supi);
     ogs_thread_mutex_unlock(&self.db_lock);

@@ -59,17 +59,18 @@ ogs_pkbuf_t *ogs_pfcp_cp_build_association_setup_request(uint8_t type)
     ogs_pfcp_association_setup_request_t *req = NULL;
 
     ogs_pfcp_node_id_t node_id;
-    int node_id_len = 0;
+    int node_id_len = 0, rv;
 
     ogs_debug("Association Setup Request");
 
     req = &pfcp_message.pfcp_association_setup_request;
     memset(&pfcp_message, 0, sizeof(ogs_pfcp_message_t));
 
-    ogs_pfcp_sockaddr_to_node_id(
+    rv = ogs_pfcp_sockaddr_to_node_id(
             ogs_pfcp_self()->pfcp_addr, ogs_pfcp_self()->pfcp_addr6,
             ogs_app()->parameter.prefer_ipv4,
             &node_id, &node_id_len);
+    ogs_expect_or_return_val(rv == OGS_OK, NULL);
     req->node_id.presence = 1;
     req->node_id.data = &node_id;
     req->node_id.len = node_id_len;
@@ -91,17 +92,18 @@ ogs_pkbuf_t *ogs_pfcp_cp_build_association_setup_response(uint8_t type,
     ogs_pfcp_association_setup_response_t *rsp = NULL;
 
     ogs_pfcp_node_id_t node_id;
-    int node_id_len = 0;
+    int node_id_len = 0, rv;
 
     ogs_debug("Association Setup Response");
 
     rsp = &pfcp_message.pfcp_association_setup_response;
     memset(&pfcp_message, 0, sizeof(ogs_pfcp_message_t));
 
-    ogs_pfcp_sockaddr_to_node_id(
+    rv = ogs_pfcp_sockaddr_to_node_id(
             ogs_pfcp_self()->pfcp_addr, ogs_pfcp_self()->pfcp_addr6,
             ogs_app()->parameter.prefer_ipv4,
             &node_id, &node_id_len);
+    ogs_expect_or_return_val(rv == OGS_OK, NULL);
     rsp->node_id.presence = 1;
     rsp->node_id.data = &node_id;
     rsp->node_id.len = node_id_len;
@@ -130,17 +132,18 @@ ogs_pkbuf_t *ogs_pfcp_up_build_association_setup_request(uint8_t type)
     ogs_gtpu_resource_t *resource = NULL;
     char infobuf[OGS_MAX_NUM_OF_GTPU_RESOURCE]
                 [OGS_MAX_USER_PLANE_IP_RESOURCE_INFO_LEN];
-    int i = 0;
+    int i = 0, rv;
 
     ogs_debug("Association Setup Request");
 
     req = &pfcp_message.pfcp_association_setup_request;
     memset(&pfcp_message, 0, sizeof(ogs_pfcp_message_t));
 
-    ogs_pfcp_sockaddr_to_node_id(
+    rv = ogs_pfcp_sockaddr_to_node_id(
             ogs_pfcp_self()->pfcp_addr, ogs_pfcp_self()->pfcp_addr6,
             ogs_app()->parameter.prefer_ipv4,
             &node_id, &node_id_len);
+    ogs_expect_or_return_val(rv == OGS_OK, NULL);
     req->node_id.presence = 1;
     req->node_id.data = &node_id;
     req->node_id.len = node_id_len;
@@ -185,17 +188,18 @@ ogs_pkbuf_t *ogs_pfcp_up_build_association_setup_response(uint8_t type,
     ogs_gtpu_resource_t *resource = NULL;
     char infobuf[OGS_MAX_NUM_OF_GTPU_RESOURCE]
                 [OGS_MAX_USER_PLANE_IP_RESOURCE_INFO_LEN];
-    int i = 0;
+    int i = 0, rv;
 
     ogs_debug("Association Setup Response");
 
     rsp = &pfcp_message.pfcp_association_setup_response;
     memset(&pfcp_message, 0, sizeof(ogs_pfcp_message_t));
 
-    ogs_pfcp_sockaddr_to_node_id(
+    rv = ogs_pfcp_sockaddr_to_node_id(
             ogs_pfcp_self()->pfcp_addr, ogs_pfcp_self()->pfcp_addr6,
             ogs_app()->parameter.prefer_ipv4,
             &node_id, &node_id_len);
+    ogs_expect_or_return_val(rv == OGS_OK, NULL);
     rsp->node_id.presence = 1;
     rsp->node_id.data = &node_id;
     rsp->node_id.len = node_id_len;
@@ -234,7 +238,7 @@ ogs_pkbuf_t *ogs_pfcp_up_build_association_setup_response(uint8_t type,
 static struct {
     ogs_pfcp_f_teid_t f_teid;
     char dnn[OGS_MAX_DNN_LEN];
-    char *sdf_filter[OGS_MAX_NUM_OF_RULE];
+    char *sdf_filter[OGS_MAX_NUM_OF_FLOW_IN_PDR];
 } pdrbuf[OGS_MAX_NUM_OF_PDR];
 
 void ogs_pfcp_pdrbuf_init(void)
@@ -246,7 +250,7 @@ void ogs_pfcp_pdrbuf_clear(void)
 {
     int i, j;
     for (i = 0; i < OGS_MAX_NUM_OF_PDR; i++) {
-        for (j = 0; j < OGS_MAX_NUM_OF_RULE; j++) {
+        for (j = 0; j < OGS_MAX_NUM_OF_FLOW_IN_PDR; j++) {
             if (pdrbuf[i].sdf_filter[j])
                 ogs_free(pdrbuf[i].sdf_filter[j]);
         }
@@ -257,7 +261,7 @@ void ogs_pfcp_build_create_pdr(
     ogs_pfcp_tlv_create_pdr_t *message, int i, ogs_pfcp_pdr_t *pdr)
 {
     ogs_pfcp_far_t *far = NULL;
-    ogs_pfcp_sdf_filter_t pfcp_sdf_filter[OGS_MAX_NUM_OF_RULE];
+    ogs_pfcp_sdf_filter_t pfcp_sdf_filter[OGS_MAX_NUM_OF_FLOW_IN_PDR];
     int j = 0;
     int len = 0;
 
@@ -289,7 +293,7 @@ void ogs_pfcp_build_create_pdr(
     }
 
     memset(pfcp_sdf_filter, 0, sizeof(pfcp_sdf_filter));
-    for (j = 0; j < pdr->num_of_flow; j++) {
+    for (j = 0; j < pdr->num_of_flow && j < OGS_MAX_NUM_OF_FLOW_IN_PDR; j++) {
         pfcp_sdf_filter[j].fd = 1;
         pfcp_sdf_filter[j].flow_description_len =
                 strlen(pdr->flow_description[j]);
@@ -299,6 +303,7 @@ void ogs_pfcp_build_create_pdr(
 
         message->pdi.sdf_filter[j].presence = 1;
         pdrbuf[i].sdf_filter[j] = ogs_calloc(1, len);
+        ogs_assert(pdrbuf[i].sdf_filter[j]);
         ogs_pfcp_build_sdf_filter(&message->pdi.sdf_filter[j],
                 &pfcp_sdf_filter[j], pdrbuf[i].sdf_filter[j], len);
     }
@@ -371,7 +376,7 @@ void ogs_pfcp_build_created_pdr(
 void ogs_pfcp_build_update_pdr(
     ogs_pfcp_tlv_update_pdr_t *message, int i, ogs_pfcp_pdr_t *pdr)
 {
-    ogs_pfcp_sdf_filter_t pfcp_sdf_filter[OGS_MAX_NUM_OF_RULE];
+    ogs_pfcp_sdf_filter_t pfcp_sdf_filter[OGS_MAX_NUM_OF_FLOW_IN_PDR];
     int j = 0;
     int len = 0;
 
@@ -394,7 +399,7 @@ void ogs_pfcp_build_update_pdr(
     }
 
     memset(pfcp_sdf_filter, 0, sizeof(pfcp_sdf_filter));
-    for (j = 0; j < pdr->num_of_flow; j++) {
+    for (j = 0; j < pdr->num_of_flow && j < OGS_MAX_NUM_OF_FLOW_IN_PDR; j++) {
         pfcp_sdf_filter[j].fd = 1;
         pfcp_sdf_filter[j].flow_description_len =
                 strlen(pdr->flow_description[j]);
@@ -404,6 +409,7 @@ void ogs_pfcp_build_update_pdr(
 
         message->pdi.sdf_filter[j].presence = 1;
         pdrbuf[i].sdf_filter[j] = ogs_calloc(1, len);
+        ogs_assert(pdrbuf[i].sdf_filter[j]);
         ogs_pfcp_build_sdf_filter(&message->pdi.sdf_filter[j],
                 &pfcp_sdf_filter[j], pdrbuf[i].sdf_filter[j], len);
     }
@@ -633,6 +639,8 @@ ogs_pkbuf_t *ogs_pfcp_build_session_report_request(
     ogs_pfcp_message_t pfcp_message;
     ogs_pfcp_session_report_request_t *req = NULL;
 
+    ogs_pfcp_downlink_data_service_information_t info;
+
     ogs_assert(report);
 
     ogs_debug("PFCP session report request");
@@ -644,7 +652,6 @@ ogs_pkbuf_t *ogs_pfcp_build_session_report_request(
     req->report_type.u8 = report->type.value;
 
     if (report->downlink_data.pdr_id) {
-        ogs_pfcp_downlink_data_service_information_t info;
         int info_len = 0;
 
         req->downlink_data_report.presence = 1;

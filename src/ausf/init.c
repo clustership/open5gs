@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "context.h"
+#include "sbi-path.h"
 
 static ogs_thread_t *thread;
 static void ausf_main(void *data);
@@ -39,6 +39,9 @@ int ausf_initialize()
 
     rv = ogs_log_config_domain(
             ogs_app()->logger.domain, ogs_app()->logger.level);
+    if (rv != OGS_OK) return rv;
+
+    rv = ausf_sbi_open();
     if (rv != OGS_OK) return rv;
 
     thread = ogs_thread_create(ausf_main, NULL);
@@ -78,6 +81,8 @@ void ausf_terminate(void)
     event_termination();
     ogs_thread_destroy(thread);
     ogs_timer_delete(t_termination_holding);
+
+    ausf_sbi_close();
 
     ausf_context_final();
     ogs_sbi_context_final();

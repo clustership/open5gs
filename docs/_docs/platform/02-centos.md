@@ -109,7 +109,7 @@ a base CentOS 8 installation.
 
 
 ```bash
-$ sudo dnf install python3 meson ninja-build gcc flex bison git lksctp-tools-devel libidn-devel gnutls-devel libgcrypt-devel openssl-devel cyrus-sasl-devel libyaml-devel mongo-c-driver-devel libmicrohttpd-devel libcurl-devel libnghttp2-devel
+$ sudo dnf install python3 meson ninja-build gcc gcc-c++ flex bison git lksctp-tools-devel libidn-devel gnutls-devel libgcrypt-devel openssl-devel cyrus-sasl-devel libyaml-devel mongo-c-driver-devel libmicrohttpd-devel libcurl-devel libnghttp2-devel
 ```
 
 ### Install the SCTP kernel module in kernel-modules-extra.
@@ -325,7 +325,7 @@ $ cd ../
 $ ls install/bin
 open5gs-amfd   open5gs-hssd  open5gs-nrfd   open5gs-sgwcd  open5gs-smfd  open5gs-udrd
 open5gs-ausfd  open5gs-mmed  open5gs-pcrfd  open5gs-sgwud  open5gs-udmd  open5gs-pcfd
-open5gs-upfd   open5gs-nssfd
+open5gs-upfd   open5gs-nssfd open5gs-bsfd
 ```
 
 ## Building WebUI of Open5GS

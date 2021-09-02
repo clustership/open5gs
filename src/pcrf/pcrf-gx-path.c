@@ -63,11 +63,11 @@ static void pcrf_gx_raa_cb(void *data, struct msg **msg);
 static int encode_pcc_rule_definition(
         struct avp *avp, ogs_pcc_rule_t *pcc_rule, int flow_presence);
 static int matched_flow(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component);
+        ogs_media_component_t *media_component);
 static int install_flow(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component);
+        ogs_media_component_t *media_component);
 static int update_qos(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component);
+        ogs_media_component_t *media_component);
 
 static __inline__ struct sess_state *new_state(os0_t sid)
 {
@@ -77,12 +77,12 @@ static __inline__ struct sess_state *new_state(os0_t sid)
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_alloc(&sess_state_pool, &new);
-    ogs_assert(new);
+    ogs_expect_or_return_val(new, NULL);
     memset(new, 0, sizeof(*new));
     ogs_thread_mutex_unlock(&sess_state_mutex);
 
     new->sid = (os0_t)ogs_strdup((char *)sid);
-    ogs_assert(new->sid);
+    ogs_expect_or_return_val(new->sid, NULL);
 
     ogs_list_init(&new->rx_list);
 
@@ -98,12 +98,12 @@ static struct rx_sess_state *add_rx_state(struct sess_state *gx, os0_t sid)
 
     ogs_thread_mutex_lock(&sess_state_mutex);
     ogs_pool_alloc(&rx_sess_state_pool, &new);
-    ogs_assert(new);
+    ogs_expect_or_return_val(new, NULL);
     memset(new, 0, sizeof(*new));
     ogs_thread_mutex_unlock(&sess_state_mutex);
 
     new->sid = (os0_t)ogs_strdup((char *)sid);
-    ogs_assert(new->sid);
+    ogs_expect_or_return_val(new->sid, NULL);
 
     new->gx = gx;
 
@@ -358,18 +358,18 @@ static int pcrf_gx_ccr_cb( struct msg **msg, struct avp *avp,
     }
 
     /* Get IMSI + APN */
-    ret = fd_msg_search_avp(qry, ogs_diam_gx_subscription_id, &avp);
+    ret = fd_msg_search_avp(qry, ogs_diam_subscription_id, &avp);
     ogs_assert(ret == 0);
     if (avp) {
         ret = fd_msg_avp_hdr(avp, &hdr);
         ogs_assert(ret == 0);
-        ret = fd_avp_search_avp(avp, ogs_diam_gx_subscription_id_type, &avpch1);
+        ret = fd_avp_search_avp(avp, ogs_diam_subscription_id_type, &avpch1);
         ogs_assert(ret == 0);
         if (avpch1) {
             ret = fd_msg_avp_hdr(avpch1, &hdr);
             ogs_assert(ret == 0);
             if (hdr->avp_value->i32 !=
-                    OGS_DIAM_GX_SUBSCRIPTION_ID_TYPE_END_USER_IMSI) {
+                    OGS_DIAM_SUBSCRIPTION_ID_TYPE_END_USER_IMSI) {
                 ogs_error("Not implemented Subscription-Id-Type(%d)",
                         hdr->avp_value->i32);
                 result_code = OGS_DIAM_AVP_UNSUPPORTED;
@@ -380,7 +380,7 @@ static int pcrf_gx_ccr_cb( struct msg **msg, struct avp *avp,
             result_code = OGS_DIAM_MISSING_AVP;
             goto out;
         }
-        ret = fd_avp_search_avp(avp, ogs_diam_gx_subscription_id_data, &avpch1);
+        ret = fd_avp_search_avp(avp, ogs_diam_subscription_id_data, &avpch1);
         ogs_assert(ret == 0);
         if (avpch1) {
             ret = fd_msg_avp_hdr(avpch1, &hdr);
@@ -464,7 +464,8 @@ static int pcrf_gx_ccr_cb( struct msg **msg, struct avp *avp,
                 ret = fd_msg_avp_new(
                         ogs_diam_gx_apn_aggregate_max_bitrate_ul, 0, &avpch1);
                 ogs_assert(ret == 0);
-                val.u32 = gx_message.session_data.session.ambr.uplink;
+                val.u32 = ogs_uint64_to_uint32(
+                            gx_message.session_data.session.ambr.uplink);
                 ret = fd_msg_avp_setvalue (avpch1, &val);
                 ogs_assert(ret == 0);
                 ret = fd_msg_avp_add (avp, MSG_BRW_LAST_CHILD, avpch1);
@@ -475,7 +476,8 @@ static int pcrf_gx_ccr_cb( struct msg **msg, struct avp *avp,
                 ret = fd_msg_avp_new(
                         ogs_diam_gx_apn_aggregate_max_bitrate_dl, 0, &avpch1);
                 ogs_assert(ret == 0);
-                val.u32 = gx_message.session_data.session.ambr.downlink;
+                val.u32 = ogs_uint64_to_uint32(
+                            gx_message.session_data.session.ambr.downlink);
                 ret = fd_msg_avp_setvalue (avpch1, &val);
                 ogs_assert(ret == 0);
                 ret = fd_msg_avp_add (avp, MSG_BRW_LAST_CHILD, avpch1);
@@ -731,13 +733,13 @@ int pcrf_gx_send_rar(
         }
 
         /* Match Media-Component with PCC Rule */
-        for (i = 0; i < rx_message->num_of_media_component; i++) {
+        for (i = 0; i < rx_message->ims_data.num_of_media_component; i++) {
             int flow_presence = 0;
             ogs_pcc_rule_t *pcc_rule = NULL;
             ogs_pcc_rule_t *db_pcc_rule = NULL;
             uint8_t qos_index = 0;
-            ogs_diam_rx_media_component_t *media_component =
-                &rx_message->media_component[i];
+            ogs_media_component_t *media_component =
+                &rx_message->ims_data.media_component[i];
 
             if (media_component->media_component_number == 0) {
                 continue;
@@ -851,9 +853,7 @@ int pcrf_gx_send_rar(
                         ogs_error("install_flow() failed");
                         goto out;
                     }
-
                 }
-
             }
 
             /* Update QoS */
@@ -1299,7 +1299,7 @@ static int encode_pcc_rule_definition(
         ret = fd_msg_avp_new(
                 ogs_diam_gx_max_requested_bandwidth_ul, 0, &avpch3);
         ogs_assert(ret == 0);
-        val.u32 = pcc_rule->qos.mbr.uplink;
+        val.u32 = ogs_uint64_to_uint32(pcc_rule->qos.mbr.uplink);
         ret = fd_msg_avp_setvalue (avpch3, &val);
         ogs_assert(ret == 0);
         ret = fd_msg_avp_add (avpch2, MSG_BRW_LAST_CHILD, avpch3);
@@ -1310,7 +1310,7 @@ static int encode_pcc_rule_definition(
         ret = fd_msg_avp_new(
                 ogs_diam_gx_max_requested_bandwidth_dl, 0, &avpch3);
         ogs_assert(ret == 0);
-        val.u32 = pcc_rule->qos.mbr.downlink;
+        val.u32 = ogs_uint64_to_uint32(pcc_rule->qos.mbr.downlink);
         ret = fd_msg_avp_setvalue (avpch3, &val);
         ogs_assert(ret == 0);
         ret = fd_msg_avp_add (avpch2, MSG_BRW_LAST_CHILD, avpch3);
@@ -1320,7 +1320,7 @@ static int encode_pcc_rule_definition(
     if (pcc_rule->qos.gbr.uplink) {
         ret = fd_msg_avp_new(ogs_diam_gx_guaranteed_bitrate_ul, 0, &avpch3);
         ogs_assert(ret == 0);
-        val.u32 = pcc_rule->qos.gbr.uplink;
+        val.u32 = ogs_uint64_to_uint32(pcc_rule->qos.gbr.uplink);
         ret = fd_msg_avp_setvalue (avpch3, &val);
         ogs_assert(ret == 0);
         ret = fd_msg_avp_add (avpch2, MSG_BRW_LAST_CHILD, avpch3);
@@ -1330,7 +1330,7 @@ static int encode_pcc_rule_definition(
     if (pcc_rule->qos.gbr.downlink) {
         ret = fd_msg_avp_new(ogs_diam_gx_guaranteed_bitrate_dl, 0, &avpch3);
         ogs_assert(ret == 0);
-        val.u32 = pcc_rule->qos.gbr.downlink;
+        val.u32 = ogs_uint64_to_uint32(pcc_rule->qos.gbr.downlink);
         ret = fd_msg_avp_setvalue (avpch3, &val);
         ogs_assert(ret == 0);
         ret = fd_msg_avp_add (avpch2, MSG_BRW_LAST_CHILD, avpch3);
@@ -1366,6 +1366,7 @@ static int flow_rx_to_gx(ogs_flow_t *rx_flow, ogs_flow_t *gx_flow)
                 "permit out", strlen("permit out"))) {
         gx_flow->direction = OGS_FLOW_DOWNLINK_ONLY;
         gx_flow->description = ogs_strdup(rx_flow->description);
+        ogs_assert(gx_flow->description);
 
     } else if (!strncmp(rx_flow->description,
                 "permit in", strlen("permit in"))) {
@@ -1375,6 +1376,7 @@ static int flow_rx_to_gx(ogs_flow_t *rx_flow, ogs_flow_t *gx_flow)
          * 'permit out' in Gx Diameter */
         len = strlen(rx_flow->description)+2;
         gx_flow->description = ogs_malloc(len);
+        ogs_assert(gx_flow->description);
         strcpy(gx_flow->description, "permit out");
         from_str = strstr(&rx_flow->description[strlen("permit in")], "from");
         ogs_assert(from_str);
@@ -1399,7 +1401,7 @@ static int flow_rx_to_gx(ogs_flow_t *rx_flow, ogs_flow_t *gx_flow)
 }
 
 static int matched_flow(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component)
+        ogs_media_component_t *media_component)
 {
     int rv;
     int i, j, k;
@@ -1410,7 +1412,7 @@ static int matched_flow(ogs_pcc_rule_t *pcc_rule,
     ogs_assert(media_component);
 
     for (i = 0; i < media_component->num_of_sub; i++) {
-        ogs_diam_rx_media_sub_component_t *sub = &media_component->sub[i];
+        ogs_media_sub_component_t *sub = &media_component->sub[i];
 
         if (sub->flow_number == 0) {
             continue;
@@ -1427,13 +1429,14 @@ static int matched_flow(ogs_pcc_rule_t *pcc_rule,
     }
 
     for (i = 0; i < media_component->num_of_sub; i++) {
-        ogs_diam_rx_media_sub_component_t *sub = &media_component->sub[i];
+        ogs_media_sub_component_t *sub = &media_component->sub[i];
 
         if (sub->flow_number == 0) {
             continue;
         }
 
-        for (j = 0; j < sub->num_of_flow; j++) {
+        for (j = 0; j < sub->num_of_flow &&
+                    j < OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT; j++) {
             ogs_flow_t gx_flow;
             ogs_flow_t *rx_flow = &sub->flow[j];
 
@@ -1460,7 +1463,7 @@ static int matched_flow(ogs_pcc_rule_t *pcc_rule,
 }
 
 static int install_flow(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component)
+        ogs_media_component_t *media_component)
 {
     int rv;
     int i, j;
@@ -1475,24 +1478,33 @@ static int install_flow(ogs_pcc_rule_t *pcc_rule,
     pcc_rule->num_of_flow = 0;
 
     for (i = 0; i < media_component->num_of_sub; i++) {
-        ogs_diam_rx_media_sub_component_t *sub = &media_component->sub[i];
+        ogs_media_sub_component_t *sub = &media_component->sub[i];
 
         if (sub->flow_number == 0) {
             continue;
         }
 
         /* Copy Flow to PCC Rule */
-        for (j = 0; j < sub->num_of_flow; j++) {
-            ogs_flow_t *rx_flow = &sub->flow[j];
-            ogs_flow_t *gx_flow = &pcc_rule->flow[pcc_rule->num_of_flow];
+        for (j = 0; j < sub->num_of_flow &&
+                    j < OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT; j++) {
+            ogs_flow_t *rx_flow = NULL;
+            ogs_flow_t *gx_flow = NULL;
 
-            rv = flow_rx_to_gx(rx_flow, gx_flow);
-            if (rv != OGS_OK) {
-                ogs_error("flow reformatting error");
+            if (pcc_rule->num_of_flow < OGS_MAX_NUM_OF_FLOW_IN_PCC_RULE) {
+                rx_flow = &sub->flow[j];
+                gx_flow = &pcc_rule->flow[pcc_rule->num_of_flow];
+
+                rv = flow_rx_to_gx(rx_flow, gx_flow);
+                if (rv != OGS_OK) {
+                    ogs_error("flow reformatting error");
+                    return OGS_ERROR;
+                }
+
+                pcc_rule->num_of_flow++;
+            } else {
+                ogs_error("Overflow: Number of Flow");
                 return OGS_ERROR;
             }
-
-            pcc_rule->num_of_flow++;
         }
     }
 
@@ -1500,7 +1512,7 @@ static int install_flow(ogs_pcc_rule_t *pcc_rule,
 }
 
 static int update_qos(ogs_pcc_rule_t *pcc_rule,
-        ogs_diam_rx_media_component_t *media_component)
+        ogs_media_component_t *media_component)
 {
     int rv;
     int i, j;
@@ -1514,13 +1526,14 @@ static int update_qos(ogs_pcc_rule_t *pcc_rule,
     pcc_rule->qos.gbr.uplink = 0;
 
     for (i = 0; i < media_component->num_of_sub; i++) {
-        ogs_diam_rx_media_sub_component_t *sub = &media_component->sub[i];
+        ogs_media_sub_component_t *sub = &media_component->sub[i];
 
         if (sub->flow_number == 0) {
             continue;
         }
 
-        for (j = 0; j < sub->num_of_flow; j++) {
+        for (j = 0; j < sub->num_of_flow &&
+                    j < OGS_MAX_NUM_OF_FLOW_IN_MEDIA_SUB_COMPONENT; j++) {
             ogs_flow_t gx_flow;
             ogs_flow_t *rx_flow = &sub->flow[j];
 

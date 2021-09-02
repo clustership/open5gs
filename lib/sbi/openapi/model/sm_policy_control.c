@@ -7,7 +7,7 @@
 OpenAPI_sm_policy_control_t *OpenAPI_sm_policy_control_create(
     OpenAPI_sm_policy_context_data_t *context,
     OpenAPI_sm_policy_decision_t *policy
-    )
+)
 {
     OpenAPI_sm_policy_control_t *sm_policy_control_local_var = OpenAPI_malloc(sizeof(OpenAPI_sm_policy_control_t));
     if (!sm_policy_control_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_sm_policy_control_convertToJSON(OpenAPI_sm_policy_control_t *sm_p
     }
 
     item = cJSON_CreateObject();
-    if (!sm_policy_control->context) {
-        ogs_error("OpenAPI_sm_policy_control_convertToJSON() failed [context]");
-        goto end;
-    }
     cJSON *context_local_JSON = OpenAPI_sm_policy_context_data_convertToJSON(sm_policy_control->context);
     if (context_local_JSON == NULL) {
         ogs_error("OpenAPI_sm_policy_control_convertToJSON() failed [context]");
@@ -55,10 +51,6 @@ cJSON *OpenAPI_sm_policy_control_convertToJSON(OpenAPI_sm_policy_control_t *sm_p
         goto end;
     }
 
-    if (!sm_policy_control->policy) {
-        ogs_error("OpenAPI_sm_policy_control_convertToJSON() failed [policy]");
-        goto end;
-    }
     cJSON *policy_local_JSON = OpenAPI_sm_policy_decision_convertToJSON(sm_policy_control->policy);
     if (policy_local_JSON == NULL) {
         ogs_error("OpenAPI_sm_policy_control_convertToJSON() failed [policy]");
@@ -84,7 +76,6 @@ OpenAPI_sm_policy_control_t *OpenAPI_sm_policy_control_parseFromJSON(cJSON *sm_p
     }
 
     OpenAPI_sm_policy_context_data_t *context_local_nonprim = NULL;
-
     context_local_nonprim = OpenAPI_sm_policy_context_data_parseFromJSON(context);
 
     cJSON *policy = cJSON_GetObjectItemCaseSensitive(sm_policy_controlJSON, "policy");
@@ -94,13 +85,12 @@ OpenAPI_sm_policy_control_t *OpenAPI_sm_policy_control_parseFromJSON(cJSON *sm_p
     }
 
     OpenAPI_sm_policy_decision_t *policy_local_nonprim = NULL;
-
     policy_local_nonprim = OpenAPI_sm_policy_decision_parseFromJSON(policy);
 
     sm_policy_control_local_var = OpenAPI_sm_policy_control_create (
         context_local_nonprim,
         policy_local_nonprim
-        );
+    );
 
     return sm_policy_control_local_var;
 end:

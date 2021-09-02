@@ -1,7 +1,7 @@
 /*
  * ue_context_created_data.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_ue_context_created_data_H_
@@ -27,6 +27,7 @@ typedef struct OpenAPI_ue_context_created_data_s {
     OpenAPI_list_t *pdu_session_list;
     OpenAPI_list_t *failed_session_list;
     char *supported_features;
+    bool is_pcf_reselected_ind;
     int pcf_reselected_ind;
 } OpenAPI_ue_context_created_data_t;
 
@@ -36,8 +37,9 @@ OpenAPI_ue_context_created_data_t *OpenAPI_ue_context_created_data_create(
     OpenAPI_list_t *pdu_session_list,
     OpenAPI_list_t *failed_session_list,
     char *supported_features,
+    bool is_pcf_reselected_ind,
     int pcf_reselected_ind
-    );
+);
 void OpenAPI_ue_context_created_data_free(OpenAPI_ue_context_created_data_t *ue_context_created_data);
 OpenAPI_ue_context_created_data_t *OpenAPI_ue_context_created_data_parseFromJSON(cJSON *ue_context_created_dataJSON);
 cJSON *OpenAPI_ue_context_created_data_convertToJSON(OpenAPI_ue_context_created_data_t *ue_context_created_data);

@@ -8,8 +8,9 @@ OpenAPI_ext_snssai_t *OpenAPI_ext_snssai_create(
     int sst,
     char *sd,
     OpenAPI_list_t *sd_ranges,
+    bool is_wildcard_sd,
     int wildcard_sd
-    )
+)
 {
     OpenAPI_ext_snssai_t *ext_snssai_local_var = OpenAPI_malloc(sizeof(OpenAPI_ext_snssai_t));
     if (!ext_snssai_local_var) {
@@ -18,6 +19,7 @@ OpenAPI_ext_snssai_t *OpenAPI_ext_snssai_create(
     ext_snssai_local_var->sst = sst;
     ext_snssai_local_var->sd = sd;
     ext_snssai_local_var->sd_ranges = sd_ranges;
+    ext_snssai_local_var->is_wildcard_sd = is_wildcard_sd;
     ext_snssai_local_var->wildcard_sd = wildcard_sd;
 
     return ext_snssai_local_var;
@@ -47,47 +49,43 @@ cJSON *OpenAPI_ext_snssai_convertToJSON(OpenAPI_ext_snssai_t *ext_snssai)
     }
 
     item = cJSON_CreateObject();
-    if (!ext_snssai->sst) {
-        ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sst]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "sst", ext_snssai->sst) == NULL) {
         ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sst]");
         goto end;
     }
 
     if (ext_snssai->sd) {
-        if (cJSON_AddStringToObject(item, "sd", ext_snssai->sd) == NULL) {
-            ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "sd", ext_snssai->sd) == NULL) {
+        ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd]");
+        goto end;
+    }
     }
 
     if (ext_snssai->sd_ranges) {
-        cJSON *sd_rangesList = cJSON_AddArrayToObject(item, "sdRanges");
-        if (sd_rangesList == NULL) {
-            ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd_ranges]");
-            goto end;
-        }
-
-        OpenAPI_lnode_t *sd_ranges_node;
-        if (ext_snssai->sd_ranges) {
-            OpenAPI_list_for_each(ext_snssai->sd_ranges, sd_ranges_node) {
-                cJSON *itemLocal = OpenAPI_sd_range_convertToJSON(sd_ranges_node->data);
-                if (itemLocal == NULL) {
-                    ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd_ranges]");
-                    goto end;
-                }
-                cJSON_AddItemToArray(sd_rangesList, itemLocal);
-            }
-        }
+    cJSON *sd_rangesList = cJSON_AddArrayToObject(item, "sdRanges");
+    if (sd_rangesList == NULL) {
+        ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd_ranges]");
+        goto end;
     }
 
-    if (ext_snssai->wildcard_sd) {
-        if (cJSON_AddBoolToObject(item, "wildcardSd", ext_snssai->wildcard_sd) == NULL) {
-            ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [wildcard_sd]");
-            goto end;
+    OpenAPI_lnode_t *sd_ranges_node;
+    if (ext_snssai->sd_ranges) {
+        OpenAPI_list_for_each(ext_snssai->sd_ranges, sd_ranges_node) {
+            cJSON *itemLocal = OpenAPI_sd_range_convertToJSON(sd_ranges_node->data);
+            if (itemLocal == NULL) {
+                ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [sd_ranges]");
+                goto end;
+            }
+            cJSON_AddItemToArray(sd_rangesList, itemLocal);
         }
+    }
+    }
+
+    if (ext_snssai->is_wildcard_sd) {
+    if (cJSON_AddBoolToObject(item, "wildcardSd", ext_snssai->wildcard_sd) == NULL) {
+        ogs_error("OpenAPI_ext_snssai_convertToJSON() failed [wildcard_sd]");
+        goto end;
+    }
     }
 
 end:
@@ -103,7 +101,6 @@ OpenAPI_ext_snssai_t *OpenAPI_ext_snssai_parseFromJSON(cJSON *ext_snssaiJSON)
         goto end;
     }
 
-
     if (!cJSON_IsNumber(sst)) {
         ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sst]");
         goto end;
@@ -112,50 +109,52 @@ OpenAPI_ext_snssai_t *OpenAPI_ext_snssai_parseFromJSON(cJSON *ext_snssaiJSON)
     cJSON *sd = cJSON_GetObjectItemCaseSensitive(ext_snssaiJSON, "sd");
 
     if (sd) {
-        if (!cJSON_IsString(sd)) {
-            ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sd]");
-            goto end;
-        }
+    if (!cJSON_IsString(sd)) {
+        ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sd]");
+        goto end;
+    }
     }
 
     cJSON *sd_ranges = cJSON_GetObjectItemCaseSensitive(ext_snssaiJSON, "sdRanges");
 
     OpenAPI_list_t *sd_rangesList;
     if (sd_ranges) {
-        cJSON *sd_ranges_local_nonprimitive;
-        if (!cJSON_IsArray(sd_ranges)) {
+    cJSON *sd_ranges_local_nonprimitive;
+    if (!cJSON_IsArray(sd_ranges)){
+        ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sd_ranges]");
+        goto end;
+    }
+
+    sd_rangesList = OpenAPI_list_create();
+
+    cJSON_ArrayForEach(sd_ranges_local_nonprimitive, sd_ranges ) {
+        if (!cJSON_IsObject(sd_ranges_local_nonprimitive)) {
             ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sd_ranges]");
             goto end;
         }
+        OpenAPI_sd_range_t *sd_rangesItem = OpenAPI_sd_range_parseFromJSON(sd_ranges_local_nonprimitive);
 
-        sd_rangesList = OpenAPI_list_create();
-
-        cJSON_ArrayForEach(sd_ranges_local_nonprimitive, sd_ranges ) {
-            if (!cJSON_IsObject(sd_ranges_local_nonprimitive)) {
-                ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [sd_ranges]");
-                goto end;
-            }
-            OpenAPI_sd_range_t *sd_rangesItem = OpenAPI_sd_range_parseFromJSON(sd_ranges_local_nonprimitive);
-
-            OpenAPI_list_add(sd_rangesList, sd_rangesItem);
-        }
+        OpenAPI_list_add(sd_rangesList, sd_rangesItem);
+    }
     }
 
     cJSON *wildcard_sd = cJSON_GetObjectItemCaseSensitive(ext_snssaiJSON, "wildcardSd");
 
     if (wildcard_sd) {
-        if (!cJSON_IsBool(wildcard_sd)) {
-            ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [wildcard_sd]");
-            goto end;
-        }
+    if (!cJSON_IsBool(wildcard_sd)) {
+        ogs_error("OpenAPI_ext_snssai_parseFromJSON() failed [wildcard_sd]");
+        goto end;
+    }
     }
 
     ext_snssai_local_var = OpenAPI_ext_snssai_create (
+        
         sst->valuedouble,
-        sd ? ogs_strdup(sd->valuestring) : NULL,
+        sd ? ogs_strdup_or_assert(sd->valuestring) : NULL,
         sd_ranges ? sd_rangesList : NULL,
+        wildcard_sd ? true : false,
         wildcard_sd ? wildcard_sd->valueint : 0
-        );
+    );
 
     return ext_snssai_local_var;
 end:

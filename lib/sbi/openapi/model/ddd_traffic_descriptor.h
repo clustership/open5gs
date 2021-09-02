@@ -1,7 +1,7 @@
 /*
  * ddd_traffic_descriptor.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_ddd_traffic_descriptor_H_
@@ -21,6 +21,7 @@ typedef struct OpenAPI_ddd_traffic_descriptor_s OpenAPI_ddd_traffic_descriptor_t
 typedef struct OpenAPI_ddd_traffic_descriptor_s {
     char *ipv4_addr;
     char *ipv6_addr;
+    bool is_port_number;
     int port_number;
     char *mac_addr;
 } OpenAPI_ddd_traffic_descriptor_t;
@@ -28,9 +29,10 @@ typedef struct OpenAPI_ddd_traffic_descriptor_s {
 OpenAPI_ddd_traffic_descriptor_t *OpenAPI_ddd_traffic_descriptor_create(
     char *ipv4_addr,
     char *ipv6_addr,
+    bool is_port_number,
     int port_number,
     char *mac_addr
-    );
+);
 void OpenAPI_ddd_traffic_descriptor_free(OpenAPI_ddd_traffic_descriptor_t *ddd_traffic_descriptor);
 OpenAPI_ddd_traffic_descriptor_t *OpenAPI_ddd_traffic_descriptor_parseFromJSON(cJSON *ddd_traffic_descriptorJSON);
 cJSON *OpenAPI_ddd_traffic_descriptor_convertToJSON(OpenAPI_ddd_traffic_descriptor_t *ddd_traffic_descriptor);

@@ -69,7 +69,8 @@ int nssf_sbi_open(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
 
-    ogs_sbi_server_start_all(server_cb);
+    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
+        return OGS_ERROR;
 
     /*
      * The connection between NF and NRF is a little special.
@@ -86,6 +87,8 @@ int nssf_sbi_open(void)
 
         /* Build NF instance information. It will be transmitted to NRF. */
         ogs_sbi_nf_instance_build_default(nf_instance, nssf_self()->nf_type);
+        ogs_sbi_nf_instance_add_allowed_nf_type(
+                nf_instance, OpenAPI_nf_type_AMF);
 
         /* Build NF service information. It will be transmitted to NRF. */
         service = ogs_sbi_nf_service_build_default(nf_instance,
@@ -93,6 +96,7 @@ int nssf_sbi_open(void)
         ogs_assert(service);
         ogs_sbi_nf_service_add_version(service, (char*)OGS_SBI_API_V2,
                 (char*)OGS_SBI_API_V2_0_0, NULL);
+        ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_AMF);
 
         /* Client callback is only used when NF sends to NRF */
         client = nf_instance->client;
@@ -112,7 +116,7 @@ void nssf_sbi_close(void)
     ogs_sbi_server_stop_all();
 }
 
-void nssf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
+bool nssf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
 {
     ogs_sbi_request_t *request = NULL;
     ogs_sbi_client_t *client = NULL;
@@ -122,9 +126,8 @@ void nssf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
     ogs_assert(client);
 
     request = nssf_nnrf_nfm_build_register(nf_instance);
-    if (!request) {
-        ogs_error("nssf_nnrf_nfm_send_nf_register() failed");
-        return;
-    }
-    ogs_sbi_client_send_request(client, client->cb, request, nf_instance);
+    ogs_expect_or_return_val(request, false);
+
+    return ogs_sbi_client_send_request(
+            client, client->cb, request, nf_instance);
 }

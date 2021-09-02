@@ -6,7 +6,7 @@
 
 OpenAPI_smf_registration_info_t *OpenAPI_smf_registration_info_create(
     OpenAPI_list_t *smf_registration_list
-    )
+)
 {
     OpenAPI_smf_registration_info_t *smf_registration_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_smf_registration_info_t));
     if (!smf_registration_info_local_var) {
@@ -40,10 +40,6 @@ cJSON *OpenAPI_smf_registration_info_convertToJSON(OpenAPI_smf_registration_info
     }
 
     item = cJSON_CreateObject();
-    if (!smf_registration_info->smf_registration_list) {
-        ogs_error("OpenAPI_smf_registration_info_convertToJSON() failed [smf_registration_list]");
-        goto end;
-    }
     cJSON *smf_registration_listList = cJSON_AddArrayToObject(item, "smfRegistrationList");
     if (smf_registration_listList == NULL) {
         ogs_error("OpenAPI_smf_registration_info_convertToJSON() failed [smf_registration_list]");
@@ -76,9 +72,8 @@ OpenAPI_smf_registration_info_t *OpenAPI_smf_registration_info_parseFromJSON(cJS
     }
 
     OpenAPI_list_t *smf_registration_listList;
-
     cJSON *smf_registration_list_local_nonprimitive;
-    if (!cJSON_IsArray(smf_registration_list)) {
+    if (!cJSON_IsArray(smf_registration_list)){
         ogs_error("OpenAPI_smf_registration_info_parseFromJSON() failed [smf_registration_list]");
         goto end;
     }
@@ -97,7 +92,7 @@ OpenAPI_smf_registration_info_t *OpenAPI_smf_registration_info_parseFromJSON(cJS
 
     smf_registration_info_local_var = OpenAPI_smf_registration_info_create (
         smf_registration_listList
-        );
+    );
 
     return smf_registration_info_local_var;
 end:

@@ -7,7 +7,7 @@
 OpenAPI_snssai_smf_info_item_t *OpenAPI_snssai_smf_info_item_create(
     OpenAPI_snssai_t *s_nssai,
     OpenAPI_list_t *dnn_smf_info_list
-    )
+)
 {
     OpenAPI_snssai_smf_info_item_t *snssai_smf_info_item_local_var = OpenAPI_malloc(sizeof(OpenAPI_snssai_smf_info_item_t));
     if (!snssai_smf_info_item_local_var) {
@@ -43,10 +43,6 @@ cJSON *OpenAPI_snssai_smf_info_item_convertToJSON(OpenAPI_snssai_smf_info_item_t
     }
 
     item = cJSON_CreateObject();
-    if (!snssai_smf_info_item->s_nssai) {
-        ogs_error("OpenAPI_snssai_smf_info_item_convertToJSON() failed [s_nssai]");
-        goto end;
-    }
     cJSON *s_nssai_local_JSON = OpenAPI_snssai_convertToJSON(snssai_smf_info_item->s_nssai);
     if (s_nssai_local_JSON == NULL) {
         ogs_error("OpenAPI_snssai_smf_info_item_convertToJSON() failed [s_nssai]");
@@ -58,10 +54,6 @@ cJSON *OpenAPI_snssai_smf_info_item_convertToJSON(OpenAPI_snssai_smf_info_item_t
         goto end;
     }
 
-    if (!snssai_smf_info_item->dnn_smf_info_list) {
-        ogs_error("OpenAPI_snssai_smf_info_item_convertToJSON() failed [dnn_smf_info_list]");
-        goto end;
-    }
     cJSON *dnn_smf_info_listList = cJSON_AddArrayToObject(item, "dnnSmfInfoList");
     if (dnn_smf_info_listList == NULL) {
         ogs_error("OpenAPI_snssai_smf_info_item_convertToJSON() failed [dnn_smf_info_list]");
@@ -94,7 +86,6 @@ OpenAPI_snssai_smf_info_item_t *OpenAPI_snssai_smf_info_item_parseFromJSON(cJSON
     }
 
     OpenAPI_snssai_t *s_nssai_local_nonprim = NULL;
-
     s_nssai_local_nonprim = OpenAPI_snssai_parseFromJSON(s_nssai);
 
     cJSON *dnn_smf_info_list = cJSON_GetObjectItemCaseSensitive(snssai_smf_info_itemJSON, "dnnSmfInfoList");
@@ -104,9 +95,8 @@ OpenAPI_snssai_smf_info_item_t *OpenAPI_snssai_smf_info_item_parseFromJSON(cJSON
     }
 
     OpenAPI_list_t *dnn_smf_info_listList;
-
     cJSON *dnn_smf_info_list_local_nonprimitive;
-    if (!cJSON_IsArray(dnn_smf_info_list)) {
+    if (!cJSON_IsArray(dnn_smf_info_list)){
         ogs_error("OpenAPI_snssai_smf_info_item_parseFromJSON() failed [dnn_smf_info_list]");
         goto end;
     }
@@ -126,7 +116,7 @@ OpenAPI_snssai_smf_info_item_t *OpenAPI_snssai_smf_info_item_parseFromJSON(cJSON
     snssai_smf_info_item_local_var = OpenAPI_snssai_smf_info_item_create (
         s_nssai_local_nonprim,
         dnn_smf_info_listList
-        );
+    );
 
     return snssai_smf_info_item_local_var;
 end:

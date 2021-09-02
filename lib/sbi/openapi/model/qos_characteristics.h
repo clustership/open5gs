@@ -1,7 +1,7 @@
 /*
  * qos_characteristics.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_qos_characteristics_H_
@@ -21,25 +21,31 @@ extern "C" {
 typedef struct OpenAPI_qos_characteristics_s OpenAPI_qos_characteristics_t;
 typedef struct OpenAPI_qos_characteristics_s {
     int _5qi;
-    struct OpenAPI_qos_resource_type_s *resource_type;
+    OpenAPI_qos_resource_type_e resource_type;
     int priority_level;
     int packet_delay_budget;
     char *packet_error_rate;
+    bool is_averaging_window;
     int averaging_window;
+    bool is_max_data_burst_vol;
     int max_data_burst_vol;
+    bool is_ext_max_data_burst_vol;
     int ext_max_data_burst_vol;
 } OpenAPI_qos_characteristics_t;
 
 OpenAPI_qos_characteristics_t *OpenAPI_qos_characteristics_create(
     int _5qi,
-    OpenAPI_qos_resource_type_t *resource_type,
+    OpenAPI_qos_resource_type_e resource_type,
     int priority_level,
     int packet_delay_budget,
     char *packet_error_rate,
+    bool is_averaging_window,
     int averaging_window,
+    bool is_max_data_burst_vol,
     int max_data_burst_vol,
+    bool is_ext_max_data_burst_vol,
     int ext_max_data_burst_vol
-    );
+);
 void OpenAPI_qos_characteristics_free(OpenAPI_qos_characteristics_t *qos_characteristics);
 OpenAPI_qos_characteristics_t *OpenAPI_qos_characteristics_parseFromJSON(cJSON *qos_characteristicsJSON);
 cJSON *OpenAPI_qos_characteristics_convertToJSON(OpenAPI_qos_characteristics_t *qos_characteristics);

@@ -1,7 +1,7 @@
 /*
  * battery_indication_rm.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_battery_indication_rm_H_
@@ -21,16 +21,22 @@ extern "C" {
 
 typedef struct OpenAPI_battery_indication_rm_s OpenAPI_battery_indication_rm_t;
 typedef struct OpenAPI_battery_indication_rm_s {
+    bool is_battery_ind;
     int battery_ind;
+    bool is_replaceable_ind;
     int replaceable_ind;
+    bool is_rechargeable_ind;
     int rechargeable_ind;
 } OpenAPI_battery_indication_rm_t;
 
 OpenAPI_battery_indication_rm_t *OpenAPI_battery_indication_rm_create(
+    bool is_battery_ind,
     int battery_ind,
+    bool is_replaceable_ind,
     int replaceable_ind,
+    bool is_rechargeable_ind,
     int rechargeable_ind
-    );
+);
 void OpenAPI_battery_indication_rm_free(OpenAPI_battery_indication_rm_t *battery_indication_rm);
 OpenAPI_battery_indication_rm_t *OpenAPI_battery_indication_rm_parseFromJSON(cJSON *battery_indication_rmJSON);
 cJSON *OpenAPI_battery_indication_rm_convertToJSON(OpenAPI_battery_indication_rm_t *battery_indication_rm);

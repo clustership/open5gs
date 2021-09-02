@@ -95,9 +95,9 @@ void ogs_pkbuf_default_init(ogs_pkbuf_config_t *config)
     config->cluster_128_pool = 65536;
     config->cluster_256_pool = 16384;
     config->cluster_512_pool = 4096;
-    config->cluster_1024_pool = 1024;
-    config->cluster_2048_pool = 512;
-    config->cluster_8192_pool = 128;
+    config->cluster_1024_pool = 2048;
+    config->cluster_2048_pool = 1024;
+    config->cluster_8192_pool = 512;
     config->cluster_big_pool = 8;
 }
 
@@ -143,11 +143,29 @@ ogs_pkbuf_pool_t *ogs_pkbuf_pool_create(ogs_pkbuf_config_t *config)
     return pool;
 }
 
+#define ogs_pkbuf_pool_final(pool) do { \
+    if (((pool)->size != (pool)->avail)) { \
+        int i; \
+        ogs_error("%d in '%s[%d]' were not released.", \
+                (pool)->size - (pool)->avail, (pool)->name, (pool)->size); \
+        for (i = 0; i < (pool)->size; i++) { \
+            ogs_pkbuf_t *pkbuf = (pool)->index[i]; \
+            if (pkbuf) { \
+                ogs_log_print(OGS_LOG_ERROR, "SIZE[%d] is not freed. (%s)\n", \
+                        pkbuf->len, pkbuf->file_line); \
+            } \
+        } \
+    } \
+    free((pool)->free); \
+    free((pool)->array); \
+    free((pool)->index); \
+} while (0)
+
 void ogs_pkbuf_pool_destroy(ogs_pkbuf_pool_t *pool)
 {
     ogs_assert(pool);
 
-    ogs_pool_final(&pool->pkbuf);
+    ogs_pkbuf_pool_final(&pool->pkbuf);
     ogs_pool_final(&pool->cluster);
 
     ogs_pool_final(&pool->cluster_128);
@@ -163,7 +181,8 @@ void ogs_pkbuf_pool_destroy(ogs_pkbuf_pool_t *pool)
     ogs_pool_free(&pkbuf_pool, pool);
 }
 
-ogs_pkbuf_t *ogs_pkbuf_alloc(ogs_pkbuf_pool_t *pool, unsigned int size)
+ogs_pkbuf_t *ogs_pkbuf_alloc_debug(
+        ogs_pkbuf_pool_t *pool, unsigned int size, const char *file_line)
 {
     ogs_pkbuf_t *pkbuf = NULL;
     ogs_cluster_t *cluster = NULL;
@@ -180,10 +199,13 @@ ogs_pkbuf_t *ogs_pkbuf_alloc(ogs_pkbuf_pool_t *pool, unsigned int size)
         ogs_thread_mutex_unlock(&pool->mutex);
         return NULL;
     }
-    ogs_assert(cluster);
 
     ogs_pool_alloc(&pool->pkbuf, &pkbuf);
-    ogs_assert(pkbuf);
+    if (!pkbuf) {
+        ogs_error("ogs_pkbuf_alloc() failed [size=%d]", size);
+        ogs_thread_mutex_unlock(&pool->mutex);
+        return NULL;
+    }
     memset(pkbuf, 0, sizeof(*pkbuf));
 
     cluster->ref++;
@@ -198,6 +220,8 @@ ogs_pkbuf_t *ogs_pkbuf_alloc(ogs_pkbuf_pool_t *pool, unsigned int size)
     pkbuf->head = cluster->buffer;
     pkbuf->tail = cluster->buffer;
     pkbuf->end = cluster->buffer + size;
+
+    pkbuf->file_line = file_line; /* For debug */
 
     pkbuf->pool = pool;
 
@@ -227,7 +251,7 @@ void ogs_pkbuf_free(ogs_pkbuf_t *pkbuf)
     ogs_thread_mutex_unlock(&pool->mutex);
 }
 
-ogs_pkbuf_t *ogs_pkbuf_copy(ogs_pkbuf_t *pkbuf)
+ogs_pkbuf_t *ogs_pkbuf_copy_debug(ogs_pkbuf_t *pkbuf, const char *file_line)
 {
     ogs_pkbuf_pool_t *pool = NULL;
     ogs_pkbuf_t *newbuf = NULL;
@@ -267,51 +291,31 @@ static ogs_cluster_t *cluster_alloc(
 
     if (size <= OGS_CLUSTER_128_SIZE) {
         ogs_pool_alloc(&pool->cluster_128, (ogs_cluster_128_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_128_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_128_SIZE;
     } else if (size <= OGS_CLUSTER_256_SIZE) {
         ogs_pool_alloc(&pool->cluster_256, (ogs_cluster_256_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_256_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_256_SIZE;
     } else if (size <= OGS_CLUSTER_512_SIZE) {
         ogs_pool_alloc(&pool->cluster_512, (ogs_cluster_512_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_512_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_512_SIZE;
     } else if (size <= OGS_CLUSTER_1024_SIZE) {
         ogs_pool_alloc(&pool->cluster_1024, (ogs_cluster_1024_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_1024_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_1024_SIZE;
     } else if (size <= OGS_CLUSTER_2048_SIZE) {
         ogs_pool_alloc(&pool->cluster_2048, (ogs_cluster_2048_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_2048_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_2048_SIZE;
     } else if (size <= OGS_CLUSTER_8192_SIZE) {
         ogs_pool_alloc(&pool->cluster_8192, (ogs_cluster_8192_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_8192_SIZE");
-            return NULL;
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_8192_SIZE;
     } else if (size <= OGS_CLUSTER_BIG_SIZE) {
         ogs_pool_alloc(&pool->cluster_big, (ogs_cluster_big_t**)&buffer);
-        if (!buffer) {
-            ogs_fatal("No OGS_CLUSTER_BIG_SIZE");
-        }
+        ogs_expect_or_return_val(buffer, NULL);
         cluster->size = OGS_CLUSTER_BIG_SIZE;
     } else {
         ogs_fatal("invalid size = %d", size);

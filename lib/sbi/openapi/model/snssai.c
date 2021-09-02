@@ -7,7 +7,7 @@
 OpenAPI_snssai_t *OpenAPI_snssai_create(
     int sst,
     char *sd
-    )
+)
 {
     OpenAPI_snssai_t *snssai_local_var = OpenAPI_malloc(sizeof(OpenAPI_snssai_t));
     if (!snssai_local_var) {
@@ -39,20 +39,16 @@ cJSON *OpenAPI_snssai_convertToJSON(OpenAPI_snssai_t *snssai)
     }
 
     item = cJSON_CreateObject();
-    if (!snssai->sst) {
-        ogs_error("OpenAPI_snssai_convertToJSON() failed [sst]");
-        goto end;
-    }
     if (cJSON_AddNumberToObject(item, "sst", snssai->sst) == NULL) {
         ogs_error("OpenAPI_snssai_convertToJSON() failed [sst]");
         goto end;
     }
 
     if (snssai->sd) {
-        if (cJSON_AddStringToObject(item, "sd", snssai->sd) == NULL) {
-            ogs_error("OpenAPI_snssai_convertToJSON() failed [sd]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "sd", snssai->sd) == NULL) {
+        ogs_error("OpenAPI_snssai_convertToJSON() failed [sd]");
+        goto end;
+    }
     }
 
 end:
@@ -68,7 +64,6 @@ OpenAPI_snssai_t *OpenAPI_snssai_parseFromJSON(cJSON *snssaiJSON)
         goto end;
     }
 
-
     if (!cJSON_IsNumber(sst)) {
         ogs_error("OpenAPI_snssai_parseFromJSON() failed [sst]");
         goto end;
@@ -77,16 +72,17 @@ OpenAPI_snssai_t *OpenAPI_snssai_parseFromJSON(cJSON *snssaiJSON)
     cJSON *sd = cJSON_GetObjectItemCaseSensitive(snssaiJSON, "sd");
 
     if (sd) {
-        if (!cJSON_IsString(sd)) {
-            ogs_error("OpenAPI_snssai_parseFromJSON() failed [sd]");
-            goto end;
-        }
+    if (!cJSON_IsString(sd)) {
+        ogs_error("OpenAPI_snssai_parseFromJSON() failed [sd]");
+        goto end;
+    }
     }
 
     snssai_local_var = OpenAPI_snssai_create (
+        
         sst->valuedouble,
-        sd ? ogs_strdup(sd->valuestring) : NULL
-        );
+        sd ? ogs_strdup_or_assert(sd->valuestring) : NULL
+    );
 
     return snssai_local_var;
 end:

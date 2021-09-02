@@ -46,6 +46,7 @@ extern "C" {
 #define OGS_DIAM_RX_AVP_CODE_MEDIA_SUB_COMPONENT            (519)
 #define OGS_DIAM_RX_AVP_CODE_FLOW_DESCRIPTION               (507)
 #define OGS_DIAM_RX_AVP_CODE_FLOW_NUMBER                    (509)
+#define OGS_DIAM_RX_AVP_CODE_FLOW_STATUS                    (511)
 #define OGS_DIAM_RX_AVP_CODE_FLOW_USAGE                     (512)
 
 extern struct dict_object *ogs_diam_rx_application;
@@ -60,6 +61,14 @@ extern struct dict_object *ogs_diam_rx_cmd_sta;
 extern struct dict_object *ogs_diam_rx_af_application_identifier;
 extern struct dict_object *ogs_diam_rx_media_component_description;
 extern struct dict_object *ogs_diam_rx_media_component_number;
+#define OGS_DIAM_RX_MEDIA_TYPE_AUDIO                0
+#define OGS_DIAM_RX_MEDIA_TYPE_VIDEO                1
+#define OGS_DIAM_RX_MEDIA_TYPE_DATA                 2
+#define OGS_DIAM_RX_MEDIA_TYPE_APPLICATION          3
+#define OGS_DIAM_RX_MEDIA_TYPE_CONTROL              4
+#define OGS_DIAM_RX_MEDIA_TYPE_TEXT                 5
+#define OGS_DIAM_RX_MEDIA_TYPE_MESSAGE              6
+#define OGS_DIAM_RX_MEDIA_TYPE_OTHER                0xFFFFFFFF
 extern struct dict_object *ogs_diam_rx_media_type;
 extern struct dict_object *ogs_diam_rx_max_requested_bandwidth_ul;
 extern struct dict_object *ogs_diam_rx_max_requested_bandwidth_dl;
@@ -75,6 +84,9 @@ extern struct dict_object *ogs_diam_rx_flow_status;
 extern struct dict_object *ogs_diam_rx_codec_data;
 extern struct dict_object *ogs_diam_rx_media_sub_component;
 extern struct dict_object *ogs_diam_rx_flow_number;
+#define OGS_DIAM_RX_FLOW_USAGE_NO_INFORMATION       0
+#define OGS_DIAM_RX_FLOW_USAGE_RTCP                 1
+#define OGS_DIAM_RX_FLOW_USAGE_AF_SIGNALLING        2
 extern struct dict_object *ogs_diam_rx_flow_usage;
 extern struct dict_object *ogs_diam_rx_flow_description;
 extern struct dict_object *ogs_diam_rx_subscription_id;
@@ -103,19 +115,6 @@ extern struct dict_object *ogs_diam_rx_framed_ipv6_prefix;
 #define OGS_DIAM_RX_IP_CAN_TYPE_3GPP_EPS            5
 #define OGS_DIAM_RX_IP_CAN_TYPE_Non_3GPP_EPS        6
 extern struct dict_object *ogs_diam_rx_ip_can_type;
-#define OGS_DIAM_RX_RAT_TYPE_WLAN                   0
-#define OGS_DIAM_RX_RAT_TYPE_VIRTUAL                1 
-#define OGS_DIAM_RX_RAT_TYPE_UTRAN                  1000
-#define OGS_DIAM_RX_RAT_TYPE_GERAN                  1001
-#define OGS_DIAM_RX_RAT_TYPE_GAN                    1002
-#define OGS_DIAM_RX_RAT_TYPE_HSPA_EVOLUTION         1003
-#define OGS_DIAM_RX_RAT_TYPE_EUTRAN                 1004
-#define OGS_DIAM_RX_RAT_TYPE_EUTRAN_NB_IoT          1005
-#define OGS_DIAM_RX_RAT_TYPE_CDMA2000_1X            2000
-#define OGS_DIAM_RX_RAT_TYPE_HRPD                   2001
-#define OGS_DIAM_RX_RAT_TYPE_UMB                    2002
-#define OGS_DIAM_RX_RAT_TYPE_EHRPD                  2003
-extern struct dict_object *ogs_diam_rx_rat_type;
 #define OGS_DIAM_RX_ABORT_CAUSE_BEARER_RELEASED                         0
 #define OGS_DIAM_RX_ABORT_CAUSE_INSUFFICIENT_SERVER_RESOURCES           1
 #define OGS_DIAM_RX_ABORT_CAUSE_INSUFFICIENT_BEARER_RESOURCES           2
@@ -131,41 +130,6 @@ extern struct dict_object *ogs_diam_rx_abort_cause;
 #define OGS_DIAM_RX_TERMINATION_CAUSE_DIAMETER_USER_MOVED               7 
 #define OGS_DIAM_RX_TERMINATION_CAUSE_DIAMETER_SESSION_TIMEOUT          8
 extern struct dict_object *ogs_diam_rx_termination_cause;
-
-typedef struct ogs_diam_rx_media_sub_component_s {
-    uint32_t            flow_number;
-#define OGS_DIAM_RX_FLOW_USAGE_NO_INFORMATION       0
-#define OGS_DIAM_RX_FLOW_USAGE_RTCP                 1
-#define OGS_DIAM_RX_FLOW_USAGE_AF_SIGNALLING        2
-    uint32_t            flow_usage;
-    ogs_flow_t          flow[OGS_MAX_NUM_OF_FLOW];
-    int                 num_of_flow;
-} ogs_diam_rx_media_sub_component_t;
-
-typedef struct ogs_diam_rx_media_component_s {
-    uint32_t            media_component_number;
-#define OGS_DIAM_RX_MEDIA_TYPE_AUDIO                0
-#define OGS_DIAM_RX_MEDIA_TYPE_VIDEO                1
-#define OGS_DIAM_RX_MEDIA_TYPE_DATA                 2
-#define OGS_DIAM_RX_MEDIA_TYPE_APPLICATION          3
-#define OGS_DIAM_RX_MEDIA_TYPE_CONTROL              4
-#define OGS_DIAM_RX_MEDIA_TYPE_TEXT                 5
-#define OGS_DIAM_RX_MEDIA_TYPE_MESSAGE              6
-#define OGS_DIAM_RX_MEDIA_TYPE_OTHER                0xFFFFFFFF
-    uint32_t            media_type;
-
-    uint64_t            max_requested_bandwidth_dl; 
-    uint64_t            max_requested_bandwidth_ul;
-    uint64_t            min_requested_bandwidth_dl; 
-    uint64_t            min_requested_bandwidth_ul;
-    uint64_t            rr_bandwidth;
-    uint64_t            rs_bandwidth;
-
-#define OGS_DIAM_MAX_NUM_OF_MEDIA_SUB_COMPONENT     8
-    ogs_diam_rx_media_sub_component_t
-        sub[OGS_DIAM_MAX_NUM_OF_MEDIA_SUB_COMPONENT];
-    int                 num_of_sub;
-} ogs_diam_rx_media_component_t;
 
 typedef struct ogs_diam_rx_message_s {
 #define OGS_DIAM_RX_CMD_CODE_AA                     265
@@ -183,14 +147,10 @@ typedef struct ogs_diam_rx_message_s {
 #define OGS_DIAM_RX_DIAMETER_TEMPORARY_NETWORK_FAILURE          5068
     uint32_t          result_code;
 
-#define OGS_DIAM_MAX_NUM_OF_MEDIA_COMPONENT 16
-    ogs_diam_rx_media_component_t
-        media_component[OGS_DIAM_MAX_NUM_OF_MEDIA_COMPONENT];
-    int num_of_media_component;
+    ogs_ims_data_t    ims_data;
 } ogs_diam_rx_message_t;
 
 int ogs_diam_rx_init(void);
-void ogs_diam_rx_message_free(ogs_diam_rx_message_t *rx_message);
 
 #ifdef __cplusplus
 }

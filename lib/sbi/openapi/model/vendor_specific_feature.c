@@ -7,7 +7,7 @@
 OpenAPI_vendor_specific_feature_t *OpenAPI_vendor_specific_feature_create(
     char *feature_name,
     char *feature_version
-    )
+)
 {
     OpenAPI_vendor_specific_feature_t *vendor_specific_feature_local_var = OpenAPI_malloc(sizeof(OpenAPI_vendor_specific_feature_t));
     if (!vendor_specific_feature_local_var) {
@@ -40,19 +40,11 @@ cJSON *OpenAPI_vendor_specific_feature_convertToJSON(OpenAPI_vendor_specific_fea
     }
 
     item = cJSON_CreateObject();
-    if (!vendor_specific_feature->feature_name) {
-        ogs_error("OpenAPI_vendor_specific_feature_convertToJSON() failed [feature_name]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "featureName", vendor_specific_feature->feature_name) == NULL) {
         ogs_error("OpenAPI_vendor_specific_feature_convertToJSON() failed [feature_name]");
         goto end;
     }
 
-    if (!vendor_specific_feature->feature_version) {
-        ogs_error("OpenAPI_vendor_specific_feature_convertToJSON() failed [feature_version]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "featureVersion", vendor_specific_feature->feature_version) == NULL) {
         ogs_error("OpenAPI_vendor_specific_feature_convertToJSON() failed [feature_version]");
         goto end;
@@ -71,7 +63,6 @@ OpenAPI_vendor_specific_feature_t *OpenAPI_vendor_specific_feature_parseFromJSON
         goto end;
     }
 
-
     if (!cJSON_IsString(feature_name)) {
         ogs_error("OpenAPI_vendor_specific_feature_parseFromJSON() failed [feature_name]");
         goto end;
@@ -83,16 +74,15 @@ OpenAPI_vendor_specific_feature_t *OpenAPI_vendor_specific_feature_parseFromJSON
         goto end;
     }
 
-
     if (!cJSON_IsString(feature_version)) {
         ogs_error("OpenAPI_vendor_specific_feature_parseFromJSON() failed [feature_version]");
         goto end;
     }
 
     vendor_specific_feature_local_var = OpenAPI_vendor_specific_feature_create (
-        ogs_strdup(feature_name->valuestring),
-        ogs_strdup(feature_version->valuestring)
-        );
+        ogs_strdup_or_assert(feature_name->valuestring),
+        ogs_strdup_or_assert(feature_version->valuestring)
+    );
 
     return vendor_specific_feature_local_var;
 end:

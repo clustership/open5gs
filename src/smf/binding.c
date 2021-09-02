@@ -20,6 +20,7 @@
 #include "binding.h"
 #include "s5c-build.h"
 #include "pfcp-path.h"
+#include "gtp-path.h"
 
 #include "ipfw/ipfw2.h"
 
@@ -45,20 +46,12 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
             ogs_warn("[%s] Bearer has already been removed", smf_ue->imsi_bcd);
             break;
         }
-        smf_epc_pfcp_send_bearer_modification_request(
-                bearer, OGS_PFCP_MODIFY_REMOVE);
+        ogs_assert(OGS_OK ==
+            smf_epc_pfcp_send_bearer_modification_request(
+                bearer, OGS_PFCP_MODIFY_REMOVE));
         break;
     case OGS_GTP_UPDATE_BEARER_REQUEST_TYPE:
         ogs_error("[%s] No Update Bearer Response", smf_ue->imsi_bcd);
-        break;
-    case OGS_GTP_DELETE_BEARER_REQUEST_TYPE:
-        ogs_error("[%s] No Delete Bearer Response", smf_ue->imsi_bcd);
-        if (!smf_bearer_cycle(bearer)) {
-            ogs_warn("[%s] Bearer has already been removed", smf_ue->imsi_bcd);
-            break;
-        }
-        smf_epc_pfcp_send_bearer_modification_request(
-                bearer, OGS_PFCP_MODIFY_REMOVE);
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
@@ -79,7 +72,7 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
  * TFT : Local <UE_IP> <UE_PORT> REMOTE <P-CSCF_RTP_IP> <P-CSCF_RTP_PORT>
  */
 static void encode_traffic_flow_template(
-        ogs_gtp_tft_t *tft, smf_bearer_t *bearer)
+        ogs_gtp_tft_t *tft, smf_bearer_t *bearer, uint8_t tft_operation_code)
 {
     int i;
     smf_pf_t *pf = NULL;
@@ -88,21 +81,29 @@ static void encode_traffic_flow_template(
     ogs_assert(bearer);
 
     memset(tft, 0, sizeof(*tft));
-    tft->code = OGS_GTP_TFT_CODE_CREATE_NEW_TFT;
+    tft->code = tft_operation_code;
 
     i = 0;
-    pf = smf_pf_first(bearer);
-    while (pf) {
-        tft->pf[i].direction = pf->direction;
-        tft->pf[i].identifier = pf->identifier - 1;
-        tft->pf[i].precedence = i+1;
+    if (tft_operation_code != OGS_GTP_TFT_CODE_DELETE_EXISTING_TFT &&
+        tft_operation_code != OGS_GTP_TFT_CODE_NO_TFT_OPERATION) {
+        ogs_list_for_each_entry(&bearer->pf_to_add_list, pf, to_add_node) {
+            ogs_assert(i < OGS_MAX_NUM_OF_FLOW_IN_GTP);
+            tft->pf[i].identifier = pf->identifier - 1;
 
-        ogs_pf_content_from_ipfw_rule(
-                pf->direction, &tft->pf[i].content, &pf->ipfw_rule);
+            /* Deletion of packet filters
+             * from existing requires only the identifier */
+            if (tft_operation_code !=
+                OGS_GTP_TFT_CODE_DELETE_PACKET_FILTERS_FROM_EXISTING) {
 
-        i++;
+                tft->pf[i].direction = pf->direction;
+                tft->pf[i].precedence = pf->precedence - 1;
 
-        pf = smf_pf_next(pf);
+                ogs_pf_content_from_ipfw_rule(
+                        pf->direction, &tft->pf[i].content, &pf->ipfw_rule);
+            }
+
+            i++;
+        }
     }
     tft->num_of_packet_filter = i;
 }
@@ -159,7 +160,16 @@ void smf_bearer_binding(smf_sess_t *sess)
                     ul_pdr->f_teid.ch = 1;
                     ul_pdr->f_teid_len = 1;
                 } else {
-                    ogs_gtpu_resource_t *resource = ogs_pfcp_find_gtpu_resource(
+                    char buf[OGS_ADDRSTRLEN];
+                    ogs_gtpu_resource_t *resource = NULL;
+                    ogs_sockaddr_t *addr = sess->pfcp_node->sa_list;
+                    ogs_assert(addr);
+
+                    ogs_error("F-TEID allocation/release not supported "
+                                "with peer [%s]:%d",
+                                OGS_ADDR(addr, buf), OGS_PORT(addr));
+
+                    resource = ogs_pfcp_find_gtpu_resource(
                             &sess->pfcp_node->gtpu_resource_list,
                             sess->session.name, OGS_PFCP_INTERFACE_ACCESS);
                     if (resource) {
@@ -174,22 +184,24 @@ void smf_bearer_binding(smf_sess_t *sess)
                             bearer->pgw_s5u_teid = bearer->index;
                     } else {
                         if (sess->pfcp_node->addr.ogs_sa_family == AF_INET)
-                            ogs_copyaddrinfo(&bearer->pgw_s5u_addr,
-                                    &sess->pfcp_node->addr);
+                            ogs_assert(OGS_OK ==
+                                ogs_copyaddrinfo(&bearer->pgw_s5u_addr,
+                                    &sess->pfcp_node->addr));
                         else if (sess->pfcp_node->addr.ogs_sa_family ==
                                 AF_INET6)
-                            ogs_copyaddrinfo(&bearer->pgw_s5u_addr6,
-                                    &sess->pfcp_node->addr);
+                            ogs_assert(OGS_OK ==
+                                ogs_copyaddrinfo(&bearer->pgw_s5u_addr6,
+                                    &sess->pfcp_node->addr));
                         else
                             ogs_assert_if_reached();
 
                         bearer->pgw_s5u_teid = bearer->index;
                     }
 
-                    ogs_assert(bearer->pgw_s5u_addr || bearer->pgw_s5u_addr6);
-                    ogs_pfcp_sockaddr_to_f_teid(bearer->pgw_s5u_addr,
-                            bearer->pgw_s5u_addr6,
-                            &ul_pdr->f_teid, &ul_pdr->f_teid_len);
+                    ogs_assert(OGS_OK ==
+                        ogs_pfcp_sockaddr_to_f_teid(
+                            bearer->pgw_s5u_addr, bearer->pgw_s5u_addr6,
+                            &ul_pdr->f_teid, &ul_pdr->f_teid_len));
                     ul_pdr->f_teid.teid = bearer->pgw_s5u_teid;
                 }
 
@@ -202,13 +214,6 @@ void smf_bearer_binding(smf_sess_t *sess)
 
             } else {
                 ogs_assert(strcmp(bearer->pcc_rule.name, pcc_rule->name) == 0);
-
-                if (pcc_rule->num_of_flow) {
-                    /* We'll use always 'Create new TFT'.
-                     * Therefore, all previous flows are removed
-                     * and replaced by the new flow */
-                    smf_pf_remove_all(bearer);
-                }
 
                 if ((pcc_rule->qos.mbr.downlink &&
                     bearer->qos.mbr.downlink != pcc_rule->qos.mbr.downlink) ||
@@ -240,12 +245,19 @@ void smf_bearer_binding(smf_sess_t *sess)
             dl_pdr->num_of_flow = 0;
             ul_pdr->num_of_flow = 0;
 
+            ogs_list_init(&bearer->pf_to_add_list);
+
             for (j = 0; j < pcc_rule->num_of_flow; j++) {
                 ogs_flow_t *flow = &pcc_rule->flow[j];
                 smf_pf_t *pf = NULL;
 
                 ogs_expect_or_return(flow);
                 ogs_expect_or_return(flow->description);
+
+                if (smf_pf_find_by_flow(
+                    bearer, flow->direction, flow->description) != NULL) {
+                    continue;
+                }
 
                 if (flow->direction == OGS_FLOW_DOWNLINK_ONLY) {
                     dl_pdr->flow_description[dl_pdr->num_of_flow++] =
@@ -259,10 +271,15 @@ void smf_bearer_binding(smf_sess_t *sess)
                 }
 
                 pf = smf_pf_add(bearer);
+                if (!pf) {
+                    ogs_error("Overflow: PacketFilter in Bearer");
+                    break;
+                }
                 ogs_assert(pf);
 
                 pf->direction = flow->direction;
                 pf->flow_description = ogs_strdup(flow->description);
+                ogs_assert(pf->flow_description);
 
                 rv = ogs_ipfw_compile_rule(
                         &pf->ipfw_rule, pf->flow_description);
@@ -289,6 +306,8 @@ void smf_bearer_binding(smf_sess_t *sess)
                     smf_pf_remove(pf);
                     break;
                 }
+
+                ogs_list_add(&bearer->pf_to_add_list, &pf->to_add_node);
             }
 
             if (bearer_created == 1) {
@@ -314,15 +333,23 @@ void smf_bearer_binding(smf_sess_t *sess)
                     qer->gbr.downlink = bearer->qos.gbr.downlink;
                 }
 
-                smf_epc_pfcp_send_bearer_modification_request(
-                        bearer, OGS_PFCP_MODIFY_CREATE);
+                ogs_assert(OGS_OK ==
+                    smf_epc_pfcp_send_bearer_modification_request(
+                        bearer, OGS_PFCP_MODIFY_CREATE));
 
             } else {
                 ogs_gtp_tft_t tft;
 
                 memset(&tft, 0, sizeof tft);
-                if (pcc_rule->num_of_flow)
-                    encode_traffic_flow_template(&tft, bearer);
+                if (pcc_rule->num_of_flow) {
+                    if (ogs_list_count(&bearer->pf_to_add_list) == 0) {
+                        ogs_error("No need to send 'Update Bearer Request'");
+                        continue;
+                    }
+                    encode_traffic_flow_template(
+                        &tft, bearer,
+                        OGS_GTP_TFT_CODE_ADD_PACKET_FILTERS_TO_EXISTING_TFT);
+                }
 
                 memset(&h, 0, sizeof(ogs_gtp_header_t));
                 h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;
@@ -357,27 +384,17 @@ void smf_bearer_binding(smf_sess_t *sess)
                 continue;
             }
 
-            memset(&h, 0, sizeof(ogs_gtp_header_t));
-            h.type = OGS_GTP_DELETE_BEARER_REQUEST_TYPE;
-            h.teid = sess->sgw_s5c_teid;
-
-            pkbuf = smf_s5c_build_delete_bearer_request(h.type, bearer,
-                    OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED);
-            ogs_expect_or_return(pkbuf);
-
-            xact = ogs_gtp_xact_local_create(
-                    sess->gnode, &h, pkbuf, bearer_timeout, bearer);
-            ogs_expect_or_return(xact);
-
-            rv = ogs_gtp_xact_commit(xact);
-            ogs_expect(rv == OGS_OK);
+            ogs_assert(OGS_OK ==
+                smf_gtp_send_delete_bearer_request(
+                    bearer, OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED,
+                    OGS_GTP_CAUSE_UNDEFINED_VALUE));
         } else {
             ogs_error("Invalid Type[%d]", pcc_rule->type);
         }
     }
 }
 
-void smf_gtp_send_create_bearer_request(smf_bearer_t *bearer)
+int smf_gtp_send_create_bearer_request(smf_bearer_t *bearer)
 {
     int rv;
 
@@ -396,17 +413,19 @@ void smf_gtp_send_create_bearer_request(smf_bearer_t *bearer)
     h.teid = sess->sgw_s5c_teid;
 
     memset(&tft, 0, sizeof tft);
-    encode_traffic_flow_template(&tft, bearer);
+    encode_traffic_flow_template(&tft, bearer, OGS_GTP_TFT_CODE_CREATE_NEW_TFT);
 
     pkbuf = smf_s5c_build_create_bearer_request(h.type, bearer, &tft);
-    ogs_expect_or_return(pkbuf);
+    ogs_expect_or_return_val(pkbuf, OGS_ERROR);
 
     xact = ogs_gtp_xact_local_create(
             sess->gnode, &h, pkbuf, bearer_timeout, bearer);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
@@ -465,10 +484,18 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
                     ul_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;
                     ul_pdr->f_teid_len = 2;
                 } else {
-                    ogs_assert(sess->upf_n3_addr || sess->upf_n3_addr6);
-                    ogs_pfcp_sockaddr_to_f_teid(
+                    char buf[OGS_ADDRSTRLEN];
+                    ogs_sockaddr_t *addr = sess->pfcp_node->sa_list;
+                    ogs_assert(addr);
+
+                    ogs_error("F-TEID allocation/release not supported "
+                                "with peer [%s]:%d",
+                                OGS_ADDR(addr, buf), OGS_PORT(addr));
+
+                    ogs_assert(OGS_OK ==
+                        ogs_pfcp_sockaddr_to_f_teid(
                             sess->upf_n3_addr, sess->upf_n3_addr6,
-                            &ul_pdr->f_teid, &ul_pdr->f_teid_len);
+                            &ul_pdr->f_teid, &ul_pdr->f_teid_len));
                     ul_pdr->f_teid.teid = sess->upf_n3_teid;
                 }
 
@@ -483,13 +510,6 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
                 ogs_fatal("Update QoS Flow: Not implemented in 5G Core");
                 ogs_assert_if_reached();
                 ogs_assert(strcmp(qos_flow->pcc_rule.id, pcc_rule->id) == 0);
-
-                if (pcc_rule->num_of_flow) {
-                    /* We'll use always 'Create new TFT'.
-                     * Therefore, all previous flows are removed
-                     * and replaced by the new flow */
-                    smf_pf_remove_all(qos_flow);
-                }
 
                 if ((pcc_rule->qos.mbr.downlink &&
                     qos_flow->qos.mbr.downlink != pcc_rule->qos.mbr.downlink) ||
@@ -521,12 +541,19 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
             dl_pdr->num_of_flow = 0;
             ul_pdr->num_of_flow = 0;
 
+            ogs_list_init(&qos_flow->pf_to_add_list);
+
             for (j = 0; j < pcc_rule->num_of_flow; j++) {
                 ogs_flow_t *flow = &pcc_rule->flow[j];
                 smf_pf_t *pf = NULL;
 
                 ogs_expect_or_return(flow);
                 ogs_expect_or_return(flow->description);
+
+                if (smf_pf_find_by_flow(
+                    qos_flow, flow->direction, flow->description) != NULL) {
+                    continue;
+                }
 
                 if (flow->direction == OGS_FLOW_DOWNLINK_ONLY) {
                     dl_pdr->flow_description[dl_pdr->num_of_flow++] =
@@ -544,6 +571,7 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
 
                 pf->direction = flow->direction;
                 pf->flow_description = ogs_strdup(flow->description);
+                ogs_assert(pf->flow_description);
 
                 rv = ogs_ipfw_compile_rule(
                         &pf->ipfw_rule, pf->flow_description);
@@ -570,6 +598,8 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
                     smf_pf_remove(pf);
                     break;
                 }
+
+                ogs_list_add(&qos_flow->pf_to_add_list, &pf->to_add_node);
             }
 
             if (qos_flow_created == 1) {
@@ -595,8 +625,9 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
                     qer->gbr.downlink = qos_flow->qos.gbr.downlink;
                 }
 
-                smf_5gc_pfcp_send_qos_flow_modification_request(
-                        qos_flow, NULL, OGS_PFCP_MODIFY_CREATE);
+                ogs_assert(OGS_OK ==
+                    smf_5gc_pfcp_send_qos_flow_modification_request(
+                        qos_flow, NULL, OGS_PFCP_MODIFY_CREATE));
 
             } else {
                 ogs_fatal("Update Qos Flow Not Implemented");
@@ -606,7 +637,9 @@ void smf_qos_flow_binding(smf_sess_t *sess, ogs_sbi_stream_t *stream)
 
                 memset(&tft, 0, sizeof tft);
                 if (pcc_rule->num_of_flow)
-                    encode_traffic_flow_template(&tft, qos_flow);
+                    encode_traffic_flow_template(
+                        &tft, qos_flow,
+                        OGS_GTP_TFT_CODE_ADD_PACKET_FILTERS_TO_EXISTING_TFT);
 
                 memset(&h, 0, sizeof(ogs_gtp_header_t));
                 h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;

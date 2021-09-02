@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "context.h"
+#include "sbi-path.h"
 
 static ogs_thread_t *thread;
 static void nrf_main(void *data);
@@ -39,6 +39,9 @@ int nrf_initialize()
 
     rv = ogs_log_config_domain(
             ogs_app()->logger.domain, ogs_app()->logger.level);
+    if (rv != OGS_OK) return rv;
+
+    rv = nrf_sbi_open();
     if (rv != OGS_OK) return rv;
 
     thread = ogs_thread_create(nrf_main, NULL);
@@ -76,6 +79,8 @@ void nrf_terminate(void)
     event_termination();
     ogs_thread_destroy(thread);
     ogs_timer_delete(t_termination_holding);
+
+    nrf_sbi_close();
 
     nrf_context_final();
     ogs_sbi_context_final();

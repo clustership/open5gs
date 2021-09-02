@@ -1,7 +1,7 @@
 /*
  * auth_event.h
  *
- *
+ * 
  */
 
 #ifndef _OpenAPI_auth_event_H_
@@ -25,6 +25,7 @@ typedef struct OpenAPI_auth_event_s {
     char *time_stamp;
     OpenAPI_auth_type_e auth_type;
     char *serving_network_name;
+    bool is_auth_removal_ind;
     int auth_removal_ind;
 } OpenAPI_auth_event_t;
 
@@ -34,8 +35,9 @@ OpenAPI_auth_event_t *OpenAPI_auth_event_create(
     char *time_stamp,
     OpenAPI_auth_type_e auth_type,
     char *serving_network_name,
+    bool is_auth_removal_ind,
     int auth_removal_ind
-    );
+);
 void OpenAPI_auth_event_free(OpenAPI_auth_event_t *auth_event);
 OpenAPI_auth_event_t *OpenAPI_auth_event_parseFromJSON(cJSON *auth_eventJSON);
 cJSON *OpenAPI_auth_event_convertToJSON(OpenAPI_auth_event_t *auth_event);

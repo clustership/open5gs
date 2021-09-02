@@ -133,17 +133,19 @@ int smf_pfcp_open(void)
     /* PFCP Server */
     ogs_list_for_each(&ogs_pfcp_self()->pfcp_list, node) {
         sock = ogs_pfcp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
         
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, pfcp_recv_cb, sock);
+        ogs_assert(node->poll);
     }
     ogs_list_for_each(&ogs_pfcp_self()->pfcp_list6, node) {
         sock = ogs_pfcp_server(node);
-        ogs_assert(sock);
+        if (!sock) return OGS_ERROR;
 
         node->poll = ogs_pollset_add(ogs_app()->pollset,
                 OGS_POLLIN, sock->fd, pfcp_recv_cb, sock);
+        ogs_assert(node->poll);
     }
 
     OGS_SETUP_PFCP_SERVER;
@@ -202,8 +204,9 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
         ogs_assert(strerror);
 
         ogs_error("%s", strerror);
-        ogs_sbi_server_send_error(stream,
-                OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL, strerror, NULL);
+        ogs_assert(true ==
+            ogs_sbi_server_send_error(stream,
+                OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL, strerror, NULL));
         ogs_free(strerror);
         break;
     default:
@@ -288,7 +291,7 @@ static void bearer_epc_timeout(ogs_pfcp_xact_t *xact, void *data)
     }
 }
 
-void smf_5gc_pfcp_send_session_establishment_request(
+int smf_5gc_pfcp_send_session_establishment_request(
         smf_sess_t *sess, ogs_sbi_stream_t *stream)
 {
     int rv;
@@ -304,18 +307,20 @@ void smf_5gc_pfcp_send_session_establishment_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_session_establishment_request(h.type, sess);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_5gc_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->assoc_stream = stream;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_5gc_pfcp_send_session_modification_request(
+int smf_5gc_pfcp_send_session_modification_request(
         smf_sess_t *sess, ogs_sbi_stream_t *stream,
         uint64_t flags, ogs_time_t duration)
 {
@@ -333,23 +338,27 @@ void smf_5gc_pfcp_send_session_modification_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_session_modification_request(h.type, sess, flags);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_5gc_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->assoc_stream = stream;
     xact->modify_flags = flags | OGS_PFCP_MODIFY_SESSION;
 
     if (duration) {
         ogs_pfcp_xact_delayed_commit(xact, duration);
+
+        return OGS_OK;
     } else {
         rv = ogs_pfcp_xact_commit(xact);
         ogs_expect(rv == OGS_OK);
+
+        return rv;
     }
 }
 
-void smf_5gc_pfcp_send_qos_flow_modification_request(smf_bearer_t *qos_flow,
+int smf_5gc_pfcp_send_qos_flow_modification_request(smf_bearer_t *qos_flow,
         ogs_sbi_stream_t *stream, uint64_t flags)
 {
     int rv;
@@ -367,20 +376,22 @@ void smf_5gc_pfcp_send_qos_flow_modification_request(smf_bearer_t *qos_flow,
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_qos_flow_modification_request(h.type, qos_flow, flags);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, qos_flow_5gc_timeout, qos_flow);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     xact->assoc_stream = stream;
     xact->modify_flags = flags;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_5gc_pfcp_send_session_deletion_request(
+int smf_5gc_pfcp_send_session_deletion_request(
         smf_sess_t *sess, ogs_sbi_stream_t *stream, int trigger)
 {
     int rv;
@@ -397,19 +408,21 @@ void smf_5gc_pfcp_send_session_deletion_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_session_deletion_request(h.type, sess);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_5gc_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->assoc_stream = stream;
     xact->delete_trigger = trigger;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_epc_pfcp_send_session_establishment_request(
+int smf_epc_pfcp_send_session_establishment_request(
         smf_sess_t *sess, void *gtp_xact)
 {
     int rv;
@@ -424,20 +437,22 @@ void smf_epc_pfcp_send_session_establishment_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_session_establishment_request(h.type, sess);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_epc_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     xact->epc = true; /* EPC PFCP transaction */
     xact->assoc_xact = gtp_xact;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_epc_pfcp_send_bearer_modification_request(
+int smf_epc_pfcp_send_bearer_modification_request(
         smf_bearer_t *bearer, uint64_t flags)
 {
     int rv;
@@ -455,20 +470,22 @@ void smf_epc_pfcp_send_bearer_modification_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_qos_flow_modification_request(h.type, bearer, flags);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, bearer_epc_timeout, bearer);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     xact->epc = true; /* EPC PFCP transaction */
     xact->modify_flags = flags;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_epc_pfcp_send_session_deletion_request(
+int smf_epc_pfcp_send_session_deletion_request(
         smf_sess_t *sess, void *gtp_xact)
 {
     int rv;
@@ -483,20 +500,44 @@ void smf_epc_pfcp_send_session_deletion_request(
     h.seid = sess->upf_n4_seid;
 
     n4buf = smf_n4_build_session_deletion_request(h.type, sess);
-    ogs_expect_or_return(n4buf);
+    ogs_expect_or_return_val(n4buf, OGS_ERROR);
 
     xact = ogs_pfcp_xact_local_create(
             sess->pfcp_node, &h, n4buf, sess_epc_timeout, sess);
-    ogs_expect_or_return(xact);
+    ogs_expect_or_return_val(xact, OGS_ERROR);
 
     xact->epc = true; /* EPC PFCP transaction */
+
+    /*
+     * << 'gtp_xact' is NOT NULL >>
+     *
+     * 1. MME sends Delete Session Request to SGW/SMF.
+     * 2. SMF sends Delete Session Response to SGW/MME.
+     *
+     *
+     * << 'gtp_xact' should be NULL >>
+     *
+     * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to SGW/MME.
+     * 2. MME sends Delete Bearer Response to SGW/SMF.
+     *
+     * OR
+     *
+     * 1. SMF sends Delete Bearer Request(DEFAULT BEARER) to ePDG.
+     * 2. ePDG sends Delete Bearer Response(DEFAULT BEARER) to SMF.
+     *
+     * Note that the following messages are not processed here.
+     * - Bearer Resource Command
+     * - Delete Bearer Request/Response with DEDICATED BEARER.
+     */
     xact->assoc_xact = gtp_xact;
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
-void smf_pfcp_send_session_report_response(
+int smf_pfcp_send_session_report_response(
         ogs_pfcp_xact_t *xact, smf_sess_t *sess, uint8_t cause)
 {
     int rv;
@@ -510,11 +551,13 @@ void smf_pfcp_send_session_report_response(
     h.seid = sess->upf_n4_seid;
 
     sxabuf = ogs_pfcp_build_session_report_response(h.type, cause);
-    ogs_expect_or_return(sxabuf);
+    ogs_expect_or_return_val(sxabuf, OGS_ERROR);
 
     rv = ogs_pfcp_xact_update_tx(xact, &h, sxabuf);
-    ogs_expect_or_return(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
 }

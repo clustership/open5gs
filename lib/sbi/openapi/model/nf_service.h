@@ -12,7 +12,6 @@
 #include "../include/list.h"
 #include "../include/keyValuePair.h"
 #include "../include/binary.h"
-#include "chf_service_info.h"
 #include "default_notification_subscription.h"
 #include "ext_snssai.h"
 #include "ip_end_point.h"
@@ -48,18 +47,21 @@ typedef struct OpenAPI_nf_service_s {
     OpenAPI_list_t *allowed_nssais;
     OpenAPI_list_t* allowed_operations_per_nf_type;
     OpenAPI_list_t* allowed_operations_per_nf_instance;
+    bool is_priority;
     int priority;
+    bool is_capacity;
     int capacity;
+    bool is_load;
     int load;
     char *load_time_stamp;
     char *recovery_time;
-    struct OpenAPI_chf_service_info_s *chf_service_info;
     char *supported_features;
     OpenAPI_list_t *nf_service_set_id_list;
     OpenAPI_list_t *s_nssais;
     OpenAPI_list_t *per_plmn_snssai_list;
     char *vendor_id;
     OpenAPI_list_t* supported_vendor_specific_features;
+    bool is_oauth2_required;
     int oauth2_required;
 } OpenAPI_nf_service_t;
 
@@ -81,20 +83,23 @@ OpenAPI_nf_service_t *OpenAPI_nf_service_create(
     OpenAPI_list_t *allowed_nssais,
     OpenAPI_list_t* allowed_operations_per_nf_type,
     OpenAPI_list_t* allowed_operations_per_nf_instance,
+    bool is_priority,
     int priority,
+    bool is_capacity,
     int capacity,
+    bool is_load,
     int load,
     char *load_time_stamp,
     char *recovery_time,
-    OpenAPI_chf_service_info_t *chf_service_info,
     char *supported_features,
     OpenAPI_list_t *nf_service_set_id_list,
     OpenAPI_list_t *s_nssais,
     OpenAPI_list_t *per_plmn_snssai_list,
     char *vendor_id,
     OpenAPI_list_t* supported_vendor_specific_features,
+    bool is_oauth2_required,
     int oauth2_required
-    );
+);
 void OpenAPI_nf_service_free(OpenAPI_nf_service_t *nf_service);
 OpenAPI_nf_service_t *OpenAPI_nf_service_parseFromJSON(cJSON *nf_serviceJSON);
 cJSON *OpenAPI_nf_service_convertToJSON(OpenAPI_nf_service_t *nf_service);

@@ -30,12 +30,12 @@ static char *build_json(ogs_sbi_message_t *message);
 static int parse_json(ogs_sbi_message_t *message,
         char *content_type, char *json);
 
-static void build_content(
+static bool build_content(
         ogs_sbi_http_message_t *http, ogs_sbi_message_t *message);
 static int parse_content(
         ogs_sbi_message_t *message, ogs_sbi_http_message_t *http);
 
-static void build_multipart(
+static bool build_multipart(
         ogs_sbi_http_message_t *http, ogs_sbi_message_t *message);
 static int parse_multipart(
         ogs_sbi_message_t *sbi_message, ogs_sbi_http_message_t *http);
@@ -152,9 +152,15 @@ void ogs_sbi_message_free(ogs_sbi_message_t *message)
         OpenAPI_sm_policy_decision_free(message->SmPolicyDecision);
     if (message->SmPolicyData)
         OpenAPI_sm_policy_data_free(message->SmPolicyData);
+    if (message->SmPolicyDeleteData)
+        OpenAPI_sm_policy_delete_data_free(message->SmPolicyDeleteData);
     if (message->AuthorizedNetworkSliceInfo)
         OpenAPI_authorized_network_slice_info_free(
                 message->AuthorizedNetworkSliceInfo);
+    if (message->PcfBinding)
+        OpenAPI_pcf_binding_free(message->PcfBinding);
+    if (message->AppSessionContext)
+        OpenAPI_app_session_context_free(message->AppSessionContext);
 
     for (i = 0; i < message->num_of_part; i++) {
         if (message->part[i].pkbuf)
@@ -167,11 +173,13 @@ ogs_sbi_request_t *ogs_sbi_request_new(void)
     ogs_sbi_request_t *request = NULL;
 
     ogs_pool_alloc(&request_pool, &request);
-    if (!request) return NULL;
+    ogs_expect_or_return_val(request, NULL);
     memset(request, 0, sizeof(ogs_sbi_request_t));
 
     request->http.params = ogs_hash_make();
+    ogs_expect_or_return_val(request->http.params, NULL);
     request->http.headers = ogs_hash_make();
+    ogs_expect_or_return_val(request->http.headers, NULL);
 
     return request;
 }
@@ -181,11 +189,13 @@ ogs_sbi_response_t *ogs_sbi_response_new(void)
     ogs_sbi_response_t *response = NULL;
 
     ogs_pool_alloc(&response_pool, &response);
-    ogs_assert(response);
+    ogs_expect_or_return_val(response, NULL);
     memset(response, 0, sizeof(ogs_sbi_response_t));
 
     response->http.params = ogs_hash_make();
+    ogs_expect_or_return_val(response->http.params, NULL);
     response->http.headers = ogs_hash_make();
+    ogs_expect_or_return_val(response->http.headers, NULL);
 
     return response;
 }
@@ -223,21 +233,24 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
     ogs_assert(message);
 
     request = ogs_sbi_request_new();
-    if (!request) return NULL;
+    ogs_expect_or_return_val(request, NULL);
 
-    ogs_assert(message->h.method);
+    ogs_expect_or_return_val(message->h.method, NULL);
     request->h.method = ogs_strdup(message->h.method);
     if (message->h.uri) {
+        ogs_expect_or_return_val(message->h.uri, NULL);
         request->h.uri = ogs_strdup(message->h.uri);
+        ogs_expect_or_return_val(request->h.uri, NULL);
     } else {
         int i;
 
-        ogs_assert(message->h.service.name);
+        ogs_expect_or_return_val(message->h.service.name, NULL);
         request->h.service.name = ogs_strdup(message->h.service.name);
-        ogs_assert(message->h.api.version);
+        ogs_expect_or_return_val(message->h.api.version, NULL);
         request->h.api.version = ogs_strdup(message->h.api.version);
+        ogs_expect_or_return_val(request->h.api.version, NULL);
 
-        ogs_assert(message->h.resource.component[0]);
+        ogs_expect_or_return_val(message->h.resource.component[0], NULL);
         for (i = 0; i < OGS_SBI_MAX_NUM_OF_RESOURCE_COMPONENT &&
                             message->h.resource.component[i]; i++)
             request->h.resource.component[i] = ogs_strdup(
@@ -251,24 +264,24 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
     }
     if (message->param.nf_type) {
         char *v = OpenAPI_nf_type_ToString(message->param.nf_type);
-        ogs_assert(v);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_NF_TYPE, v);
     }
     if (message->param.requester_nf_type) {
         char *v = OpenAPI_nf_type_ToString(message->param.requester_nf_type);
-        ogs_assert(v);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params,
                 OGS_SBI_PARAM_REQUESTER_NF_TYPE, v);
     }
     if (message->param.target_nf_type) {
         char *v = OpenAPI_nf_type_ToString(message->param.target_nf_type);
-        ogs_assert(v);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params,
                 OGS_SBI_PARAM_TARGET_NF_TYPE, v);
     }
     if (message->param.limit) {
         char *v = ogs_msprintf("%d", message->param.limit);
-        ogs_assert(v);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_LIMIT, v);
         ogs_free(v);
     }
@@ -287,12 +300,12 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
             cJSON *item = NULL;
 
             item = OpenAPI_plmn_id_convertToJSON(&plmn_id);
-            ogs_assert(item);
+            ogs_expect_or_return_val(item, NULL);
             if (plmn_id.mnc) ogs_free(plmn_id.mnc);
             if (plmn_id.mcc) ogs_free(plmn_id.mcc);
 
             v = cJSON_Print(item);
-            ogs_assert(v);
+            ogs_expect_or_return_val(v, NULL);
             cJSON_Delete(item);
 
             ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_PLMN_ID, v);
@@ -301,11 +314,13 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
     }
     if (message->param.single_nssai_presence) {
         char *v = ogs_sbi_s_nssai_to_string(&message->param.s_nssai);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_SINGLE_NSSAI, v);
         ogs_free(v);
     }
     if (message->param.snssai_presence) {
         char *v = ogs_sbi_s_nssai_to_string(&message->param.s_nssai);
+        ogs_expect_or_return_val(v, NULL);
         ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_SNSSAI, v);
         ogs_free(v);
     }
@@ -320,12 +335,12 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
             cJSON *item = NULL;
 
             item = OpenAPI_plmn_id_convertToJSON(&plmn_id);
-            ogs_assert(item);
+            ogs_expect_or_return_val(item, NULL);
             if (plmn_id.mnc) ogs_free(plmn_id.mnc);
             if (plmn_id.mcc) ogs_free(plmn_id.mcc);
 
             v = cJSON_Print(item);
-            ogs_assert(v);
+            ogs_expect_or_return_val(v, NULL);
             cJSON_Delete(item);
 
             ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_PLMN_ID, v);
@@ -339,8 +354,8 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
         char *v = NULL;
         cJSON *item = NULL;
 
-        ogs_assert(message->param.s_nssai.sst);
-        ogs_assert(message->param.roaming_indication);
+        ogs_expect_or_return_val(message->param.s_nssai.sst, NULL);
+        ogs_expect_or_return_val(message->param.roaming_indication, NULL);
 
         memset(&sNSSAI, 0, sizeof(sNSSAI));
         sNSSAI.sst = message->param.s_nssai.sst;
@@ -354,10 +369,10 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
 
         item = OpenAPI_slice_info_for_pdu_session_convertToJSON(
                 &SliceInfoForPDUSession);
-        ogs_assert(item);
+        ogs_expect_or_return_val(item, NULL);
 
         v = cJSON_Print(item);
-        ogs_assert(v);
+        ogs_expect_or_return_val(v, NULL);
         cJSON_Delete(item);
 
         ogs_sbi_header_set(request->http.params,
@@ -367,8 +382,17 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
         if (sNSSAI.sd)
             ogs_free(sNSSAI.sd);
     }
+    if (message->param.ipv4addr) {
+        ogs_sbi_header_set(request->http.params,
+                OGS_SBI_PARAM_IPV4ADDR, message->param.ipv4addr);
+    }
+    if (message->param.ipv6prefix) {
+        ogs_sbi_header_set(request->http.params,
+                OGS_SBI_PARAM_IPV6PREFIX, message->param.ipv6prefix);
+    }
 
-    build_content(&request->http, message);
+    ogs_expect_or_return_val(true ==
+            build_content(&request->http, message), NULL);
 
     if (message->http.accept) {
         ogs_sbi_header_set(request->http.headers, OGS_SBI_ACCEPT,
@@ -401,12 +425,13 @@ ogs_sbi_response_t *ogs_sbi_build_response(
     ogs_assert(message);
 
     response = ogs_sbi_response_new();
-    ogs_assert(response);
+    ogs_expect_or_return_val(response, NULL);
 
     response->status = status;
 
     if (response->status != OGS_SBI_HTTP_STATUS_NO_CONTENT) {
-        build_content(&response->http, message);
+        ogs_expect_or_return_val(true ==
+            build_content(&response->http, message), NULL);
     }
 
     if (message->http.location) {
@@ -522,6 +547,10 @@ int ogs_sbi_parse_request(
                     cJSON_Delete(item);
                 }
             }
+        } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_IPV4ADDR)) {
+            message->param.ipv4addr = ogs_hash_this_val(hi);
+        } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_IPV6PREFIX)) {
+            message->param.ipv6prefix = ogs_hash_this_val(hi);
         }
     }
 
@@ -577,16 +606,6 @@ int ogs_sbi_parse_response(
     }
 
     return OGS_OK;
-}
-
-void ogs_sbi_header_set(ogs_hash_t *ht, const void *key, const void *val)
-{
-    ogs_hash_set(ht, key, strlen(key), ogs_strdup(val));
-}
-
-void *ogs_sbi_header_get(ogs_hash_t *ht, const void *key)
-{
-    return ogs_hash_get(ht, key, strlen(key));
 }
 
 ogs_pkbuf_t *ogs_sbi_find_part_by_content_id(
@@ -841,9 +860,20 @@ static char *build_json(ogs_sbi_message_t *message)
     } else if (message->SmPolicyData) {
         item = OpenAPI_sm_policy_data_convertToJSON(message->SmPolicyData);
         ogs_assert(item);
+    } else if (message->SmPolicyDeleteData) {
+        item = OpenAPI_sm_policy_delete_data_convertToJSON(
+                message->SmPolicyDeleteData);
+        ogs_assert(item);
     } else if (message->AuthorizedNetworkSliceInfo) {
         item = OpenAPI_authorized_network_slice_info_convertToJSON(
                 message->AuthorizedNetworkSliceInfo);
+        ogs_assert(item);
+    } else if (message->PcfBinding) {
+        item = OpenAPI_pcf_binding_convertToJSON(message->PcfBinding);
+        ogs_assert(item);
+    } else if (message->AppSessionContext) {
+        item = OpenAPI_app_session_context_convertToJSON(
+                message->AppSessionContext);
         ogs_assert(item);
     }
 
@@ -1446,20 +1476,42 @@ static int parse_json(ogs_sbi_message_t *message,
         CASE(OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)
             SWITCH(message->h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_SM_POLICIES)
-                if (message->res_status == 0) {
-                    message->SmPolicyContextData =
-                        OpenAPI_sm_policy_context_data_parseFromJSON(item);
-                    if (!message->SmPolicyContextData) {
-                        rv = OGS_ERROR;
-                        ogs_error("JSON parse error");
+                if (!message->h.resource.component[1]) {
+                    if (message->res_status == 0) {
+                        message->SmPolicyContextData =
+                            OpenAPI_sm_policy_context_data_parseFromJSON(item);
+                        if (!message->SmPolicyContextData) {
+                            rv = OGS_ERROR;
+                            ogs_error("JSON parse error");
+                        }
+                    } else if (message->res_status ==
+                            OGS_SBI_HTTP_STATUS_CREATED) {
+                        message->SmPolicyDecision =
+                            OpenAPI_sm_policy_decision_parseFromJSON(item);
+                        if (!message->SmPolicyDecision) {
+                            rv = OGS_ERROR;
+                            ogs_error("JSON parse error");
+                        }
                     }
-                } else if (message->res_status == OGS_SBI_HTTP_STATUS_CREATED) {
-                    message->SmPolicyDecision =
-                        OpenAPI_sm_policy_decision_parseFromJSON(item);
-                    if (!message->SmPolicyDecision) {
+                } else {
+                    SWITCH(message->h.resource.component[2])
+                    CASE(OGS_SBI_RESOURCE_NAME_DELETE)
+                        if (message->res_status == 0) {
+                            message->SmPolicyDeleteData =
+                                OpenAPI_sm_policy_delete_data_parseFromJSON(
+                                        item);
+                            if (!message->SmPolicyDeleteData) {
+                                rv = OGS_ERROR;
+                                ogs_error("JSON parse error");
+                            }
+                        }
+                        break;
+                    DEFAULT
                         rv = OGS_ERROR;
-                        ogs_error("JSON parse error");
-                    }
+                        ogs_error("Unknown resource name [%s]",
+                                message->h.resource.component[2]);
+                    END
+                    break;
                 }
                 break;
 
@@ -1483,6 +1535,108 @@ static int parse_json(ogs_sbi_message_t *message,
                     }
                 }
                 break;
+
+            DEFAULT
+                rv = OGS_ERROR;
+                ogs_error("Unknown resource name [%s]",
+                        message->h.resource.component[0]);
+            END
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NBSF_MANAGEMENT)
+            SWITCH(message->h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_PCF_BINDINGS)
+                if (message->h.resource.component[1]) {
+                    SWITCH(message->h.method)
+                    CASE(OGS_SBI_HTTP_METHOD_PATCH)
+                        if (message->res_status == OGS_SBI_HTTP_STATUS_OK) {
+                            message->PcfBinding =
+                                OpenAPI_pcf_binding_parseFromJSON(item);
+                            if (!message->PcfBinding) {
+                                rv = OGS_ERROR;
+                                ogs_error("JSON parse error");
+                            }
+                        }
+                        break;
+                    CASE(OGS_SBI_HTTP_METHOD_DELETE)
+                        break;
+                    DEFAULT
+                        rv = OGS_ERROR;
+                        ogs_error("Unknown method [%s]", message->h.method);
+                    END
+                    break;
+                } else {
+                    SWITCH(message->h.method)
+                    CASE(OGS_SBI_HTTP_METHOD_POST)
+                        if (message->res_status == 0 ||
+                            message->res_status ==
+                                OGS_SBI_HTTP_STATUS_CREATED) {
+                            message->PcfBinding =
+                                OpenAPI_pcf_binding_parseFromJSON(item);
+                            if (!message->PcfBinding) {
+                                rv = OGS_ERROR;
+                                ogs_error("JSON parse error");
+                            }
+                        }
+                        break;
+
+                    CASE(OGS_SBI_HTTP_METHOD_GET)
+                        if (message->res_status == OGS_SBI_HTTP_STATUS_OK) {
+                            message->PcfBinding =
+                                OpenAPI_pcf_binding_parseFromJSON(item);
+                            if (!message->PcfBinding) {
+                                rv = OGS_ERROR;
+                                ogs_error("JSON parse error");
+                            }
+                        }
+                        break;
+                    DEFAULT
+                        rv = OGS_ERROR;
+                        ogs_error("Unknown method [%s]", message->h.method);
+                    END
+                    break;
+                }
+
+            DEFAULT
+                rv = OGS_ERROR;
+                ogs_error("Unknown resource name [%s]",
+                        message->h.resource.component[0]);
+            END
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION)
+            SWITCH(message->h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_APP_SESSIONS)
+                if (message->h.resource.component[1]) {
+                    SWITCH(message->h.method)
+                    CASE(OGS_SBI_HTTP_METHOD_DELETE)
+                        break;
+                    DEFAULT
+                        rv = OGS_ERROR;
+                        ogs_error("Unknown method [%s]", message->h.method);
+                    END
+                    break;
+                } else {
+                    SWITCH(message->h.method)
+                    CASE(OGS_SBI_HTTP_METHOD_POST)
+                        if (message->res_status == 0 ||
+                            message->res_status ==
+                                OGS_SBI_HTTP_STATUS_CREATED) {
+                            message->AppSessionContext =
+                                OpenAPI_app_session_context_parseFromJSON(item);
+                            if (!message->AppSessionContext) {
+                                rv = OGS_ERROR;
+                                ogs_error("JSON parse error");
+                            }
+                        }
+                        break;
+
+                    DEFAULT
+                        rv = OGS_ERROR;
+                        ogs_error("Unknown method [%s]", message->h.method);
+                    END
+                    break;
+                }
 
             DEFAULT
                 rv = OGS_ERROR;
@@ -1556,26 +1710,30 @@ static int parse_content(
     }
 }
 
-static void build_content(
+static bool build_content(
         ogs_sbi_http_message_t *http, ogs_sbi_message_t *message)
 {
     ogs_assert(message);
     ogs_assert(http);
 
     if (message->num_of_part) {
-        build_multipart(http, message);
+        ogs_expect_or_return_val(true ==
+                build_multipart(http, message), false);
     } else {
         http->content = build_json(message);
         if (http->content) {
             http->content_length = strlen(http->content);
-            if (message->http.content_type)
+            if (message->http.content_type) {
                 ogs_sbi_header_set(http->headers,
                         OGS_SBI_CONTENT_TYPE, message->http.content_type);
-            else
+            } else {
                 ogs_sbi_header_set(http->headers,
                         OGS_SBI_CONTENT_TYPE, OGS_SBI_CONTENT_JSON_TYPE);
+            }
         }
     }
+
+    return true;
 }
 
 typedef struct multipart_parser_data_s {
@@ -1603,6 +1761,7 @@ static int on_header_field(
         if (data->header_field)
             ogs_free(data->header_field);
         data->header_field = ogs_strndup(at, length);
+        ogs_assert(data->header_field);
     }
     return 0;
 }
@@ -1623,12 +1782,14 @@ static int on_header_value(
                 ogs_free(data->part[data->num_of_part].content_type);
             data->part[data->num_of_part].content_type =
                 ogs_strndup(at, length);
+            ogs_assert(data->part[data->num_of_part].content_type);
             break;
         CASE(OGS_SBI_CONTENT_ID)
             if (data->part[data->num_of_part].content_id)
                 ogs_free(data->part[data->num_of_part].content_id);
             data->part[data->num_of_part].content_id =
                 ogs_strndup(at, length);
+            ogs_assert(data->part[data->num_of_part].content_id);
             break;
 
         DEFAULT
@@ -1771,7 +1932,8 @@ static int parse_multipart(
                 data.part[i].content_type;
             http->part[http->num_of_part].pkbuf =
                 ogs_pkbuf_alloc(NULL, data.part[i].content_length);
-            ogs_assert(http->part[http->num_of_part].pkbuf);
+            ogs_expect_or_return_val(
+                http->part[http->num_of_part].pkbuf, OGS_ERROR);
             ogs_pkbuf_put_data(http->part[http->num_of_part].pkbuf,
                 data.part[i].content, data.part[i].content_length);
 
@@ -1781,7 +1943,8 @@ static int parse_multipart(
                 http->part[http->num_of_part].content_type;
             message->part[message->num_of_part].pkbuf =
                 ogs_pkbuf_copy(http->part[http->num_of_part].pkbuf);
-            ogs_assert(message->part[message->num_of_part].pkbuf);
+            ogs_expect_or_return_val(
+                message->part[message->num_of_part].pkbuf, OGS_ERROR);
 
             http->num_of_part++;
             message->num_of_part++;
@@ -1806,7 +1969,7 @@ static int parse_multipart(
     return OGS_OK;
 }
 
-static void build_multipart(
+static bool build_multipart(
         ogs_sbi_http_message_t *http, ogs_sbi_message_t *message)
 {
     int i;
@@ -1826,7 +1989,7 @@ static void build_multipart(
     ogs_base64_encode_binary(boundary + 2, digest, 16);
 
     p = http->content = ogs_calloc(1, OGS_HUGE_LEN);
-    ogs_assert(p);
+    ogs_expect_or_return_val(p, false);
     last = p + OGS_HUGE_LEN;
 
     /* First boundary */
@@ -1834,7 +1997,7 @@ static void build_multipart(
 
     /* Encapsulated multipart part (application/json) */
     json = build_json(message);
-    ogs_assert(json);
+    ogs_expect_or_return_val(json, false);
 
     p = ogs_slprintf(p, last, "%s\r\n\r\n%s",
             OGS_SBI_CONTENT_TYPE ": " OGS_SBI_CONTENT_JSON_TYPE, json);
@@ -1859,11 +2022,13 @@ static void build_multipart(
 
     content_type = ogs_msprintf("%s; boundary=\"%s\"",
             OGS_SBI_CONTENT_MULTIPART_TYPE, boundary);
-    ogs_assert(content_type);
+    ogs_expect_or_return_val(content_type, false);
 
     ogs_sbi_header_set(http->headers, OGS_SBI_CONTENT_TYPE, content_type);
 
     ogs_free(content_type);
+
+    return true;
 }
 
 static void http_message_free(ogs_sbi_http_message_t *http)
@@ -1874,7 +2039,9 @@ static void http_message_free(ogs_sbi_http_message_t *http)
     if (http->params) {
         ogs_hash_index_t *hi;
         for (hi = ogs_hash_first(http->params); hi; hi = ogs_hash_next(hi)) {
+            char *key = (char *)ogs_hash_this_key(hi);
             char *val = ogs_hash_this_val(hi);
+            ogs_free(key);
             ogs_free(val);
         }
         ogs_hash_destroy(http->params);
@@ -1883,7 +2050,9 @@ static void http_message_free(ogs_sbi_http_message_t *http)
     if (http->headers) {
         ogs_hash_index_t *hi;
         for (hi = ogs_hash_first(http->headers); hi; hi = ogs_hash_next(hi)) {
+            char *key = (char *)ogs_hash_this_key(hi);
             char *val = ogs_hash_this_val(hi);
+            ogs_free(key);
             ogs_free(val);
         }
         ogs_hash_destroy(http->headers);

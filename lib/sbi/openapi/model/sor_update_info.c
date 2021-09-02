@@ -6,7 +6,7 @@
 
 OpenAPI_sor_update_info_t *OpenAPI_sor_update_info_create(
     OpenAPI_plmn_id_t *vplmn_id
-    )
+)
 {
     OpenAPI_sor_update_info_t *sor_update_info_local_var = OpenAPI_malloc(sizeof(OpenAPI_sor_update_info_t));
     if (!sor_update_info_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_sor_update_info_convertToJSON(OpenAPI_sor_update_info_t *sor_upda
     }
 
     item = cJSON_CreateObject();
-    if (!sor_update_info->vplmn_id) {
-        ogs_error("OpenAPI_sor_update_info_convertToJSON() failed [vplmn_id]");
-        goto end;
-    }
     cJSON *vplmn_id_local_JSON = OpenAPI_plmn_id_convertToJSON(sor_update_info->vplmn_id);
     if (vplmn_id_local_JSON == NULL) {
         ogs_error("OpenAPI_sor_update_info_convertToJSON() failed [vplmn_id]");
@@ -66,12 +62,11 @@ OpenAPI_sor_update_info_t *OpenAPI_sor_update_info_parseFromJSON(cJSON *sor_upda
     }
 
     OpenAPI_plmn_id_t *vplmn_id_local_nonprim = NULL;
-
     vplmn_id_local_nonprim = OpenAPI_plmn_id_parseFromJSON(vplmn_id);
 
     sor_update_info_local_var = OpenAPI_sor_update_info_create (
         vplmn_id_local_nonprim
-        );
+    );
 
     return sor_update_info_local_var;
 end:

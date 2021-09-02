@@ -6,7 +6,7 @@
 
 OpenAPI_ref_to_binary_data_t *OpenAPI_ref_to_binary_data_create(
     char *content_id
-    )
+)
 {
     OpenAPI_ref_to_binary_data_t *ref_to_binary_data_local_var = OpenAPI_malloc(sizeof(OpenAPI_ref_to_binary_data_t));
     if (!ref_to_binary_data_local_var) {
@@ -37,10 +37,6 @@ cJSON *OpenAPI_ref_to_binary_data_convertToJSON(OpenAPI_ref_to_binary_data_t *re
     }
 
     item = cJSON_CreateObject();
-    if (!ref_to_binary_data->content_id) {
-        ogs_error("OpenAPI_ref_to_binary_data_convertToJSON() failed [content_id]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "contentId", ref_to_binary_data->content_id) == NULL) {
         ogs_error("OpenAPI_ref_to_binary_data_convertToJSON() failed [content_id]");
         goto end;
@@ -59,15 +55,14 @@ OpenAPI_ref_to_binary_data_t *OpenAPI_ref_to_binary_data_parseFromJSON(cJSON *re
         goto end;
     }
 
-
     if (!cJSON_IsString(content_id)) {
         ogs_error("OpenAPI_ref_to_binary_data_parseFromJSON() failed [content_id]");
         goto end;
     }
 
     ref_to_binary_data_local_var = OpenAPI_ref_to_binary_data_create (
-        ogs_strdup(content_id->valuestring)
-        );
+        ogs_strdup_or_assert(content_id->valuestring)
+    );
 
     return ref_to_binary_data_local_var;
 end:

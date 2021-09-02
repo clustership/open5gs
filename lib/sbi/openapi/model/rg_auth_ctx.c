@@ -7,8 +7,9 @@
 OpenAPI_rg_auth_ctx_t *OpenAPI_rg_auth_ctx_create(
     OpenAPI_auth_result_e auth_result,
     char *supi,
+    bool is_auth_ind,
     int auth_ind
-    )
+)
 {
     OpenAPI_rg_auth_ctx_t *rg_auth_ctx_local_var = OpenAPI_malloc(sizeof(OpenAPI_rg_auth_ctx_t));
     if (!rg_auth_ctx_local_var) {
@@ -16,6 +17,7 @@ OpenAPI_rg_auth_ctx_t *OpenAPI_rg_auth_ctx_create(
     }
     rg_auth_ctx_local_var->auth_result = auth_result;
     rg_auth_ctx_local_var->supi = supi;
+    rg_auth_ctx_local_var->is_auth_ind = is_auth_ind;
     rg_auth_ctx_local_var->auth_ind = auth_ind;
 
     return rg_auth_ctx_local_var;
@@ -41,27 +43,23 @@ cJSON *OpenAPI_rg_auth_ctx_convertToJSON(OpenAPI_rg_auth_ctx_t *rg_auth_ctx)
     }
 
     item = cJSON_CreateObject();
-    if (!rg_auth_ctx->auth_result) {
-        ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [auth_result]");
-        goto end;
-    }
     if (cJSON_AddStringToObject(item, "authResult", OpenAPI_auth_result_ToString(rg_auth_ctx->auth_result)) == NULL) {
         ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [auth_result]");
         goto end;
     }
 
     if (rg_auth_ctx->supi) {
-        if (cJSON_AddStringToObject(item, "supi", rg_auth_ctx->supi) == NULL) {
-            ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [supi]");
-            goto end;
-        }
+    if (cJSON_AddStringToObject(item, "supi", rg_auth_ctx->supi) == NULL) {
+        ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [supi]");
+        goto end;
+    }
     }
 
-    if (rg_auth_ctx->auth_ind) {
-        if (cJSON_AddBoolToObject(item, "authInd", rg_auth_ctx->auth_ind) == NULL) {
-            ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [auth_ind]");
-            goto end;
-        }
+    if (rg_auth_ctx->is_auth_ind) {
+    if (cJSON_AddBoolToObject(item, "authInd", rg_auth_ctx->auth_ind) == NULL) {
+        ogs_error("OpenAPI_rg_auth_ctx_convertToJSON() failed [auth_ind]");
+        goto end;
+    }
     }
 
 end:
@@ -78,7 +76,6 @@ OpenAPI_rg_auth_ctx_t *OpenAPI_rg_auth_ctx_parseFromJSON(cJSON *rg_auth_ctxJSON)
     }
 
     OpenAPI_auth_result_e auth_resultVariable;
-
     if (!cJSON_IsString(auth_result)) {
         ogs_error("OpenAPI_rg_auth_ctx_parseFromJSON() failed [auth_result]");
         goto end;
@@ -88,26 +85,27 @@ OpenAPI_rg_auth_ctx_t *OpenAPI_rg_auth_ctx_parseFromJSON(cJSON *rg_auth_ctxJSON)
     cJSON *supi = cJSON_GetObjectItemCaseSensitive(rg_auth_ctxJSON, "supi");
 
     if (supi) {
-        if (!cJSON_IsString(supi)) {
-            ogs_error("OpenAPI_rg_auth_ctx_parseFromJSON() failed [supi]");
-            goto end;
-        }
+    if (!cJSON_IsString(supi)) {
+        ogs_error("OpenAPI_rg_auth_ctx_parseFromJSON() failed [supi]");
+        goto end;
+    }
     }
 
     cJSON *auth_ind = cJSON_GetObjectItemCaseSensitive(rg_auth_ctxJSON, "authInd");
 
     if (auth_ind) {
-        if (!cJSON_IsBool(auth_ind)) {
-            ogs_error("OpenAPI_rg_auth_ctx_parseFromJSON() failed [auth_ind]");
-            goto end;
-        }
+    if (!cJSON_IsBool(auth_ind)) {
+        ogs_error("OpenAPI_rg_auth_ctx_parseFromJSON() failed [auth_ind]");
+        goto end;
+    }
     }
 
     rg_auth_ctx_local_var = OpenAPI_rg_auth_ctx_create (
         auth_resultVariable,
-        supi ? ogs_strdup(supi->valuestring) : NULL,
+        supi ? ogs_strdup_or_assert(supi->valuestring) : NULL,
+        auth_ind ? true : false,
         auth_ind ? auth_ind->valueint : 0
-        );
+    );
 
     return rg_auth_ctx_local_var;
 end:
